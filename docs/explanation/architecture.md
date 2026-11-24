@@ -1,6 +1,6 @@
 # Architecture
 
-This document describes the design. The core, the report writers, the `run` command and five engines exist. The other engines, the local web page and the MCP server are not built. Details may change until the first release.
+This document describes the design. The core, the report writers, the `run` command and seven engines exist. The engines for a whole install and for a site URL, the local web page and the MCP server are not built. Details may change until the first release.
 
 ## Principles
 
@@ -40,7 +40,7 @@ Each external tool sits behind an adapter that knows how to run it and how to re
 |---|---|---|
 | PHP code | `php -l`, PHP_CodeSniffer with WordPress Coding Standards and the Plugin Check review rules, PHPCompatibilityWP, PHPStan with the WordPress extension | Built. See [Engines](../reference/engines.md) |
 | JSON | JSON Schema validation of `theme.json` and `block.json` | Built |
-| JS, CSS | `@wordpress/scripts` linters | Planned |
+| JS, CSS | ESLint and Stylelint with the WordPress configs | Built |
 | Install health | WP-CLI: `core verify-checksums`, `plugin verify-checksums`, `doctor`, `site-health` | Planned |
 | Vulnerabilities | WPVulnerability.net lookups by plugin, theme and core version | Planned |
 | Site from outside | Playwright with axe-core, Lighthouse, a link checker | Planned, separate module |
@@ -83,6 +83,8 @@ Most reports go to an AI assistant that then fixes the code. For that loop you c
 PHP tools need PHP. The design lets you choose at setup between a bundled runtime that needs nothing installed and the PHP already on your machine. See [ADR 0006](../adr/0006-php-runtime-user-choice.md).
 
 Only the second path exists now. The engines use the PHP on your `PATH`, and Composer installs PHP_CodeSniffer and the standards into the tool's own folder on the first run. See [ADR 0010](../adr/0010-install-php-tools-with-composer.md).
+
+The JavaScript and CSS tools are installed the same way, with npm. See [ADR 0013](../adr/0013-javascript-and-css-tools.md).
 
 ## Deferred
 

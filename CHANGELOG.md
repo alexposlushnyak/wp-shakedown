@@ -19,6 +19,8 @@ All notable changes to this project are recorded here. The format follows [Keep 
 - `phpstan` engine: PHPStan at level 5 with the WordPress extension.
 - `wp-json` engine: `theme.json`, style variations and `block.json` against the WordPress schemas.
 - For plugins, `wpcs` adds the review rules of Plugin Check.
+- `eslint` engine: JavaScript with the WordPress ESLint config.
+- `stylelint` engine: CSS and SCSS with the WordPress Stylelint config.
 - The PHP tools install themselves with Composer on the first run.
 - Progress lines on standard error while engines run.
 - Finding IDs that stay the same between runs.

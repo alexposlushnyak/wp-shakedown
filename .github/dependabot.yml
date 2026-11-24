@@ -8,6 +8,10 @@ updates:
       # The Node types follow the oldest Node.js the package supports.
       - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
+  - package-ecosystem: npm
+    directory: /js-tools
+    schedule:
+      interval: weekly
   - package-ecosystem: composer
     directory: /php-tools
     schedule:

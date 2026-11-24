@@ -16,6 +16,7 @@ Each record states one decision, the options that were considered, and the reaso
 | [0010](0010-install-php-tools-with-composer.md) | Install the PHP tools with Composer on first run | Accepted |
 | [0011](0011-style-findings-do-not-fail-a-run.md) | Style findings do not fail a run | Accepted |
 | [0012](0012-plugin-check-rules-inside-wpcs.md) | The Plugin Check review rules run inside the wpcs engine | Accepted |
+| [0013](0013-javascript-and-css-tools.md) | JavaScript and CSS tools are installed on first use and run with our config | Accepted |
 
 ## Adding a record
 

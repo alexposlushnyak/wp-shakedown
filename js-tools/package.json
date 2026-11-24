@@ -1,0 +1,13 @@
+{
+  "name": "wp-shakedown-js-tools",
+  "description": "JavaScript and CSS tools that wp-shakedown runs. Not a library.",
+  "private": true,
+  "license": "GPL-2.0-or-later",
+  "dependencies": {
+    "@wordpress/eslint-plugin": "^28.2.0",
+    "@wordpress/stylelint-config": "^27.2.0",
+    "eslint": "^10.15.0",
+    "globals": "^17.14.0",
+    "stylelint": "^17.16.0"
+  }
+}

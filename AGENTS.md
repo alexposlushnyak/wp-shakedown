@@ -10,7 +10,7 @@ The core, the report writers, the `run` command and three PHP engines exist.
 
 ## Commands
 
-You need Node.js 22.18 or newer. The engine tests also need PHP and Composer. Without them those tests are skipped.
+You need Node.js 22.18 or newer. The engine tests also need PHP and Composer. Without them those tests are skipped. The first test run downloads the tools into `.cache/`, which takes about a minute.
 
 | Command | What it does |
 |---|---|
@@ -37,6 +37,8 @@ To add an engine: write the adapter in `src/engines/`, add it to `src/engines/in
 | `src/engines/` | One adapter per external tool |
 | `src/php/` | What the PHP engines share: finding PHP, installing the tools, running PHPCS |
 | `php-tools/` | The Composer manifest and lock file for the PHP tools |
+| `src/js/` | What the JavaScript and CSS engines share: installing the tools, finding source files |
+| `js-tools/` | The npm manifest, lock file and configs for ESLint and Stylelint |
 | `src/report/` | The four report writers |
 | `src/cli.ts` | The `wp-shakedown` command |
 | `test/` | Tests, one file per source file |

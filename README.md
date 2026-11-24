@@ -2,7 +2,7 @@
 
 wp-shakedown runs the usual WordPress checks on a theme, a plugin or a whole WordPress folder from one place and writes one report.
 
-> In development and not on npm yet. Five checks work when you run it from source: PHP syntax, WordPress Coding Standards, PHP compatibility, PHPStan, and `theme.json` and `block.json` validation.
+> In development and not on npm yet. The code checks work when you run it from source: PHP syntax, WordPress Coding Standards, PHP compatibility, PHPStan, `theme.json` and `block.json`, JavaScript and CSS.
 
 ## Why
 
@@ -18,7 +18,7 @@ Testing WordPress work means running PHPCS, PHPStan, WP-CLI checks, Site Health 
 
 | Target | Checks |
 |---|---|
-| Theme or plugin folder | Coding standards, static analysis, PHP compatibility, `theme.json` and `block.json` |
+| Theme or plugin folder | Coding standards, static analysis, PHP compatibility, `theme.json` and `block.json`, JavaScript and CSS |
 | WordPress folder | The same code checks across every theme and plugin in it, plus core integrity, configuration, outdated or vulnerable plugins and themes |
 | Site URL (separate module) | Accessibility, performance, broken links |
 

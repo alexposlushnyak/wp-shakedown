@@ -1,6 +1,6 @@
 # Engines
 
-An engine runs one external tool and turns its output into findings. Five engines exist. All five run on a theme or a plugin, and on every theme and plugin inside a WordPress folder.
+An engine runs one external tool and turns its output into findings. Seven engines exist. All seven run on a theme or a plugin, and on every theme and plugin inside a WordPress folder.
 
 | ID | Tool | Finds |
 |---|---|---|
@@ -9,21 +9,31 @@ An engine runs one external tool and turns its output into findings. Five engine
 | `php-compat` | PHP_CodeSniffer with PHPCompatibilityWP | Code that the declared PHP version cannot run |
 | `phpstan` | PHPStan with the WordPress extension | Calls to functions that do not exist, wrong argument counts and types |
 | `wp-json` | JSON Schema validation | Mistakes in `theme.json`, style variations and `block.json` |
+| `eslint` | ESLint with the WordPress config | Undefined variables, React hook mistakes, accessibility and translation problems in JavaScript |
+| `stylelint` | Stylelint with the WordPress config | Unknown properties, invalid values and duplicate selectors in CSS and SCSS |
 
 Run one engine with `--engine <id>`.
 
 ## What they need
 
-The four PHP engines need PHP on your `PATH`. `wpcs`, `php-compat` and `phpstan` also need Composer the first time they run. `wp-json` needs neither. It downloads a schema from schemas.wp.org and keeps it for a week.
+The four PHP engines need PHP on your `PATH`. `wpcs`, `php-compat` and `phpstan` also need Composer the first time they run. `wp-json` needs neither. It downloads a schema from schemas.wp.org and keeps it for a week. `eslint` and `stylelint` need npm, which comes with Node.js.
 
-On that first run the tool installs PHP_CodeSniffer, the standards and PHPStan into `~/.wp-shakedown/tools/`. The versions are pinned in [`php-tools/composer.lock`](../../php-tools/composer.lock). You do not install PHPCS or the standards yourself, and a copy you already have is not used.
+On the first run the tool installs what the engines need into `~/.wp-shakedown/tools/`:
 
-When PHP or Composer is missing, the engine is skipped and the report says why. The run does not fail.
+| Tools | Pinned in | Size |
+|---|---|---|
+| PHP_CodeSniffer, the standards, PHPStan | [`php-tools/composer.lock`](../../php-tools/composer.lock) | about 60 MB |
+| ESLint, Stylelint and the WordPress configs | [`js-tools/package-lock.json`](../../js-tools/package-lock.json) | about 180 MB |
+
+You do not install any of these yourself, and a copy you already have is not used. The JavaScript and CSS tools are installed only when the target has a JavaScript or CSS file to check.
+
+When PHP, Composer or npm is missing, the engine is skipped and the report says why. The run does not fail.
 
 | Variable | Use |
 |---|---|
 | `WP_SHAKEDOWN_PHP` | Path to the PHP binary, when it is not on your `PATH` |
 | `WP_SHAKEDOWN_COMPOSER` | Path to Composer |
+| `WP_SHAKEDOWN_NPM` | Path to npm |
 | `WP_SHAKEDOWN_HOME` | Folder for tools and reports, in place of `~/.wp-shakedown` |
 
 ## php-lint
@@ -97,6 +107,36 @@ A file that is not valid JSON gives an `error` with the rule `json.syntax`. A sc
 
 The findings have no line number.
 
+## eslint
+
+Runs ESLint with the recommended config of `@wordpress/eslint-plugin` on `.js`, `.jsx`, `.mjs` and `.cjs` files.
+
+The config knows the browser globals, jQuery, `wp` and `ajaxurl`. Formatting rules are off, and so are the rules that check imports against a `package.json`.
+
+| Rules | Category | Severity |
+|---|---|---|
+| A file that does not parse | `correctness` | `error` |
+| `jsx-a11y/*` | `accessibility` | `warning` |
+| `@wordpress/i18n-*` | `i18n` | `warning` |
+| `no-var`, `prefer-const`, `jsdoc/*` and other rules about how code is written | `standards` | `info` |
+| Everything else, such as `no-undef`, `no-unused-vars`, `react-hooks/*` | `correctness` | `warning` |
+
+A parse error is the only `error`. ESLint sees one file at a time, so a variable that PHP hands to the script through `wp_localize_script` looks undefined. A warning is the right level for a finding the tool cannot be sure of.
+
+The engine uses its own config. A config in the project is not read.
+
+## stylelint
+
+Runs Stylelint with `@wordpress/stylelint-config` on `.css` files and with its SCSS variant on `.scss` files.
+
+| Rules | Category | Severity |
+|---|---|---|
+| A file that does not parse | `correctness` | `error` |
+| Unknown properties, units and at-rules, invalid values, duplicate selectors and properties, empty blocks | `correctness` | `warning` |
+| Everything else: naming, empty lines, named colors | `standards` | `info` |
+
 ## What is skipped
 
 The engines do not look into `vendor`, `node_modules` or folders whose name starts with a dot.
+
+`eslint` and `stylelint` also skip `build`, `dist` and `bower_components`, files that end in `.min.js` or `.min.css`, and generated files. A file counts as generated when it has a line longer than 500 characters near the top, a source map comment at the end, or a `.map` file next to it.

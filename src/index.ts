@@ -18,5 +18,7 @@ export { wpcs } from './engines/wpcs.ts';
 export { phpCompat } from './engines/php-compat.ts';
 export { phpstan } from './engines/phpstan.ts';
 export { wpJson } from './engines/wp-json.ts';
+export { eslint } from './engines/eslint.ts';
+export { stylelint } from './engines/stylelint.ts';
 export { progressLine } from './progress.ts';
 export { VERSION } from './version.ts';
