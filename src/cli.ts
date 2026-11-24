@@ -8,6 +8,7 @@ import { progressLine } from './progress.ts';
 import { noEngineLine, summaryLine } from './report/markdown.ts';
 import { exitCode } from './runner.ts';
 import { runSession } from './session.ts';
+import { startMcp } from './mcp/server.ts';
 import { startUi } from './ui/server.ts';
 import { VERSION } from './version.ts';
 import type { Severity } from './types.ts';
@@ -17,6 +18,7 @@ const HELP = `wp-shakedown ${VERSION}
 Usage:
   wp-shakedown run <path> [options]
   wp-shakedown ui [path] [options]
+  wp-shakedown mcp
 
 Options:
   --type <kind>       Treat the path as a theme, plugin or install
@@ -92,6 +94,10 @@ async function main(argv: string[]): Promise<number> {
       return 0;
     }
     const [command, input] = positionals;
+    if (command === 'mcp') {
+      await startMcp({ engines, input: process.stdin, output: process.stdout }).closed;
+      return 0;
+    }
     if (command === 'ui') return await ui(input, values.port, values['no-open'] ?? false);
     if (command !== 'run') throw new Error(`Unknown command "${command}". Run wp-shakedown --help.`);
     if (!input) throw new Error('Give a folder to test, for example: wp-shakedown run ./my-theme');

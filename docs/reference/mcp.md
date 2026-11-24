@@ -1,0 +1,81 @@
+# MCP server
+
+```
+wp-shakedown mcp
+```
+
+The command starts a [Model Context Protocol](https://modelcontextprotocol.io/) server on standard input and output. An AI assistant that speaks MCP can then run the checks itself, read the findings, fix the code and run the checks again.
+
+You do not start the command by hand. You name it in the assistant's settings and the assistant starts it.
+
+## Connect an assistant
+
+The tool is not on npm yet, so point the assistant at your build. Replace the path with the folder of your clone.
+
+Claude Code:
+
+```bash
+claude mcp add wp-shakedown -- node /path/to/wp-shakedown/dist/cli.js mcp
+```
+
+Any client that reads a JSON config, such as Cursor or Claude Desktop:
+
+```json
+{
+  "mcpServers": {
+    "wp-shakedown": {
+      "command": "node",
+      "args": ["/path/to/wp-shakedown/dist/cli.js", "mcp"]
+    }
+  }
+}
+```
+
+To use Wordfence Intelligence, add the key to the `env` of that entry as `WP_SHAKEDOWN_WORDFENCE_KEY`. [Engines](engines.md) lists the other variables.
+
+## Tools
+
+| Tool | What it does | Changes anything |
+|---|---|---|
+| `detect_target` | Says what a folder is: a theme, a plugin or a WordPress site, and which themes and plugins a site holds | No |
+| `list_engines` | Lists the engines with their IDs | No |
+| `run_checks` | Runs the engines on a folder and returns the report as Markdown | Writes report files. Never changes the target |
+| `list_findings` | Returns findings of the last run on a folder, filtered and paged, as JSON | No |
+
+### run_checks
+
+| Argument | Type | Meaning |
+|---|---|---|
+| `path` | string, required | Absolute path of the folder to test |
+| `engines` | array of strings | Engine IDs to run. Without it, every engine that fits the target runs |
+| `type` | `theme`, `plugin` or `install` | Use it only when detection is wrong |
+
+The answer is the same Markdown report that [`wp-shakedown run`](cli.md) writes, followed by the path of the report file. Code style findings are counted per rule. When a second run follows a first, the report says what is fixed, what is new and what is still open.
+
+A report longer than 60,000 characters is cut, and the answer says where the full file is.
+
+While it runs, the tool sends progress to a client that asked for it: one message per engine. A client can cancel the call, and the run stops. One run happens at a time.
+
+### list_findings
+
+| Argument | Type | Meaning |
+|---|---|---|
+| `path` | string, required | Absolute path of the folder that was tested |
+| `severity` | `error`, `warning` or `info` | |
+| `engine` | string | An engine ID |
+| `category` | string | Such as `security` or `compatibility` |
+| `file` | string | Part of a file path |
+| `id` | string | One finding ID |
+| `include_style` | boolean | Also list code style findings |
+| `limit` | 1 to 200 | The default is 50 |
+| `offset` | integer | Where the page starts |
+
+The tool reads the report of the last run. It does not run anything. Call `run_checks` first.
+
+## What to tell the assistant
+
+Something like this is enough:
+
+> Run wp-shakedown on this theme, fix the errors, and run it again until none are left.
+
+The server tells the assistant the same in its own instructions: run the checks, fix the errors first, run again to confirm.
