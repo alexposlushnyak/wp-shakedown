@@ -1,4 +1,9 @@
-# wp-shakedown
+<h1>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset=".github/assets/wordmark-on-dark.png">
+    <img alt="wp-shakedown" src=".github/assets/wordmark-on-light.png" width="360">
+  </picture>
+</h1>
 
 wp-shakedown runs the usual WordPress checks on a theme, a plugin or a whole WordPress folder from one place and writes one report.
 

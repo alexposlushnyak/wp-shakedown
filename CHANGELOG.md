@@ -9,6 +9,7 @@ All notable changes to this project are recorded here. The format follows [Keep 
 - `theme-check` engine: the checks of the wordpress.org theme directory, run with plain PHP and without WordPress.
 - Profiles: `--profile wporg-theme`, `wporg-plugin` or `site` runs the engines for one gate. The `run_checks` tool of the MCP server and the web page take a profile too.
 - The report names the profile a run used.
+- A wordmark, in the README and on the web page.
 
 ## [0.1.0] - 2026-11-24
 

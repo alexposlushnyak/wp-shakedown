@@ -46,7 +46,10 @@ export default function App() {
 	return (
 		<div className="mx-auto flex min-h-svh max-w-5xl flex-col gap-6 p-4 sm:p-6">
 			<header className="flex items-center justify-between">
-				<span className="text-lg font-semibold tracking-tight">wp-shakedown</span>
+				<span className="text-lg tracking-tight" aria-label="wp-shakedown">
+					<span className="font-light">wp</span>
+					<span className="font-bold">shakedown</span>
+				</span>
 				{info && <Badge variant="outline">{info.version}</Badge>}
 			</header>
 
