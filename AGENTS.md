@@ -21,7 +21,7 @@ You need Node.js 22.18 or newer. The engine tests also need PHP and Composer. Wi
 
 Node runs the TypeScript sources directly, so tests need no build. Write TypeScript that Node can strip: no enums, no namespaces, no parameter properties, and `.ts` in relative imports.
 
-The core has no runtime dependencies. Add one only when an engine needs it, and say why in the pull request.
+The package has one runtime dependency, `ajv`, which the `wp-json` engine uses to validate JSON against a schema. Add another only when an engine needs it, and say why in the pull request.
 
 Tests keep tools and reports in `.cache/` through `WP_SHAKEDOWN_HOME`. A test must not write to `~/.wp-shakedown`.
 

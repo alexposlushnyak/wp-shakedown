@@ -21,7 +21,7 @@ Point it at a theme folder. A plugin folder or a whole WordPress folder works th
 node dist/cli.js run /path/to/your-theme
 ```
 
-The first run installs PHP_CodeSniffer and the WordPress standards. That takes a few seconds and happens once.
+The first run installs PHP_CodeSniffer, the WordPress standards and PHPStan. That takes about half a minute and happens once.
 
 You then see one line per engine, and a summary:
 
@@ -31,7 +31,9 @@ ok php-lint: 1 finding, 0.2s
 ok wpcs: 2 findings, 0.2s
   php-compat: Checking against PHP 7.4 and newer.
 ok php-compat: 0 findings, 0.2s
-2 errors, 1 warning, 0 notes.
+ok phpstan: 1 finding, 1.8s
+ok wp-json: 0 findings, 0.1s
+2 errors, 2 warnings, 0 notes.
 Report: /Users/you/.wp-shakedown/reports/your-theme-1a2b3c4d/report.md
 ```
 

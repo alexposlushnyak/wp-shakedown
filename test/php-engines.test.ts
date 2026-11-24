@@ -4,6 +4,8 @@ import { describe, test } from 'node:test';
 import './env.ts';
 import { phpCompat } from '../src/engines/php-compat.ts';
 import { phpLint } from '../src/engines/php-lint.ts';
+import { phpstan } from '../src/engines/phpstan.ts';
+import { wpJson } from '../src/engines/wp-json.ts';
 import { wpcs } from '../src/engines/wpcs.ts';
 import { exec } from '../src/exec.ts';
 import { resetPhpCache } from '../src/php/php.ts';
@@ -11,7 +13,7 @@ import { resetToolsCache } from '../src/php/tools.ts';
 import { run } from '../src/runner.ts';
 import { detectTarget } from '../src/target.ts';
 import type { RunEvent } from '../src/types.ts';
-import { makeSample, tmp, write } from './helpers.ts';
+import { makeSample, makeTheme, tmp, write } from './helpers.ts';
 
 const available = await Promise.all([exec('php', ['-v']), exec('composer', ['--version'])]).then(
   (r) => r.every((x) => x.code === 0),
@@ -19,13 +21,13 @@ const available = await Promise.all([exec('php', ['-v']), exec('composer', ['--v
 );
 const opts = { timeout: 180000, ...(available ? {} : { skip: 'PHP and Composer are needed' }) };
 
-const engines = [phpLint, wpcs, phpCompat];
+const engines = [phpLint, wpcs, phpCompat, phpstan, wpJson];
 
 describe('php engines', opts, () => {
   test('lint, wpcs and compat report the sample plugin', opts, async (t) => {
     const dir = makeSample(tmp(t));
     const r = await run(detectTarget(dir), { engines });
-    assert.deepEqual(r.engines.map((e) => e.status), ['ok', 'ok', 'ok'], JSON.stringify(r.engines));
+    assert.deepEqual(r.engines.map((e) => e.status), ['ok', 'ok', 'ok', 'ok', 'ok'], JSON.stringify(r.engines));
 
     const lint = r.findings.filter((f) => f.engine === 'php-lint');
     assert.equal(lint.length, 1);
@@ -48,6 +50,47 @@ describe('php engines', opts, () => {
     assert.ok(compat);
     assert.equal(compat.severity, 'error');
     assert.equal(compat.category, 'compatibility');
+
+    const short = wp.find((f) => f.rule === 'PluginCheck.CodeAnalysis.ShortURL.Found');
+    assert.ok(short);
+    assert.equal(short.category, 'correctness');
+  });
+
+  // The sample has a file with a syntax error. PHPStan alone would report that and nothing else.
+  test('phpstan reports the sample plugin and leaves out the file that does not parse', async (t) => {
+    const dir = makeSample(tmp(t));
+    const events: RunEvent[] = [];
+    const r = await run(detectTarget(dir), { engines: [phpstan], onEvent: (e) => events.push(e) });
+    assert.ok(events.some((e) => e.type === 'engine:note' && e.message === 'Left out 1 file that PHP cannot parse. php-lint reports them.'));
+    assert.ok(!r.findings.some((f) => f.rule === 'phpstan.parse'));
+    assert.equal(r.engines[0]!.status, 'ok', r.engines[0]!.reason);
+    const stan = r.findings;
+    const nf = stan.find((f) => f.rule === 'function.notFound');
+    assert.ok(nf && nf.message.includes('undefined_function_call'));
+    assert.ok(stan.some((f) => f.rule === 'arguments.count'));
+    assert.ok(stan.every((f) => f.severity === 'warning' && f.location.file === 'sample.php'), JSON.stringify(stan));
+  });
+
+  test('wpcs skips the plugin review rules for a theme', async (t) => {
+    const dir = makeTheme(tmp(t));
+    write(path.join(dir, 'functions.php'), "<?php\nfunction sample_more() {\n\t$u = 'https://bit.ly/abc';\n\treturn $u;\n}\n");
+    const r = await run(detectTarget(dir), { engines: [wpcs] });
+    assert.equal(r.engines[0]!.status, 'ok', r.engines[0]!.reason);
+    assert.ok(!r.findings.some((f) => f.rule.startsWith('PluginCheck.')));
+  });
+
+  test('wp-json reports schema and syntax problems in a theme', async (t) => {
+    const dir = makeTheme(tmp(t));
+    write(path.join(dir, 'theme.json'), '{"$schema":"https://schemas.wp.org/trunk/theme.json","version":3,"settings":{"notARealSetting":true}}');
+    write(path.join(dir, 'styles', 'broken.json'), '{ "version": 3, }');
+    const r = await run(detectTarget(dir), { engines: [wpJson] });
+    const st = r.engines[0]!.status;
+    assert.ok(st === 'ok' || st === 'skipped', r.engines[0]!.reason);
+    if (st !== 'ok') return;
+    // The WordPress schema flags unknown names through propertyNames, older drafts through additionalProperties.
+    const extra = r.findings.find((f) => /^schema\.(additionalProperties|propertyNames)$/.test(f.rule));
+    assert.ok(extra && extra.message.includes('notARealSetting'), JSON.stringify(r.findings));
+    assert.equal(r.findings.find((f) => f.rule === 'json.syntax')?.severity, 'error');
   });
 
   test('a missing PHP skips every engine', async (t) => {
@@ -58,8 +101,8 @@ describe('php engines', opts, () => {
     resetToolsCache();
     try {
       const r = await run(detectTarget(dir), { engines });
-      assert.deepEqual(r.engines.map((e) => e.status), ['skipped', 'skipped', 'skipped']);
-      for (const e of r.engines) assert.ok(e.reason?.startsWith('PHP is not installed.'), e.reason);
+      assert.deepEqual(r.engines.filter((e) => e.engine !== 'wp-json').map((e) => e.status), ['skipped', 'skipped', 'skipped', 'skipped']);
+      for (const e of r.engines.filter((x) => x.engine !== 'wp-json')) assert.ok(e.reason?.startsWith('PHP is not installed.'), e.reason);
     } finally {
       if (before === undefined) delete process.env.WP_SHAKEDOWN_PHP;
       else process.env.WP_SHAKEDOWN_PHP = before;

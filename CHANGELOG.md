@@ -16,6 +16,9 @@ All notable changes to this project are recorded here. The format follows [Keep 
 - `php-lint` engine: PHP syntax errors.
 - `wpcs` engine: PHP_CodeSniffer with the WordPress Coding Standards, or with the project's own ruleset. Style findings rank below errors.
 - `php-compat` engine: PHPCompatibilityWP against the `Requires PHP` version.
+- `phpstan` engine: PHPStan at level 5 with the WordPress extension.
+- `wp-json` engine: `theme.json`, style variations and `block.json` against the WordPress schemas.
+- For plugins, `wpcs` adds the review rules of Plugin Check.
 - The PHP tools install themselves with Composer on the first run.
 - Progress lines on standard error while engines run.
 - Finding IDs that stay the same between runs.

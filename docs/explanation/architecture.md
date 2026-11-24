@@ -1,6 +1,6 @@
 # Architecture
 
-This document describes the design. The core, the report writers, the `run` command and three PHP engines exist. The other engines, the local web page and the MCP server are not built. Details may change until the first release.
+This document describes the design. The core, the report writers, the `run` command and five engines exist. The other engines, the local web page and the MCP server are not built. Details may change until the first release.
 
 ## Principles
 
@@ -38,16 +38,16 @@ Each external tool sits behind an adapter that knows how to run it and how to re
 
 | Area | Engines | State |
 |---|---|---|
-| PHP code | `php -l`, PHP_CodeSniffer with WordPress Coding Standards, PHPCompatibilityWP | Built. See [Engines](../reference/engines.md) |
-| PHP code | PHPStan with the WordPress extension, the static rules of Plugin Check | Planned |
-| JS, CSS, JSON | `@wordpress/scripts` linters, JSON Schema validation of `theme.json` and `block.json` | Planned |
+| PHP code | `php -l`, PHP_CodeSniffer with WordPress Coding Standards and the Plugin Check review rules, PHPCompatibilityWP, PHPStan with the WordPress extension | Built. See [Engines](../reference/engines.md) |
+| JSON | JSON Schema validation of `theme.json` and `block.json` | Built |
+| JS, CSS | `@wordpress/scripts` linters | Planned |
 | Install health | WP-CLI: `core verify-checksums`, `plugin verify-checksums`, `doctor`, `site-health` | Planned |
 | Vulnerabilities | WPVulnerability.net lookups by plugin, theme and core version | Planned |
 | Site from outside | Playwright with axe-core, Lighthouse, a link checker | Planned, separate module |
 
 The tools disagree on severity as well as on format. Each adapter maps its tool's levels to `error`, `warning` and `info`, and style findings never rank as errors. See [ADR 0011](../adr/0011-style-findings-do-not-fail-a-run.md).
 
-Plugin Check and Theme Check need a running WordPress. [ADR 0007](../adr/0007-defer-sandbox-wordpress.md) tracks how they fit without a sandbox.
+Plugin Check and Theme Check need a running WordPress. The code-reading part of Plugin Check runs without one, inside the `wpcs` engine ([ADR 0012](../adr/0012-plugin-check-rules-inside-wpcs.md)). The rest waits for the sandbox ([ADR 0007](../adr/0007-defer-sandbox-wordpress.md)).
 
 ## Findings
 

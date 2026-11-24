@@ -81,6 +81,12 @@ function sample_render( $title ) {
 	echo $title;
 	$r = match ( $title ) { 'a' => 1, default => 2 };
 }
+
+function sample_more() {
+	$u = 'https://bit.ly/abc';
+	undefined_function_call();
+	return get_the_title( 'not-an-id', 1, 2 );
+}
 `;
 
 export function makeSample(dir: string): string {
