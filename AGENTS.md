@@ -6,7 +6,34 @@ Instructions for AI coding agents working in this repository. Humans should star
 
 wp-shakedown is a local test runner for WordPress themes, plugins and installs. It orchestrates existing tools, runs outside WordPress, and produces one report. Stack: Node.js and TypeScript, one npm package.
 
-The repository currently holds documentation only. No tool code exists yet.
+The core, the report writers and the `run` command exist. No engine exists yet.
+
+## Commands
+
+You need Node.js 22.18 or newer.
+
+| Command | What it does |
+|---|---|
+| `npm install` | Installs the two dev dependencies |
+| `npm run typecheck` | Type-checks `src` and `test` |
+| `npm run build` | Compiles `src` to `dist` |
+| `npm test` | Runs the tests with the Node test runner |
+
+Node runs the TypeScript sources directly, so tests need no build. Write TypeScript that Node can strip: no enums, no namespaces, no parameter properties, and `.ts` in relative imports.
+
+The core has no runtime dependencies. Add one only when an engine needs it, and say why in the pull request.
+
+## Layout
+
+| Path | Holds |
+|---|---|
+| `src/types.ts` | The finding and run result types. Every other file builds on them |
+| `src/target.ts` | Works out what a path is |
+| `src/runner.ts` | Runs engines and builds the result |
+| `src/engines/` | One adapter per external tool |
+| `src/report/` | The four report writers |
+| `src/cli.ts` | The `wp-shakedown` command |
+| `test/` | Tests, one file per source file |
 
 ## Before you start
 
@@ -50,6 +77,7 @@ Public text here must read as if a person wrote it. Before you commit any text, 
 | Path | Holds |
 |---|---|
 | [README.md](README.md) | What the project is, in under a minute |
+| [docs/reference/](docs/reference/cli.md) | The command line and the report format |
 | [docs/explanation/](docs/explanation/architecture.md) | How the tool is designed and why |
 | [docs/adr/](docs/adr/README.md) | Architecture decision records |
 | [CHANGELOG.md](CHANGELOG.md) | What changed in each release |
@@ -58,3 +86,5 @@ Public text here must read as if a person wrote it. Before you commit any text, 
 ## AI disclosure
 
 AI agents write most of this project. The maintainer directs the work and reviews it. A commit made with an agent carries a `Co-Authored-By` trailer that names the agent.
+
+The project was started with Claude Fable 5.2 from Anthropic, running in Claude Code. When the model changes, update this line.
