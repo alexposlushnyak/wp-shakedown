@@ -10,6 +10,13 @@ All notable changes to this project are recorded here. The format follows [Keep 
 - Profiles: `--profile wporg-theme`, `wporg-plugin` or `site` runs the engines for one gate. The `run_checks` tool of the MCP server and the web page take a profile too.
 - The report names the profile a run used.
 - A wordmark, in the README and on the web page.
+- `--depth quick`, `standard` or `deep` sets how thorough a run is.
+- Checks of your own: a JSON file in `~/.wp-shakedown/checks/` adds a pattern, a list of files or a command to the run as its own engine, with a setting for what happens when the check itself breaks.
+
+### Changed
+
+- `phpstan` runs at `--depth deep` and no longer by default.
+- Stale baseline entries are reported only by a run that left out no engine.
 
 ## [0.1.0] - 2026-11-24
 

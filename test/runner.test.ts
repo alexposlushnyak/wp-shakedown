@@ -149,3 +149,28 @@ test('reports stale baseline entries only after a complete run', async (t) => {
   assert.deepEqual((await run(target, { engines: [a], only: ['a'], baseline })).staleBaseline, []);
   assert.deepEqual((await run(target, { engines: [a, skipped], baseline })).staleBaseline, []);
 });
+
+const withDepth = (id: string, depth?: 'quick' | 'standard' | 'deep') => ({ ...ok(id, ['theme'], []), ...(depth ? { depth } : {}) });
+
+test('depth filters engines and goes into the result', async (t) => {
+  const target = detectTarget(makeTheme(tmp(t)));
+  const engines = [withDepth('q', 'quick'), withDepth('s'), withDepth('d', 'deep')];
+  const ids = async (o: Omit<Parameters<typeof run>[1], 'engines'>) => (await run(target, { engines, ...o })).engines.map((e) => e.engine);
+  assert.deepEqual(await ids({ depth: 'quick' }), ['q']);
+  assert.deepEqual(await ids({}), ['q', 's']);
+  assert.deepEqual(await ids({ depth: 'deep' }), ['q', 's', 'd']);
+  assert.deepEqual(await ids({ depth: 'quick', only: ['d'] }), ['d']);
+  assert.deepEqual(await ids({ depth: 'quick', only: ['s', 'd'], profile: 'site' }), []);
+  assert.equal((await run(target, { engines })).depth, 'standard');
+  assert.equal((await run(target, { engines, depth: 'quick' })).depth, 'quick');
+});
+
+test('a depth that left out a fitting engine keeps stale baseline entries quiet', async (t) => {
+  const target = detectTarget(makeTheme(tmp(t)));
+  const baseline = { schema: 1 as const, entries: [{ id: 'gone', reason: 'accepted' }] };
+  const a = withDepth('a');
+  assert.deepEqual((await run(target, { engines: [a, withDepth('d', 'deep')], baseline })).staleBaseline, []);
+  assert.deepEqual((await run(target, { engines: [a, withDepth('d', 'deep')], baseline, depth: 'deep' })).staleBaseline, ['gone']);
+  const other = { ...withDepth('p', 'deep'), kinds: ['plugin' as const] };
+  assert.deepEqual((await run(target, { engines: [a, other], baseline })).staleBaseline, ['gone']);
+});

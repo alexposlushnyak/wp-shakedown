@@ -85,6 +85,7 @@ export const config: Engine = {
   id: 'config',
   title: 'Configuration and risky files',
   kinds: ['install'],
+  depth: 'quick',
   async run({ target, note }) {
     const root = target.path;
     const out: RawFinding[] = [];

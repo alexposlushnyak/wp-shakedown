@@ -22,6 +22,8 @@ Each record states one decision, the options that were considered, and the reaso
 | [0016](0016-mcp-server-written-by-hand.md) | The MCP server speaks the protocol by hand | Accepted |
 | [0017](0017-theme-check-without-wordpress.md) | Theme Check runs without WordPress | Accepted |
 | [0018](0018-a-profile-is-a-list-of-engines.md) | A profile is a list of engines | Accepted |
+| [0019](0019-depth-is-a-filter-on-engines.md) | Depth is a filter on engines | Accepted |
+| [0020](0020-user-checks-live-in-the-home-folder.md) | Checks the user writes live in the home folder | Accepted |
 
 ## Adding a record
 

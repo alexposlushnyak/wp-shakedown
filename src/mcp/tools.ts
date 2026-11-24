@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { defaultReportDir, readPreviousRun } from '../report/write.ts';
 import { toMarkdown } from '../report/markdown.ts';
+import { customEngines } from '../engines/custom.ts';
 import { profiles } from '../profiles.ts';
 import { runSession } from '../session.ts';
 import { detectTarget } from '../target.ts';
@@ -73,7 +74,8 @@ export const tools: Tool[] = [
     description: 'Lists the checks wp-shakedown can run, with the ID to pass to run_checks.',
     inputSchema: schema({}, []),
     annotations: { readOnlyHint: true },
-    handler: async (_args, ctx) => JSON.stringify(ctx.engines.map(({ id, title, kinds }) => ({ id, title, kinds })), null, 2),
+    handler: async (_args, ctx) =>
+      JSON.stringify([...ctx.engines, ...customEngines()].map(({ id, title, kinds, depth }) => ({ id, title, kinds, depth: depth ?? 'standard' })), null, 2),
   },
   {
     name: 'run_checks',
@@ -89,6 +91,7 @@ export const tools: Tool[] = [
           enum: profiles.map((p) => p.id),
           description: 'Run only the engines for one gate. ' + profiles.map((p) => `${p.id}: ${p.summary}`).join(' '),
         },
+        depth: { type: 'string', enum: ['quick', 'standard', 'deep'], description: 'How thorough the run is. quick runs the fast checks, standard is the default, deep adds static analysis.' },
         type: { type: 'string', enum: ['theme', 'plugin', 'install'], description: 'Use only when detection is wrong.' },
       },
       ['path'],
@@ -97,19 +100,22 @@ export const tools: Tool[] = [
     handler: async (args, ctx) => {
       if (running) throw new Error('A run is in progress. Wait for it to finish.');
       const only = args.engines as string[] | undefined;
+      const all = [...ctx.engines, ...customEngines()];
       for (const id of only ?? []) {
-        if (!ctx.engines.some((e) => e.id === id)) throw new Error(`Unknown engine "${id}". Call list_engines for the IDs.`);
+        if (!all.some((e) => e.id === id)) throw new Error(`Unknown engine "${id}". Call list_engines for the IDs.`);
       }
       running = true;
       try {
         let total = 0;
         let done = 0;
         const type = args.type as 'theme' | 'plugin' | 'install' | undefined;
+        const depth = args.depth as 'quick' | 'standard' | 'deep' | undefined;
         const s = await runSession({
           input: args.path as string,
           ...(type ? { type } : {}),
           ...(only?.length ? { only } : {}),
           ...(args.profile ? { profile: args.profile as string } : {}),
+          ...(depth ? { depth } : {}),
           engines: ctx.engines,
           signal: ctx.signal,
           onEvent: (e) => {

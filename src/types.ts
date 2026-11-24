@@ -12,6 +12,10 @@ export type Category =
   | 'health'
   | 'other';
 
+/** How thorough a run is. Each depth runs everything the one before it runs. */
+export const DEPTHS = ['quick', 'standard', 'deep'] as const;
+export type Depth = (typeof DEPTHS)[number];
+
 export type TargetKind = 'theme' | 'plugin' | 'install' | 'url';
 
 export interface Target {
@@ -66,6 +70,8 @@ export interface Engine {
   id: string;
   title: string;
   kinds: readonly TargetKind[];
+  /** The lightest depth that runs the engine. Absent means standard. */
+  depth?: Depth;
   run(ctx: EngineContext): Promise<RawFinding[]>;
 }
 
@@ -115,6 +121,8 @@ export interface RunResult {
   };
   /** ID of the profile the run used. Absent when the run used none. */
   profile?: string;
+  /** Absent in a report written before depth existed. Read that as standard. */
+  depth?: Depth;
   startedAt: string;
   finishedAt: string;
   engines: EngineRun[];

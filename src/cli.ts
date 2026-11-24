@@ -27,6 +27,7 @@ Options:
   --type <kind>       Treat the path as a theme, plugin or install
   --engine <id>       Run only this engine. Repeat for more than one
   --profile <id>      Run the engines for one gate: ${profileList}
+  --depth <level>     How thorough the run is: quick, standard or deep. The default is standard
   --out <dir>         Write the report here
   --baseline <file>   Use this baseline file
   --fail-on <level>   Exit 1 at this severity: error, warning, info or never
@@ -81,6 +82,7 @@ async function main(argv: string[]): Promise<number> {
         type: { type: 'string' },
         engine: { type: 'string', multiple: true },
         profile: { type: 'string' },
+        depth: { type: 'string' },
         out: { type: 'string' },
         baseline: { type: 'string' },
         'fail-on': { type: 'string' },
@@ -110,6 +112,10 @@ async function main(argv: string[]): Promise<number> {
     if (type !== undefined && type !== 'theme' && type !== 'plugin' && type !== 'install') {
       throw new Error('--type must be theme, plugin or install.');
     }
+    const depth = values.depth;
+    if (depth !== undefined && depth !== 'quick' && depth !== 'standard' && depth !== 'deep') {
+      throw new Error('--depth must be quick, standard or deep.');
+    }
     const failOn = values['fail-on'] ?? 'error';
     if (failOn !== 'error' && failOn !== 'warning' && failOn !== 'info' && failOn !== 'never') {
       throw new Error('--fail-on must be error, warning, info or never.');
@@ -120,6 +126,7 @@ async function main(argv: string[]): Promise<number> {
       ...(type ? { type } : {}),
       ...(values.engine ? { only: values.engine } : {}),
       ...(values.profile ? { profile: values.profile } : {}),
+      ...(depth ? { depth } : {}),
       ...(values.out ? { out: values.out } : {}),
       ...(values.baseline ? { baselineFile: values.baseline } : {}),
       engines,

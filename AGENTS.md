@@ -42,6 +42,7 @@ To add an engine: write the adapter in `src/engines/`, add it to `src/engines/in
 | `src/health/` | What the install engines share: reading versions and packages from a WordPress folder |
 | `src/net.ts` | Cached requests to public services. Tests replace its fetch and never use the network |
 | `php-tools/` | The Composer manifest and lock file for the PHP tools, and the script that runs Theme Check |
+| `src/engines/custom.ts` | Turns the check files in `~/.wp-shakedown/checks` into engines |
 | `src/profiles.ts` | The profiles: which engines run for which gate |
 | `src/js/` | What the JavaScript and CSS engines share: installing the tools, finding source files |
 | `js-tools/` | The npm manifest, lock file and configs for ESLint and Stylelint |

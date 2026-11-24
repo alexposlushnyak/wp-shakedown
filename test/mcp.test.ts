@@ -93,8 +93,8 @@ test('list_engines returns the engines as JSON', async (t) => {
   const s = boot(t, [one, two]);
   const r = await s.callTool(1, 'list_engines');
   assert.deepEqual(JSON.parse(r.result.content[0].text), [
-    { id: 'one', title: 'one', kinds: ['theme'] },
-    { id: 'two', title: 'two', kinds: ['plugin'] },
+    { id: 'one', title: 'one', kinds: ['theme'], depth: 'standard' },
+    { id: 'two', title: 'two', kinds: ['plugin'], depth: 'standard' },
   ]);
 });
 
@@ -225,4 +225,14 @@ test('run_checks lists the profiles and refuses an unknown one', async (t) => {
   const bad = await s.callTool(2, 'run_checks', { path: dir, profile: 'nope' });
   assert.equal(bad.result.isError, true);
   assert.match(bad.result.content[0].text, /^Invalid arguments: .*profile/);
+});
+
+test('run_checks offers the depths and refuses an unknown one', async (t) => {
+  const s = boot(t, [one]);
+  const { tools } = (await s.request(1, 'tools/list')).result;
+  const schema = tools.find((x: Msg) => x.name === 'run_checks').inputSchema;
+  assert.deepEqual(schema.properties.depth.enum, ['quick', 'standard', 'deep']);
+  const bad = await s.callTool(2, 'run_checks', { path: makeTheme(tmp(t)), depth: 'nope' });
+  assert.equal(bad.result.isError, true);
+  assert.match(bad.result.content[0].text, /^Invalid arguments: .*depth/);
 });
