@@ -16,16 +16,19 @@
   "files": [
     "dist",
     "php-tools",
-    "js-tools"
+    "js-tools",
+    "ui/dist"
   ],
   "engines": {
     "node": ">=22.18"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.build.json && npm run build:ui",
     "prepack": "npm run build",
     "typecheck": "tsc -p tsconfig.json",
-    "test": "node --test \"test/**/*.test.ts\""
+    "test": "node --test \"test/**/*.test.ts\"",
+    "build:ui": "npm --prefix ui run build",
+    "build:core": "tsc -p tsconfig.build.json"
   },
   "repository": {
     "type": "git",

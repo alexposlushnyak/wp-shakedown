@@ -23,6 +23,7 @@ All notable changes to this project are recorded here. The format follows [Keep 
 - `stylelint` engine: CSS and SCSS with the WordPress Stylelint config.
 - The PHP tools install themselves with Composer on the first run.
 - Progress lines on standard error while engines run.
+- `wp-shakedown ui`: a local web page to pick a folder, start a run, watch each engine and read the findings.
 - Finding IDs that stay the same between runs.
 - Reports in Markdown, JSON, SARIF and HTML, written outside the target.
 - Comparison with the previous run on the same target.

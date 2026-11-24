@@ -83,5 +83,6 @@ A suppressed finding stays in the report under its own heading and does not coun
 
 | Command | What it does |
 |---|---|
+| `wp-shakedown ui [path]` | Starts the [local web page](ui.md) |
 | `wp-shakedown --help` | Prints the usage text |
 | `wp-shakedown --version` | Prints the version |

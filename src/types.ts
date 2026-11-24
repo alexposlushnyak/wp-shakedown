@@ -111,7 +111,7 @@ export interface RunResult {
 }
 
 export type RunEvent =
-  | { type: 'run:start'; target: Target }
+  | { type: 'run:start'; target: Target; jobs: { engine: string; unit?: string }[] }
   | { type: 'engine:start'; engine: string; unit?: string }
   | { type: 'engine:note'; engine: string; unit?: string; message: string }
   | { type: 'engine:end'; run: EngineRun }
