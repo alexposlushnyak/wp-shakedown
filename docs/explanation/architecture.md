@@ -1,6 +1,6 @@
 # Architecture
 
-This document describes the design. The core, the report writers, the `run` command, seven engines and the local web page exist. The engines for a whole install and for a site URL and the MCP server are not built. Details may change until the first release.
+This document describes the design. The core, the report writers, the `run` command, eleven engines and the local web page exist. The engines for a running site and for a site URL and the MCP server are not built. Details may change until the first release.
 
 ## Principles
 
@@ -27,7 +27,7 @@ flowchart LR
 | Target | How it is tested |
 |---|---|
 | Theme or plugin folder | Code checks that need no running WordPress |
-| WordPress folder | The same code checks on every theme and plugin inside it, plus health checks through WP-CLI. The tool only reads. |
+| WordPress folder | The same code checks on every theme and plugin inside it, plus health checks of the install. The tool only reads. |
 | Site, by URL | Checks from the outside, in a browser. This is a separate module. |
 
 A WordPress folder is tested the same way as a single theme or plugin, on your machine. The tool finds the themes and plugins in `wp-content` and runs the code checks on each, then adds the checks that only make sense for a whole install.
@@ -41,8 +41,9 @@ Each external tool sits behind an adapter that knows how to run it and how to re
 | PHP code | `php -l`, PHP_CodeSniffer with WordPress Coding Standards and the Plugin Check review rules, PHPCompatibilityWP, PHPStan with the WordPress extension | Built. See [Engines](../reference/engines.md) |
 | JSON | JSON Schema validation of `theme.json` and `block.json` | Built |
 | JS, CSS | ESLint and Stylelint with the WordPress configs | Built |
-| Install health | WP-CLI: `core verify-checksums`, `plugin verify-checksums`, `doctor`, `site-health` | Planned |
-| Vulnerabilities | WPVulnerability.net lookups by plugin, theme and core version | Planned |
+| Install health | Official checksums for core and plugins, current versions from wordpress.org, `wp-config.php` and risky files | Built. See [ADR 0015](../adr/0015-install-health-without-a-running-site.md) |
+| Vulnerabilities | WPVulnerability.net by plugin, theme and core version, and Wordfence Intelligence with a key | Built |
+| Running site | Site Health, autoloaded options and cron through WP-CLI | Planned |
 | Site from outside | Playwright with axe-core, Lighthouse, a link checker | Planned, separate module |
 
 The tools disagree on severity as well as on format. Each adapter maps its tool's levels to `error`, `warning` and `info`, and style findings never rank as errors. See [ADR 0011](../adr/0011-style-findings-do-not-fail-a-run.md).

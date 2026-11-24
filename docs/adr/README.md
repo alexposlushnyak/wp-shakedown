@@ -18,6 +18,7 @@ Each record states one decision, the options that were considered, and the reaso
 | [0012](0012-plugin-check-rules-inside-wpcs.md) | The Plugin Check review rules run inside the wpcs engine | Accepted |
 | [0013](0013-javascript-and-css-tools.md) | JavaScript and CSS tools are installed on first use and run with our config | Accepted |
 | [0014](0014-local-web-page.md) | The local web page is a built React page with shadcn/ui, fed by server-sent events | Accepted |
+| [0015](0015-install-health-without-a-running-site.md) | Install health works from files and public data, without a running site | Accepted |
 
 ## Adding a record
 

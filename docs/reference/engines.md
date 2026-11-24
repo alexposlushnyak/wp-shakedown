@@ -1,6 +1,8 @@
 # Engines
 
-An engine runs one external tool and turns its output into findings. Seven engines exist. All seven run on a theme or a plugin, and on every theme and plugin inside a WordPress folder.
+An engine runs one check and turns the result into findings. Eleven engines exist, in two groups.
+
+Seven check code. They run on a theme or a plugin, and on every theme and plugin inside a WordPress folder.
 
 | ID | Tool | Finds |
 |---|---|---|
@@ -11,6 +13,15 @@ An engine runs one external tool and turns its output into findings. Seven engin
 | `wp-json` | JSON Schema validation | Mistakes in `theme.json`, style variations and `block.json` |
 | `eslint` | ESLint with the WordPress config | Undefined variables, React hook mistakes, accessibility and translation problems in JavaScript |
 | `stylelint` | Stylelint with the WordPress config | Unknown properties, invalid values and duplicate selectors in CSS and SCSS |
+
+Four check a WordPress folder as a whole. They read files and ask public services. WordPress does not have to run, and they need no database and no WP-CLI. See [Install health](#install-health).
+
+| ID | Finds |
+|---|---|
+| `integrity` | Core and plugin files that differ from the official release |
+| `updates` | WordPress, plugins and themes that are behind, abandoned or closed |
+| `vulnerabilities` | Known vulnerabilities in the installed versions |
+| `config` | Risky settings in `wp-config.php` and files that should not be in a web folder |
 
 Run one engine with `--engine <id>`.
 
@@ -34,6 +45,7 @@ When PHP, Composer or npm is missing, the engine is skipped and the report says 
 | `WP_SHAKEDOWN_PHP` | Path to the PHP binary, when it is not on your `PATH` |
 | `WP_SHAKEDOWN_COMPOSER` | Path to Composer |
 | `WP_SHAKEDOWN_NPM` | Path to npm |
+| `WP_SHAKEDOWN_WORDFENCE_KEY` | API key for Wordfence Intelligence, used by the `vulnerabilities` engine |
 | `WP_SHAKEDOWN_HOME` | Folder for tools and reports, in place of `~/.wp-shakedown` |
 
 ## php-lint
@@ -134,6 +146,82 @@ Runs Stylelint with `@wordpress/stylelint-config` on `.css` files and with its S
 | A file that does not parse | `correctness` | `error` |
 | Unknown properties, units and at-rules, invalid values, duplicate selectors and properties, empty blocks | `correctness` | `warning` |
 | Everything else: naming, empty lines, named colors | `standards` | `info` |
+
+## Install health
+
+These four engines run when the target is a WordPress folder.
+
+### What they send
+
+`integrity`, `updates` and `vulnerabilities` ask public services about the software they find. A request holds a plugin or theme slug and a version number. It holds no path, no site name and nothing from `wp-config.php`.
+
+| Engine | Asks |
+|---|---|
+| `integrity` | api.wordpress.org and downloads.wordpress.org for checksums |
+| `updates` | api.wordpress.org for current versions |
+| `vulnerabilities` | wpvulnerability.net, and wordfence.com when you set a key |
+
+Answers are cached under `~/.wp-shakedown/cache/` for 12 hours, checksums for 30 days. Without a network and without a cached answer the engine is skipped. `config` sends nothing.
+
+### integrity
+
+Compares every core file with the checksums that wordpress.org publishes for that version and language.
+
+| Rule | Severity | Meaning |
+|---|---|---|
+| `core.modified` | `error` | A core file differs from the official release |
+| `core.missing` | `warning` | A core file is not there |
+| `core.unexpected` | `warning` | A file in `wp-admin` or `wp-includes` that is not part of core |
+| `plugin.modified` | `error` | A plugin file differs from the wordpress.org release of that version |
+| `plugin.missing` | `warning` | A plugin file is not there |
+
+A changed core file is the usual trace of a hacked site, and of a developer who edited core by hand. Plugins that are not on wordpress.org have no checksums, and the engine says how many it could not compare. Themes have no checksums at all.
+
+### updates
+
+| Rule | Severity | Meaning |
+|---|---|---|
+| `core.outdated` | `warning` | A newer WordPress exists |
+| `plugin.outdated`, `theme.outdated` | `warning` | A newer release exists on wordpress.org |
+| `plugin.abandoned`, `theme.abandoned` | `warning` | No release in two years |
+| `plugin.closed` | `warning` | wordpress.org closed the plugin |
+
+A plugin or theme that is not on wordpress.org gives no finding. The engine cannot know its current version.
+
+### vulnerabilities
+
+Looks up WordPress itself and every plugin and theme in [WPVulnerability.net](https://www.wpvulnerability.net/), a free database that needs no key. A known vulnerability that affects the installed version is an `error`. The finding names it, links to its record and says which version fixes it.
+
+To also use [Wordfence Intelligence](https://www.wordfence.com/threat-intel/), create a free API key in your Wordfence account under Integrations and set it:
+
+```bash
+export WP_SHAKEDOWN_WORDFENCE_KEY=your-key
+```
+
+The engine then downloads the Wordfence feed once every 12 hours and adds what WPVulnerability did not report. A vulnerability with the same CVE is listed once. If Wordfence rejects the key or cannot be reached, the engine says so and goes on with WPVulnerability.
+
+A finding from Wordfence carries its copyright notice, as the Wordfence terms require.
+
+### config
+
+Reads `wp-config.php` and looks for files that do not belong in a web folder. It never prints a value from `wp-config.php`.
+
+| Rule | Severity | Meaning |
+|---|---|---|
+| `config.salts` | `error` | The secret keys are missing, short or still the default |
+| `config.writable` | `error` | Every user on the machine can write to `wp-config.php` |
+| `config.debug` | `warning` | `WP_DEBUG` is on |
+| `config.file-edit` | `info` | The code editor in the dashboard is on |
+| `leftover.config-copy` | `error` | A copy such as `wp-config.php.bak`, which a server sends as plain text |
+| `leftover.dump` | `error` | A database dump in the root or in `wp-content` |
+| `leftover.tool` | `warning` | `phpinfo.php`, `adminer.php`, an installer |
+| `leftover.env` | `warning` | An `.env` file in the root |
+| `leftover.debug-log` | `warning` | `wp-content/debug.log` |
+| `uploads.php` | `error` | A PHP file in `wp-content/uploads` |
+
+### What they do not check
+
+Site Health, autoloaded options, cron and the list of active plugins need WordPress to run. An engine for that is planned.
 
 ## What is skipped
 

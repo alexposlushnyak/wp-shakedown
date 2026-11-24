@@ -1,16 +1,14 @@
 import assert from 'node:assert/strict';
-import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { test } from 'node:test';
 import './env.ts';
 import { neon, parsePhpstan } from '../src/engines/phpstan.ts';
 import { jsonFiles, loadSchema, schemaUrl, syntaxFinding, validate } from '../src/engines/wp-json.ts';
 import { categorise, pluginRuleset } from '../src/engines/wpcs.ts';
-import { home } from '../src/home.ts';
 import { EngineSkipped } from '../src/types.ts';
 import type { Target } from '../src/types.ts';
-import { makeTheme, tmp, write } from './helpers.ts';
+import { fakeNet, makeTheme, tmp, write } from './helpers.ts';
 
 test('categorise knows the Plugin Check rules', () => {
   assert.equal(categorise('PluginCheck.CodeAnalysis.ShortURL.Found'), 'correctness');
@@ -103,16 +101,12 @@ test('syntaxFinding picks the line', () => {
   assert.deepEqual(syntaxFinding(new Error('Bad')), { message: 'Bad' });
 });
 
-test('loadSchema uses a fresh cache and skips without one', async () => {
-  const hashed = (u: string) => path.join(home(), 'cache', 'schemas', `${createHash('sha256').update(u).digest('hex').slice(0, 8)}.json`);
-  const cachedUrl = 'https://schemas.invalid/cached.json';
-  const file = hashed(cachedUrl);
-  mkdirSync(path.dirname(file), { recursive: true });
-  writeFileSync(file, '{"type":"object"}');
-  assert.deepEqual(await loadSchema(cachedUrl), { type: 'object' });
-  const missing = 'https://schemas.invalid/missing.json';
-  assert.ok(!existsSync(hashed(missing)));
-  await assert.rejects(loadSchema(missing), EngineSkipped);
+test('loadSchema uses the cache and skips without a network', async (t) => {
+  const calls = fakeNet(t, new Map([['https://schemas.invalid/cached.json', { status: 200, body: { type: 'object' } }]]));
+  assert.deepEqual(await loadSchema('https://schemas.invalid/cached.json'), { type: 'object' });
+  await loadSchema('https://schemas.invalid/cached.json');
+  assert.equal(calls.length, 1);
+  await assert.rejects(loadSchema('https://schemas.invalid/missing.json'), EngineSkipped);
 });
 
 test('validate reports a rejected property name once', () => {
