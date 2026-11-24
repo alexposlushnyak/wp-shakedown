@@ -10,3 +10,6 @@ dist/
 .DS_Store
 .idea/
 .vscode/
+
+# Tool cache used by the tests
+.cache/

@@ -12,7 +12,12 @@ All notable changes to this project are recorded here. The format follows [Keep 
 - Contributing guide, security policy, issue forms and pull request template.
 - Code of conduct (Contributor Covenant 2.0), with reports handled through GitHub.
 - `wp-shakedown run <path>`, which detects a theme, a plugin or a WordPress folder and lists the themes and plugins inside a WordPress folder.
-- The engine contract and the runner. No engine ships yet.
+- The engine contract and the runner.
+- `php-lint` engine: PHP syntax errors.
+- `wpcs` engine: PHP_CodeSniffer with the WordPress Coding Standards, or with the project's own ruleset. Style findings rank below errors.
+- `php-compat` engine: PHPCompatibilityWP against the `Requires PHP` version.
+- The PHP tools install themselves with Composer on the first run.
+- Progress lines on standard error while engines run.
 - Finding IDs that stay the same between runs.
 - Reports in Markdown, JSON, SARIF and HTML, written outside the target.
 - Comparison with the previous run on the same target.

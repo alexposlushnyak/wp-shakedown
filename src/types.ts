@@ -58,6 +58,8 @@ export interface Finding extends RawFinding {
 export interface EngineContext {
   target: Target;
   signal?: AbortSignal;
+  /** Tells the user something while the engine runs, for example that tools are being installed. */
+  note(message: string): void;
 }
 
 export interface Engine {
@@ -111,6 +113,7 @@ export interface RunResult {
 export type RunEvent =
   | { type: 'run:start'; target: Target }
   | { type: 'engine:start'; engine: string; unit?: string }
+  | { type: 'engine:note'; engine: string; unit?: string; message: string }
   | { type: 'engine:end'; run: EngineRun }
   | { type: 'run:end'; result: RunResult };
 

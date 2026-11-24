@@ -6,11 +6,11 @@ Instructions for AI coding agents working in this repository. Humans should star
 
 wp-shakedown is a local test runner for WordPress themes, plugins and installs. It orchestrates existing tools, runs outside WordPress, and produces one report. Stack: Node.js and TypeScript, one npm package.
 
-The core, the report writers and the `run` command exist. No engine exists yet.
+The core, the report writers, the `run` command and three PHP engines exist.
 
 ## Commands
 
-You need Node.js 22.18 or newer.
+You need Node.js 22.18 or newer. The engine tests also need PHP and Composer. Without them those tests are skipped.
 
 | Command | What it does |
 |---|---|
@@ -23,6 +23,10 @@ Node runs the TypeScript sources directly, so tests need no build. Write TypeScr
 
 The core has no runtime dependencies. Add one only when an engine needs it, and say why in the pull request.
 
+Tests keep tools and reports in `.cache/` through `WP_SHAKEDOWN_HOME`. A test must not write to `~/.wp-shakedown`.
+
+To add an engine: write the adapter in `src/engines/`, add it to `src/engines/index.ts`, test its parser without the tool and its run with the tool, and describe it in `docs/reference/engines.md`.
+
 ## Layout
 
 | Path | Holds |
@@ -31,6 +35,8 @@ The core has no runtime dependencies. Add one only when an engine needs it, and 
 | `src/target.ts` | Works out what a path is |
 | `src/runner.ts` | Runs engines and builds the result |
 | `src/engines/` | One adapter per external tool |
+| `src/php/` | What the PHP engines share: finding PHP, installing the tools, running PHPCS |
+| `php-tools/` | The Composer manifest and lock file for the PHP tools |
 | `src/report/` | The four report writers |
 | `src/cli.ts` | The `wp-shakedown` command |
 | `test/` | Tests, one file per source file |

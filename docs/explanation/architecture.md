@@ -1,6 +1,6 @@
 # Architecture
 
-This document describes the design. The core, the report writers and the `run` command exist. No engine exists yet, so a run finds nothing. The local web page and the MCP server are not built. Details may change until the first release.
+This document describes the design. The core, the report writers, the `run` command and three PHP engines exist. The other engines, the local web page and the MCP server are not built. Details may change until the first release.
 
 ## Principles
 
@@ -36,13 +36,16 @@ A WordPress folder is tested the same way as a single theme or plugin, on your m
 
 Each external tool sits behind an adapter that knows how to run it and how to read its output.
 
-| Area | Engines |
-|---|---|
-| PHP code | PHP_CodeSniffer with WordPress Coding Standards and PHPCompatibilityWP, PHPStan with the WordPress extension, PHP Parallel Lint |
-| JS, CSS, JSON | `@wordpress/scripts` linters, JSON Schema validation of `theme.json` and `block.json` |
-| Install health | WP-CLI: `core verify-checksums`, `plugin verify-checksums`, `doctor`, `site-health` |
-| Vulnerabilities | WPVulnerability.net lookups by plugin, theme and core version |
-| Site from outside | Playwright with axe-core, Lighthouse, a link checker |
+| Area | Engines | State |
+|---|---|---|
+| PHP code | `php -l`, PHP_CodeSniffer with WordPress Coding Standards, PHPCompatibilityWP | Built. See [Engines](../reference/engines.md) |
+| PHP code | PHPStan with the WordPress extension, the static rules of Plugin Check | Planned |
+| JS, CSS, JSON | `@wordpress/scripts` linters, JSON Schema validation of `theme.json` and `block.json` | Planned |
+| Install health | WP-CLI: `core verify-checksums`, `plugin verify-checksums`, `doctor`, `site-health` | Planned |
+| Vulnerabilities | WPVulnerability.net lookups by plugin, theme and core version | Planned |
+| Site from outside | Playwright with axe-core, Lighthouse, a link checker | Planned, separate module |
+
+The tools disagree on severity as well as on format. Each adapter maps its tool's levels to `error`, `warning` and `info`, and style findings never rank as errors. See [ADR 0011](../adr/0011-style-findings-do-not-fail-a-run.md).
 
 Plugin Check and Theme Check need a running WordPress. [ADR 0007](../adr/0007-defer-sandbox-wordpress.md) tracks how they fit without a sandbox.
 
@@ -77,7 +80,9 @@ Most reports go to an AI assistant that then fixes the code. For that loop you c
 
 ## PHP runtime
 
-PHP tools need PHP. You choose at setup between a bundled runtime that needs nothing installed and the PHP already on your machine. See [ADR 0006](../adr/0006-php-runtime-user-choice.md).
+PHP tools need PHP. The design lets you choose at setup between a bundled runtime that needs nothing installed and the PHP already on your machine. See [ADR 0006](../adr/0006-php-runtime-user-choice.md).
+
+Only the second path exists now. The engines use the PHP on your `PATH`, and Composer installs PHP_CodeSniffer and the standards into the tool's own folder on the first run. See [ADR 0010](../adr/0010-install-php-tools-with-composer.md).
 
 ## Deferred
 

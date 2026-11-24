@@ -9,6 +9,8 @@ Each run writes four files with the same content:
 | `report.sarif` | Tools that read SARIF 2.1.0, such as code scanning |
 | `report.html` | Reading in a browser |
 
+`report.md` lists every finding except code style. A theme of ordinary size has thousands of style findings, so the Markdown report counts them per rule under "Code style". The other three files hold each one with its file and line.
+
 The types below are in [`src/types.ts`](../../src/types.ts).
 
 ## Finding
