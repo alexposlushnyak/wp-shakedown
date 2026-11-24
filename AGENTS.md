@@ -6,7 +6,7 @@ Instructions for AI coding agents working in this repository. Humans should star
 
 wp-shakedown is a local test runner for WordPress themes, plugins and installs. It orchestrates existing tools, runs outside WordPress, and produces one report. Stack: Node.js and TypeScript, one npm package.
 
-The core, the report writers, the `run` and `ui` commands and eleven engines exist.
+The core, the report writers, the `run`, `ui` and `mcp` commands and eleven engines exist.
 
 ## Commands
 
@@ -24,7 +24,7 @@ You need Node.js 22.18 or newer. The engine tests also need PHP and Composer. Wi
 
 Node runs the TypeScript sources directly, so tests need no build. Write TypeScript that Node can strip: no enums, no namespaces, no parameter properties, and `.ts` in relative imports.
 
-The package has one runtime dependency, `ajv`, which the `wp-json` engine uses to validate JSON against a schema. Add another only when an engine needs it, and say why in the pull request.
+The package has one runtime dependency, `ajv`, which the `wp-json` engine uses to validate JSON against a schema. Add another only when an engine needs it, and say why in the pull request. The MCP SDK is a development dependency: the tests use its client to check our hand-written server.
 
 Tests keep tools and reports in `.cache/` through `WP_SHAKEDOWN_HOME`. A test must not write to `~/.wp-shakedown`.
 
@@ -48,6 +48,7 @@ To add an engine: write the adapter in `src/engines/`, add it to `src/engines/in
 | `src/cli.ts` | The `wp-shakedown` command |
 | `src/session.ts` | The steps from a path to a written report, shared by the command and the web page |
 | `src/ui/server.ts` | The local server and its API |
+| `src/mcp/` | The MCP server and its tools |
 | `ui/` | The web page: React, Tailwind and shadcn/ui, built with Vite |
 | `test/` | Tests, one file per source file |
 

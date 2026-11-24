@@ -1,6 +1,6 @@
 # Architecture
 
-This document describes the design. The core, the report writers, the `run` command, eleven engines and the local web page exist. The engines for a running site and for a site URL and the MCP server are not built. Details may change until the first release.
+This document describes the design. The core, the report writers, eleven engines and all three ways in exist: the `run` command, the local web page and the MCP server. The engines for a running site and for a site URL are not built. Details may change until the first release.
 
 ## Principles
 
@@ -80,6 +80,12 @@ Most reports go to an AI assistant that then fixes the code. For that loop you c
 - The server reads the disk and starts processes, so it accepts a request only with the token it put into the link.
 - Progress reaches the page as server-sent events. A page that opens late gets the events of the current run first.
 - The page is a React app made of shadcn/ui components, built into static files that the server serves. See [ADR 0014](../adr/0014-local-web-page.md).
+
+## MCP server
+
+`wp-shakedown mcp` lets an AI assistant call the tool. It speaks the Model Context Protocol over standard input and output and offers four tools: detect a target, list the engines, run the checks, and page through the findings of the last run. [MCP server](../reference/mcp.md) describes them.
+
+The server answers `run_checks` with the Markdown report, which was shaped for an assistant from the start. The protocol is written by hand to keep the package small, and the official client tests it. See [ADR 0016](../adr/0016-mcp-server-written-by-hand.md).
 
 ## PHP runtime
 

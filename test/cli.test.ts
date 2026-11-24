@@ -14,6 +14,7 @@ const cli = (...args: string[]) =>
 test('--version and --help', () => {
   assert.equal(cli('--version').stdout.trim(), VERSION);
   assert.match(cli('--help').stdout, /Usage:/);
+  assert.match(cli('--help').stdout, /wp-shakedown mcp/);
   assert.match(cli().stdout, /Usage:/);
 });
 

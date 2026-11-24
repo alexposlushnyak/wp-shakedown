@@ -19,6 +19,7 @@ Each record states one decision, the options that were considered, and the reaso
 | [0013](0013-javascript-and-css-tools.md) | JavaScript and CSS tools are installed on first use and run with our config | Accepted |
 | [0014](0014-local-web-page.md) | The local web page is a built React page with shadcn/ui, fed by server-sent events | Accepted |
 | [0015](0015-install-health-without-a-running-site.md) | Install health works from files and public data, without a running site | Accepted |
+| [0016](0016-mcp-server-written-by-hand.md) | The MCP server speaks the protocol by hand | Accepted |
 
 ## Adding a record
 
