@@ -1,9 +1,13 @@
+# One grouped pull request per ecosystem, once a month, to keep the noise down.
 version: 2
 updates:
   - package-ecosystem: npm
     directory: /
     schedule:
-      interval: weekly
+      interval: monthly
+    groups:
+      all:
+        patterns: ["*"]
     ignore:
       # The Node types follow the oldest Node.js the package supports.
       - dependency-name: "@types/node"
@@ -11,16 +15,32 @@ updates:
   - package-ecosystem: npm
     directory: /ui
     schedule:
-      interval: weekly
+      interval: monthly
+    groups:
+      all:
+        patterns: ["*"]
   - package-ecosystem: npm
     directory: /js-tools
     schedule:
-      interval: weekly
+      interval: monthly
+    groups:
+      all:
+        patterns: ["*"]
+    ignore:
+      # @wordpress/stylelint-config names the Stylelint major it works with.
+      - dependency-name: "stylelint"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: composer
     directory: /php-tools
     schedule:
-      interval: weekly
+      interval: monthly
+    groups:
+      all:
+        patterns: ["*"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
-      interval: weekly
+      interval: monthly
+    groups:
+      all:
+        patterns: ["*"]
