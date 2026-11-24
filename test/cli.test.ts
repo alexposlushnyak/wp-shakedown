@@ -82,3 +82,10 @@ test('--profile runs only the engines of that profile', { timeout: 180000, ...(h
   const allowed = ['php-lint', 'theme-check', 'wpcs', 'php-compat', 'wp-json'];
   assert.ok(report.engines.length > 0 && report.engines.every((e) => allowed.includes(e.engine)));
 });
+
+test('--depth checks its input', () => {
+  const bad = cli('run', '.', '--depth', 'nope');
+  assert.equal(bad.status, 2);
+  assert.match(bad.stderr, /--depth must be quick, standard or deep\./);
+  assert.match(cli('--help').stdout, /--depth <level> {5}How thorough the run is: quick, standard or deep\. The default is standard/);
+});

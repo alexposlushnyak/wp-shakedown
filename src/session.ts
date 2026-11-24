@@ -4,15 +4,17 @@ import { loadBaseline } from './baseline.ts';
 import { diffRuns } from './diff.ts';
 import { assertReportDir, defaultReportDir, readPreviousRun, writeReports } from './report/write.ts';
 import { profileEngines } from './profiles.ts';
+import { customEngines } from './engines/custom.ts';
 import { run } from './runner.ts';
 import { detectTarget } from './target.ts';
-import type { Engine, RunDiff, RunEvent, RunResult } from './types.ts';
+import type { Depth, Engine, RunDiff, RunEvent, RunResult } from './types.ts';
 
 export interface SessionOptions {
   input: string;
   type?: 'theme' | 'plugin' | 'install';
   only?: string[];
   profile?: string;
+  depth?: Depth;
   out?: string;
   baselineFile?: string;
   engines: Engine[];
@@ -42,9 +44,10 @@ export async function runSession(opts: SessionOptions): Promise<SessionResult> {
   assertReportDir(target, dir);
   const previous = readPreviousRun(dir);
   const result = await run(target, {
-    engines: opts.engines,
+    engines: [...opts.engines, ...customEngines(target)],
     ...(only ? { only } : {}),
     ...(opts.profile ? { profile: opts.profile } : {}),
+    ...(opts.depth ? { depth: opts.depth } : {}),
     ...(baseline ? { baseline } : {}),
     ...(opts.onEvent ? { onEvent: opts.onEvent } : {}),
     ...(opts.signal ? { signal: opts.signal } : {}),

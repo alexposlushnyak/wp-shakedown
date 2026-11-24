@@ -51,6 +51,10 @@ The tools disagree on severity as well as on format. Each adapter maps its tool'
 
 Plugin Check and Theme Check are WordPress plugins. Theme Check reads a theme as text, so the `theme-check` engine runs all of it with plain PHP ([ADR 0017](../adr/0017-theme-check-without-wordpress.md)). The code-reading part of Plugin Check runs inside the `wpcs` engine ([ADR 0012](../adr/0012-plugin-check-rules-inside-wpcs.md)). The rest of Plugin Check needs a running WordPress and waits for the sandbox ([ADR 0007](../adr/0007-defer-sandbox-wordpress.md)).
 
+A depth sets how thorough a run is. `quick` runs the engines that take seconds, `standard` is the default, and `deep` adds static analysis ([ADR 0019](../adr/0019-depth-is-a-filter-on-engines.md)).
+
+The user adds checks as JSON files in `~/.wp-shakedown/checks/`: a pattern, a list of files or a command. Each file is its own engine, and the tool never reads one from the folder it tests ([ADR 0020](../adr/0020-user-checks-live-in-the-home-folder.md)).
+
 A profile is a named list of engines for one gate, such as the theme directory of wordpress.org. It selects engines and changes nothing else: severities, finding IDs and the exit code stay the same. See [Profiles](../reference/profiles.md) and [ADR 0018](../adr/0018-a-profile-is-a-list-of-engines.md).
 
 ## Findings

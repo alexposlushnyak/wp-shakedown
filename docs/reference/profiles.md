@@ -18,6 +18,8 @@ A profile and `--engine` do not combine. Use one of them.
 
 A profile changes which engines run and nothing else. A finding has the same ID and the same severity with and without a profile, so a baseline file works for both. `--fail-on` still sets the severity that makes the command exit 1.
 
+A profile combines with a [depth](cli.md#depth): `--profile wporg-theme --depth quick` runs the engines that are in both.
+
 The report names the profile. The comparison with the last run counts only the engines that ran both times, so a switch of profile does not report findings as fixed.
 
 The [MCP server](mcp.md) takes a profile as an argument of `run_checks`, and the [web page](ui.md) has a Profile list.

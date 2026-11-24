@@ -14,6 +14,7 @@ export const phpLint: Engine = {
   id: 'php-lint',
   title: 'PHP syntax',
   kinds: ['theme', 'plugin'],
+  depth: 'quick',
   async run({ target, signal, note }) {
     note(`Checking syntax with PHP ${await phpVersion()}.`);
     const base = statSync(target.path).isFile() ? path.dirname(target.path) : target.path;

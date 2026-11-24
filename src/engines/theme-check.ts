@@ -80,6 +80,7 @@ export const themeCheck: Engine = {
   id: 'theme-check',
   title: 'Theme Check',
   kinds: ['theme'],
+  depth: 'quick',
   async run({ target, signal, note }) {
     await phpVersion();
     const tools = await phpTools(note);

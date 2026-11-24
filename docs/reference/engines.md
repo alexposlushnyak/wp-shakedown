@@ -1,6 +1,6 @@
 # Engines
 
-An engine runs one check and turns the result into findings. Twelve engines exist, in two groups.
+An engine runs one check and turns the result into findings. Twelve engines exist, in two groups. You can add [checks of your own](checks.md).
 
 Eight check code. They run on a theme or a plugin, and on every theme and plugin inside a WordPress folder. `theme-check` runs on themes only.
 
@@ -24,7 +24,7 @@ Four check a WordPress folder as a whole. They read files and ask public service
 | `vulnerabilities` | Known vulnerabilities in the installed versions |
 | `config` | Risky settings in `wp-config.php` and files that should not be in a web folder |
 
-Run one engine with `--engine <id>`. Run the engines for one gate with a [profile](profiles.md).
+A run at the default [depth](cli.md#depth) leaves out `phpstan`, which runs with `--depth deep`. Run one engine with `--engine <id>`. Run the engines for one gate with a [profile](profiles.md).
 
 ## What they need
 

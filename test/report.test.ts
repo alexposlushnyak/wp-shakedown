@@ -157,3 +157,11 @@ test('the reports show the profile only when the run has one', () => {
   assert.doesNotMatch(toMarkdown(result([])), /Profile:/);
   assert.doesNotMatch(toHtml(result([])), /Profile:/);
 });
+
+test('the reports show the depth only when it is not standard', () => {
+  const quick = result([], { depth: 'quick' });
+  assert.match(toMarkdown(quick), /- Target: .*\n- Depth: quick\n- Run: /);
+  assert.match(toHtml(quick), /Depth: quick<br>\nRun: /);
+  assert.doesNotMatch(toMarkdown(result([], { depth: 'standard' })), /Depth:/);
+  assert.doesNotMatch(toHtml(result([])), /Depth:/);
+});

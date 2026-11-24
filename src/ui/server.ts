@@ -4,11 +4,13 @@ import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { customEngines } from '../engines/custom.ts';
 import { profiles } from '../profiles.ts';
 import { runSession } from '../session.ts';
 import type { SessionResult } from '../session.ts';
 import { detectTarget } from '../target.ts';
-import type { Engine, RunEvent } from '../types.ts';
+import { DEPTHS } from '../types.ts';
+import type { Depth, Engine, RunEvent } from '../types.ts';
 import { VERSION } from '../version.ts';
 
 export interface UiServer {
@@ -103,7 +105,13 @@ export function startUi(opts: { engines: Engine[]; port?: number; startDir?: str
     });
   }
 
-  function start(input: string, type: 'theme' | 'plugin' | 'install' | undefined, only: string[] | undefined, profile: string | undefined): void {
+  function start(
+    input: string,
+    type: 'theme' | 'plugin' | 'install' | undefined,
+    only: string[] | undefined,
+    profile: string | undefined,
+    depth: Depth | undefined,
+  ): void {
     const ctl = new AbortController();
     controller = ctl;
     events = [];
@@ -113,6 +121,7 @@ export function startUi(opts: { engines: Engine[]; port?: number; startDir?: str
       ...(type ? { type } : {}),
       ...(only ? { only } : {}),
       ...(profile ? { profile } : {}),
+      ...(depth ? { depth } : {}),
       engines: opts.engines,
       signal: ctl.signal,
       onEvent: (e) => {
@@ -183,7 +192,7 @@ export function startUi(opts: { engines: Engine[]; port?: number; startDir?: str
           version: VERSION,
           home: os.homedir(),
           startDir,
-          engines: opts.engines.map(({ id, title, kinds }) => ({ id, title, kinds })),
+          engines: [...opts.engines, ...customEngines()].map(({ id, title, kinds, depth }) => ({ id, title, kinds, depth: depth ?? 'standard' })),
           profiles: profiles.map(({ id, title, summary, kinds }) => ({ id, title, summary, kinds })),
           running: controller !== undefined,
         });
@@ -229,7 +238,7 @@ export function startUi(opts: { engines: Engine[]; port?: number; startDir?: str
           res.setHeader('Connection', 'close');
           return send(res, 413, { error: 'The request is too large.' });
         }
-        type Body = { path?: unknown; type?: unknown; engines?: unknown; profile?: unknown } | null;
+        type Body = { path?: unknown; type?: unknown; engines?: unknown; profile?: unknown; depth?: unknown } | null;
         const body = ((): Body => {
           try {
             return JSON.parse(text) as Body;
@@ -245,16 +254,19 @@ export function startUi(opts: { engines: Engine[]; port?: number; startDir?: str
         if (profile !== undefined && (typeof profile !== 'string' || !profiles.some((p) => p.id === profile))) {
           return send(res, 400, { error: `Unknown profile "${String(profile)}".` });
         }
+        const depth = body.depth;
+        if (depth !== undefined && !DEPTHS.some((d) => d === depth)) return send(res, 400, { error: `Unknown depth "${String(depth)}".` });
         if (profile !== undefined && ids.length > 0) return send(res, 400, { error: 'Use a profile or a list of engines, not both.' });
         try {
           detectTarget(body.path, type ? { type } : {});
         } catch (err) {
           return send(res, 400, { error: err instanceof Error ? err.message : String(err) });
         }
+        const known = [...opts.engines, ...customEngines()];
         for (const id of ids) {
-          if (!opts.engines.some((e) => e.id === id)) return send(res, 400, { error: `Unknown engine "${id}".` });
+          if (!known.some((e) => e.id === id)) return send(res, 400, { error: `Unknown engine "${id}".` });
         }
-        start(body.path, type, ids.length > 0 ? ids : undefined, profile as string | undefined);
+        start(body.path, type, ids.length > 0 ? ids : undefined, profile as string | undefined, depth as Depth | undefined);
         return send(res, 202, { ok: true });
       }
 

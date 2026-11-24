@@ -27,7 +27,7 @@ const engines = [phpLint, wpcs, phpCompat, phpstan, wpJson];
 describe('php engines', opts, () => {
   test('lint, wpcs and compat report the sample plugin', opts, async (t) => {
     const dir = makeSample(tmp(t));
-    const r = await run(detectTarget(dir), { engines });
+    const r = await run(detectTarget(dir), { engines, depth: 'deep' });
     assert.deepEqual(r.engines.map((e) => e.status), ['ok', 'ok', 'ok', 'ok', 'ok'], JSON.stringify(r.engines));
 
     const lint = r.findings.filter((f) => f.engine === 'php-lint');
@@ -61,7 +61,7 @@ describe('php engines', opts, () => {
   test('phpstan reports the sample plugin and leaves out the file that does not parse', async (t) => {
     const dir = makeSample(tmp(t));
     const events: RunEvent[] = [];
-    const r = await run(detectTarget(dir), { engines: [phpstan], onEvent: (e) => events.push(e) });
+    const r = await run(detectTarget(dir), { engines: [phpstan], depth: 'deep', onEvent: (e) => events.push(e) });
     assert.ok(events.some((e) => e.type === 'engine:note' && e.message === 'Left out 1 file that PHP cannot parse. php-lint reports them.'));
     assert.ok(!r.findings.some((f) => f.rule === 'phpstan.parse'));
     assert.equal(r.engines[0]!.status, 'ok', r.engines[0]!.reason);
@@ -101,7 +101,7 @@ describe('php engines', opts, () => {
     resetPhpCache();
     resetToolsCache();
     try {
-      const r = await run(detectTarget(dir), { engines });
+      const r = await run(detectTarget(dir), { engines, depth: 'deep' });
       assert.deepEqual(r.engines.filter((e) => e.engine !== 'wp-json').map((e) => e.status), ['skipped', 'skipped', 'skipped', 'skipped']);
       for (const e of r.engines.filter((x) => x.engine !== 'wp-json')) assert.ok(e.reason?.startsWith('PHP is not installed.'), e.reason);
     } finally {
