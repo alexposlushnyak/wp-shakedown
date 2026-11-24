@@ -24,6 +24,7 @@ In a WordPress folder the tool lists every theme in `wp-content/themes` and ever
 | `--engine <id>` | Runs only this engine. Repeat it for more than one. [Engines](engines.md) lists the IDs |
 | `--profile <id>` | Runs the engines for one gate: `wporg-theme`, `wporg-plugin` or `site`. See [Profiles](profiles.md). It does not combine with `--engine` |
 | `--depth <level>` | Sets how thorough the run is: `quick`, `standard` or `deep`. The default is `standard`. See [Depth](#depth) |
+| `--experimental` | Also runs the experimental engines. Today that is [`theme-review`](engines.md#theme-review) |
 | `--out <dir>` | Writes the report to this folder |
 | `--baseline <file>` | Uses this baseline file |
 | `--fail-on <level>` | Sets the severity that makes the command exit 1: `error`, `warning`, `info` or `never`. The default is `error` |

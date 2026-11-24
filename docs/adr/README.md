@@ -25,6 +25,7 @@ Each record states one decision, the options that were considered, and the reaso
 | [0019](0019-depth-is-a-filter-on-engines.md) | Depth is a filter on engines | Accepted |
 | [0020](0020-user-checks-live-in-the-home-folder.md) | Checks the user writes live in the home folder | Accepted |
 | [0021](0021-the-hub-keeps-projects-in-a-file.md) | The hub keeps its projects in a file | Accepted |
+| [0022](0022-experimental-engines.md) | Experimental engines are off until the user turns them on | Accepted |
 
 ## Adding a record
 

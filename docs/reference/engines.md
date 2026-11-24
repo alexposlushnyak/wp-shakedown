@@ -1,13 +1,14 @@
 # Engines
 
-An engine runs one check and turns the result into findings. Twelve engines exist, in two groups. You can add [checks of your own](checks.md).
+An engine runs one check and turns the result into findings. Thirteen engines exist, in two groups. You can add [checks of your own](checks.md).
 
-Eight check code. They run on a theme or a plugin, and on every theme and plugin inside a WordPress folder. `theme-check` runs on themes only.
+Nine check code. They run on a theme or a plugin, and on every theme and plugin inside a WordPress folder. `theme-check` and `theme-review` run on themes only.
 
 | ID | Tool | Finds |
 |---|---|---|
 | `php-lint` | `php -l` | PHP syntax errors |
 | `theme-check` | Theme Check, the checks of the wordpress.org theme directory | Missing files and headers, functions a theme must not call, plugin features inside a theme, missing template tags |
+| `theme-review` | Rules of our own, from a study of theme reviews. Experimental | What reviewers of the theme directory ask for beyond Theme Check: text that cannot be translated, images the readme does not credit, a missing skip link |
 | `wpcs` | PHP_CodeSniffer with the WordPress Coding Standards, plus the Plugin Check review rules for plugins | Unescaped output, missing nonces, unprepared SQL, translation mistakes, discouraged functions, code style |
 | `php-compat` | PHP_CodeSniffer with PHPCompatibilityWP | Code that the declared PHP version cannot run |
 | `phpstan` | PHPStan with the WordPress extension | Calls to functions that do not exist, wrong argument counts and types |
@@ -78,6 +79,37 @@ A check that searches the code gives a file and a line. A check that looks for s
 For a block theme, Theme Check leaves out the checks for classic templates. For a child theme it also reads the parent theme when the parent folder sits next to the theme. When it does not, the engine says so, and checks that look for template code may report it missing.
 
 Theme Check wants the folder name to match the theme name, as it does on wordpress.org. A theme in a folder with another name gets a warning about its text domain.
+
+## theme-review
+
+This engine is experimental. It runs only with `--experimental`, or when you name it with `--engine theme-review`.
+
+Its rules come from a study of 878 reviews on the theme directory's Trac: what reviewers ask authors to change, and how often. [What theme reviewers ask for](../explanation/theme-review-feedback.md) describes the study and its limits. See also [ADR 0022](../adr/0022-experimental-engines.md).
+
+The rules are heuristics, so no finding is an error. The hint of each finding says how often reviewers raise the point.
+
+| Rule | Looks for |
+|---|---|
+| `untranslated-text` | Text in a PHP template that no translation function wraps |
+| `text-in-template` | Text in an HTML template of a block theme, where it cannot be translated |
+| `readme-headers` | A readme with the wrong name, missing header lines, values that differ from `style.css`, no changelog |
+| `tested-up-to` | A `Tested up to` header behind the latest WordPress |
+| `asset-licenses` | Images and fonts that `readme.txt` does not credit, and fonts with no license file |
+| `skip-link` | No skip link in a classic theme, no `main` element in a block theme |
+| `minified-without-source` | A `.min.js` or `.min.css` file with no readable source |
+| `pot-missing` | A theme that says it is ready for translation and has no `.pot` file |
+| `placeholder-content` | Real-looking e-mail addresses and links to `#` in templates and patterns |
+| `readme-copyright` | No copyright notice that names the theme, or a license file without the GPL text |
+| `link-underline` | Links without underline in `theme.json` |
+| `plugin-territory` | SEO metadata, mail, public AJAX actions and REST routes |
+| `customizer-textareas` | More than three textarea controls in the Customizer |
+| `footer-copyright` | A copyright line that names the theme or its author |
+| `remote-fonts` | Fonts loaded from another server |
+| `demo-content` | Demo import hooks and content the theme creates |
+
+The engine reads files and needs no PHP. `tested-up-to` asks wordpress.org for the latest version and is left out when that fails.
+
+Reviewers also raise points that files do not show, such as keyboard focus and menus that do not work. Those are not in the engine.
 
 ## wpcs
 

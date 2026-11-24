@@ -1,6 +1,6 @@
 # Architecture
 
-This document describes the design. The core, the report writers, twelve engines, the profiles and all three ways in exist: the `run` command, the local web page and the MCP server. The engines for a running site and for a site URL are not built. The version is below 1.0, so the command line and the report format may still change between minor versions.
+This document describes the design. The core, the report writers, thirteen engines, the profiles and all three ways in exist: the `run` command, the local web page and the MCP server. The engines for a running site and for a site URL are not built. The version is below 1.0, so the command line and the report format may still change between minor versions.
 
 ## Principles
 
@@ -40,6 +40,7 @@ Each external tool sits behind an adapter that knows how to run it and how to re
 |---|---|---|
 | PHP code | `php -l`, PHP_CodeSniffer with WordPress Coding Standards and the Plugin Check review rules, PHPCompatibilityWP, PHPStan with the WordPress extension | Built. See [Engines](../reference/engines.md) |
 | Theme rules | Theme Check, run with plain PHP | Built. See [ADR 0017](../adr/0017-theme-check-without-wordpress.md) |
+| Theme review | Rules from a study of theme reviews. Experimental, off by default | Built. See [ADR 0022](../adr/0022-experimental-engines.md) |
 | JSON | JSON Schema validation of `theme.json` and `block.json` | Built |
 | JS, CSS | ESLint and Stylelint with the WordPress configs | Built |
 | Install health | Official checksums for core and plugins, current versions from wordpress.org, `wp-config.php` and risky files | Built. See [ADR 0015](../adr/0015-install-health-without-a-running-site.md) |

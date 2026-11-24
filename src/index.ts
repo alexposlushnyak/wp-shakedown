@@ -25,6 +25,7 @@ export { profiles, profileEngines } from './profiles.ts';
 export { home } from './home.ts';
 export { phpLint } from './engines/php-lint.ts';
 export { themeCheck } from './engines/theme-check.ts';
+export { themeReview } from './engines/theme-review.ts';
 export { wpcs } from './engines/wpcs.ts';
 export { phpCompat } from './engines/php-compat.ts';
 export { phpstan } from './engines/phpstan.ts';

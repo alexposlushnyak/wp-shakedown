@@ -4,9 +4,9 @@ export const profiles: Profile[] = [
   {
     id: 'wporg-theme',
     title: 'WordPress.org theme directory',
-    summary: 'What the theme directory of wordpress.org checks before a review: Theme Check, PHP that parses, the WordPress standards and theme.json.',
+    summary: 'What the theme directory of wordpress.org checks before a review: Theme Check, PHP that parses, the WordPress standards and theme.json. With experimental checks on, also what reviewers ask for most.',
     kinds: ['theme'],
-    engines: ['php-lint', 'theme-check', 'wpcs', 'php-compat', 'wp-json'],
+    engines: ['php-lint', 'theme-check', 'theme-review', 'wpcs', 'php-compat', 'wp-json'],
   },
   {
     id: 'wporg-plugin',

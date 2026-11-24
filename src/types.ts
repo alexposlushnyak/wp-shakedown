@@ -72,6 +72,8 @@ export interface Engine {
   kinds: readonly TargetKind[];
   /** The lightest depth that runs the engine. Absent means standard. */
   depth?: Depth;
+  /** Runs only when the user turns experimental checks on, or names the engine. */
+  experimental?: true;
   run(ctx: EngineContext): Promise<RawFinding[]>;
 }
 
@@ -123,6 +125,8 @@ export interface RunResult {
   profile?: string;
   /** Absent in a report written before depth existed. Read that as standard. */
   depth?: Depth;
+  /** True when the run had experimental checks on. */
+  experimental?: true;
   startedAt: string;
   finishedAt: string;
   engines: EngineRun[];

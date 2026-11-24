@@ -174,3 +174,26 @@ test('a depth that left out a fitting engine keeps stale baseline entries quiet'
   const other = { ...withDepth('p', 'deep'), kinds: ['plugin' as const] };
   assert.deepEqual((await run(target, { engines: [a, other], baseline })).staleBaseline, ['gone']);
 });
+
+const experimental = (id: string) => ({ ...withDepth(id), experimental: true as const });
+
+test('experimental engines run only on request or by name', async (t) => {
+  const target = detectTarget(makeTheme(tmp(t)));
+  const engines = [withDepth('s'), experimental('x')];
+  const ids = async (o: Omit<Parameters<typeof run>[1], 'engines'>) => (await run(target, { engines, ...o })).engines.map((e) => e.engine);
+  assert.deepEqual(await ids({}), ['s']);
+  assert.deepEqual(await ids({ experimental: true }), ['s', 'x']);
+  assert.deepEqual(await ids({ only: ['x'] }), ['x']);
+  assert.deepEqual(await ids({ only: ['x'], profile: 'wporg-theme' }), []);
+  assert.deepEqual(await ids({ only: ['x'], profile: 'wporg-theme', experimental: true }), ['x']);
+  assert.equal((await run(target, { engines, experimental: true })).experimental, true);
+  assert.ok(!('experimental' in (await run(target, { engines }))));
+});
+
+test('an experimental engine that was left out keeps stale baseline entries quiet', async (t) => {
+  const target = detectTarget(makeTheme(tmp(t)));
+  const baseline = { schema: 1 as const, entries: [{ id: 'gone', reason: 'accepted' }] };
+  const a = withDepth('a');
+  assert.deepEqual((await run(target, { engines: [a, experimental('x')], baseline })).staleBaseline, []);
+  assert.deepEqual((await run(target, { engines: [a, experimental('x')], baseline, experimental: true })).staleBaseline, ['gone']);
+});

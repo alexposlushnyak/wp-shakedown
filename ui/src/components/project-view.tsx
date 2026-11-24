@@ -7,7 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Progress } from '@/components/ui/progress';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { api, q, token } from '@/lib/api';
 import type { Depth, ProfileInfo, Project, ProjectReport } from '@/lib/api';
 import { aiPrompt, plural, profilesFor, progress, runModel, timeAgo } from '@/lib/run';
@@ -40,6 +42,7 @@ function Report({ report, id }: { report: ProjectReport; id: string }) {
 	const line = [
 		`Ran ${timeAgo(report.finishedAt, Date.now())}`,
 		report.depth && report.depth !== 'standard' ? `${report.depth} run` : '',
+		report.experimental ? 'experimental checks on' : '',
 		report.profile ?? '',
 	].filter(Boolean);
 	const reportFile = report.files[0] ?? '';
@@ -97,13 +100,14 @@ interface Props {
 	profiles: ProfileInfo[];
 	depth: Depth;
 	onDepth: (depth: Depth) => void;
-	onRun: (profile: string | undefined) => void;
+	onRun: (profile: string | undefined, experimental: boolean) => void;
 	onStop: () => void;
 	onRemove: () => void;
 }
 
 export function ProjectView({ project, events, profiles, depth, onDepth, onRun, onStop, onRemove }: Props) {
 	const [profile, setProfile] = useState('all');
+	const [experimental, setExperimental] = useState(false);
 	const [report, setReport] = useState<ProjectReport | null>(null);
 	const active = project.run !== undefined;
 	const model = runModel(events);
@@ -164,13 +168,19 @@ export function ProjectView({ project, events, profiles, depth, onDepth, onRun, 
 							Stop
 						</Button>
 					) : (
-						<Button className="ml-auto" disabled={!project.kind} onClick={() => onRun(picked?.id)}>
+						<Button className="ml-auto" disabled={!project.kind} onClick={() => onRun(picked?.id, experimental)}>
 							<PlayIcon />
 							Run the checks
 						</Button>
 					)}
 				</div>
 				{picked && <p className="text-muted-foreground text-xs">{picked.summary}</p>}
+				{project.kind === 'theme' && (
+					<Label className="text-muted-foreground text-xs font-normal">
+						<Switch size="sm" checked={experimental} onCheckedChange={setExperimental} />
+						Experimental checks from theme reviews
+					</Label>
+				)}
 			</div>
 
 			{active ? (
