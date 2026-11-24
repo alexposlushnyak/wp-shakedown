@@ -2,7 +2,9 @@
 
 wp-shakedown runs the usual WordPress checks on a theme, a plugin or a whole WordPress folder from one place and writes one report.
 
-> In development and not on npm yet. It works when you run it from source: seven code checks for themes and plugins, and four health checks for a whole WordPress folder.
+```bash
+npx wp-shakedown run ./my-theme
+```
 
 ## Why
 
@@ -20,11 +22,25 @@ Testing WordPress work means running PHPCS, PHPStan, WP-CLI checks, Site Health 
 |---|---|
 | Theme or plugin folder | Coding standards, static analysis, PHP compatibility, `theme.json` and `block.json`, JavaScript and CSS |
 | WordPress folder | The same code checks across every theme and plugin in it, plus file integrity, known vulnerabilities, outdated or abandoned software, and risky settings and files |
-| Site URL (separate module) | Accessibility, performance, broken links |
 
 ## How you run it
 
-You run it from the terminal, from a local web page, or from an AI assistant over MCP. All three use the same core.
+| From | Command |
+|---|---|
+| The terminal | `npx wp-shakedown run <folder>` |
+| A page in your browser | `npx wp-shakedown ui` |
+| An AI assistant, over MCP | `npx wp-shakedown mcp`, set up once in the assistant |
+
+All three use the same core.
+
+## What you need
+
+- Node.js 22.18 or newer.
+- PHP and Composer for the PHP checks. Without them those checks are skipped and the rest still runs.
+
+You do not install PHPCS, PHPStan, ESLint or Stylelint. The first run fetches pinned versions into `~/.wp-shakedown`.
+
+Version 0.1 is tested on macOS and Linux. Windows is not tested yet.
 
 ## Documentation
 

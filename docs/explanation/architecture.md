@@ -1,6 +1,6 @@
 # Architecture
 
-This document describes the design. The core, the report writers, eleven engines and all three ways in exist: the `run` command, the local web page and the MCP server. The engines for a running site and for a site URL are not built. Details may change until the first release.
+This document describes the design. The core, the report writers, eleven engines and all three ways in exist: the `run` command, the local web page and the MCP server. The engines for a running site and for a site URL are not built. The version is below 1.0, so the command line and the report format may still change between minor versions.
 
 ## Principles
 
