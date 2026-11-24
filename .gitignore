@@ -1,0 +1,12 @@
+# Local development context, never pushed
+.dev/
+CLAUDE.local.md
+
+# Dependencies and build output
+node_modules/
+dist/
+
+# OS and editor
+.DS_Store
+.idea/
+.vscode/
