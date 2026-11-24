@@ -17,7 +17,7 @@ Press Ctrl+C in the terminal to stop the server.
 
 ## What is on the page
 
-**The target.** Type a path or choose Browse to walk through your folders. The page says what it found: a theme, a plugin, or a WordPress folder with a number of themes and plugins. Under Engines you can turn engines off for this run.
+**The target.** Type a path or choose Browse to walk through your folders. The page says what it found: a theme, a plugin, or a WordPress folder with a number of themes and plugins. Under Engines you can turn engines off for this run. When a [profile](profiles.md) fits what the page found, a Profile list shows. Choose one to run only its engines.
 
 **The run.** Each engine gets a line with its state, the number of findings and the time it took. In a WordPress folder every theme and plugin gets its own lines. Notes from an engine, such as a first-time install of its tools, show under its line. Stop ends the run.
 

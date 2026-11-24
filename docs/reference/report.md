@@ -47,6 +47,7 @@ The ID is a hash of the engine, the rule, the unit, the file or URL, the selecto
 | `schema` | `1`. It changes when the format breaks compatibility |
 | `tool` | Name and version of wp-shakedown |
 | `target` | Kind, path and name of what was tested, and for a WordPress folder the themes and plugins found in it |
+| `profile` | ID of the [profile](profiles.md) the run used. Absent when it used none |
 | `startedAt`, `finishedAt` | ISO 8601 timestamps |
 | `engines` | One entry per engine run: status `ok`, `skipped` or `failed`, duration, number of findings, and the reason when it did not run |
 | `findings` | Every finding, sorted by file, then line |

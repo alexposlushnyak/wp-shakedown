@@ -21,6 +21,7 @@ import type {
 export interface RunOptions {
   engines: Engine[];
   only?: string[];
+  profile?: string;
   baseline?: Baseline;
   signal?: AbortSignal;
   onEvent?: (e: RunEvent) => void;
@@ -161,6 +162,7 @@ export async function run(target: Target, opts: RunOptions): Promise<RunResult> 
       name: target.name,
       units: target.units.map((u) => ({ kind: u.kind, name: u.name, path: posix(path.relative(target.path, u.path)) })),
     },
+    ...(opts.profile ? { profile: opts.profile } : {}),
     startedAt,
     finishedAt: now().toISOString(),
     engines: engineRuns,

@@ -15,23 +15,26 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Field, FieldDescription, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { api, q } from '@/lib/api';
-import type { Detected, Dirs, EngineInfo } from '@/lib/api';
-import { crumbs, detectedText } from '@/lib/run';
+import type { Detected, Dirs, EngineInfo, ProfileInfo } from '@/lib/api';
+import { crumbs, detectedText, profilesFor } from '@/lib/run';
 
 interface Props {
 	engines: EngineInfo[];
+	profiles: ProfileInfo[];
 	startDir: string;
 	running: boolean;
-	onRun: (path: string, engines: string[] | undefined) => void;
+	onRun: (path: string, engines: string[] | undefined, profile: string | undefined) => void;
 	onError: (message: string) => void;
 }
 
-export function TargetCard({ engines, startDir, running, onRun, onError }: Props) {
+export function TargetCard({ engines, profiles, startDir, running, onRun, onError }: Props) {
 	const [path, setPath] = useState(startDir);
-	const [detected, setDetected] = useState<{ text: string; known: boolean }>({ text: '', known: false });
+	const [detected, setDetected] = useState<{ text: string; known: boolean; kind?: string }>({ text: '', known: false });
 	const [browsing, setBrowsing] = useState(false);
 	const [dirs, setDirs] = useState<Dirs | null>(null);
+	const [profile, setProfile] = useState('all');
 	const [chosen, setChosen] = useState<string[]>(() => engines.map((e) => e.id));
 
 	useEffect(() => {
@@ -42,12 +45,20 @@ export function TargetCard({ engines, startDir, running, onRun, onError }: Props
 		}
 		const timer = setTimeout(() => {
 			api<Detected>(`/api/detect?path=${q(value)}`).then(
-				(d) => setDetected({ text: detectedText(d), known: true }),
+				(d) => setDetected({ text: detectedText(d), known: true, kind: d.kind }),
 				(err: Error) => setDetected({ text: err.message, known: false }),
 			);
 		}, 200);
 		return () => clearTimeout(timer);
 	}, [path]);
+
+	const fitting = profilesFor(profiles, detected.kind);
+	const picked = fitting.find((p) => p.id === profile);
+
+	// A choice that does not fit the new kind of folder goes back to all checks.
+	useEffect(() => {
+		if (profile !== 'all' && !picked) setProfile('all');
+	}, [profile, picked]);
 
 	useEffect(() => {
 		if (!browsing) return;
@@ -64,9 +75,10 @@ export function TargetCard({ engines, startDir, running, onRun, onError }: Props
 		event.preventDefault();
 		const value = path.trim();
 		if (!value) return onError('Give a folder to test.');
-		if (chosen.length === 0) return onError('Choose at least one engine.');
+		if (!picked && chosen.length === 0) return onError('Choose at least one engine.');
 		setBrowsing(false);
-		onRun(value, chosen.length < engines.length ? chosen : undefined);
+		if (picked) return onRun(value, undefined, picked.id);
+		onRun(value, chosen.length < engines.length ? chosen : undefined, undefined);
 	}
 
 	return (
@@ -140,28 +152,50 @@ export function TargetCard({ engines, startDir, running, onRun, onError }: Props
 						</div>
 					)}
 
-					<Collapsible>
-						<CollapsibleTrigger asChild>
-							<Button type="button" variant="ghost" size="sm" className="-ml-2">
-								<ChevronsUpDownIcon />
-								{chosen.length === engines.length ? `Engines: all ${engines.length}` : `Engines: ${chosen.length} of ${engines.length}`}
-							</Button>
-						</CollapsibleTrigger>
-						<CollapsibleContent>
-							<div className="grid gap-3 pt-3 sm:grid-cols-2 lg:grid-cols-3">
-								{engines.map((e) => (
-									<label key={e.id} className="flex items-center gap-2 text-sm">
-										<Checkbox
-											checked={chosen.includes(e.id)}
-											onCheckedChange={(on) => setChosen(on ? [...chosen, e.id] : chosen.filter((id) => id !== e.id))}
-										/>
-										{e.title}
-										<span className="text-muted-foreground font-mono text-xs">{e.id}</span>
-									</label>
-								))}
-							</div>
-						</CollapsibleContent>
-					</Collapsible>
+					{fitting.length > 0 && (
+						<Field>
+							<FieldLabel htmlFor="profile">Profile</FieldLabel>
+							<Select value={picked ? profile : 'all'} onValueChange={setProfile}>
+								<SelectTrigger id="profile" className="w-full sm:w-80">
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="all">All checks</SelectItem>
+									{fitting.map((p) => (
+										<SelectItem key={p.id} value={p.id}>
+											{p.title}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+							{picked && <FieldDescription>{picked.summary}</FieldDescription>}
+						</Field>
+					)}
+
+					{!picked && (
+						<Collapsible>
+							<CollapsibleTrigger asChild>
+								<Button type="button" variant="ghost" size="sm" className="-ml-2">
+									<ChevronsUpDownIcon />
+									{chosen.length === engines.length ? `Engines: all ${engines.length}` : `Engines: ${chosen.length} of ${engines.length}`}
+								</Button>
+							</CollapsibleTrigger>
+							<CollapsibleContent>
+								<div className="grid gap-3 pt-3 sm:grid-cols-2 lg:grid-cols-3">
+									{engines.map((e) => (
+										<label key={e.id} className="flex items-center gap-2 text-sm">
+											<Checkbox
+												checked={chosen.includes(e.id)}
+												onCheckedChange={(on) => setChosen(on ? [...chosen, e.id] : chosen.filter((id) => id !== e.id))}
+											/>
+											{e.title}
+											<span className="text-muted-foreground font-mono text-xs">{e.id}</span>
+										</label>
+									))}
+								</div>
+							</CollapsibleContent>
+						</Collapsible>
+					)}
 				</form>
 			</CardContent>
 		</Card>

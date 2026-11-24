@@ -10,6 +10,13 @@ import { fakeEngine, finding, makeInstall, makeTheme, raw, result, tmp } from '.
 const ok = (id: string, kinds: ('theme' | 'plugin' | 'install')[], findings = [raw()]) =>
   fakeEngine(id, kinds, async () => findings);
 
+test('the profile goes into the result only when given', async (t) => {
+  const target = detectTarget(makeTheme(tmp(t)));
+  const engines = [fakeEngine('e', ['theme'], async () => [])];
+  assert.equal((await run(target, { engines, profile: 'site' })).profile, 'site');
+  assert.ok(!('profile' in (await run(target, { engines }))));
+});
+
 test('records ok, skipped and failed with reasons', async (t) => {
   const target = detectTarget(makeTheme(tmp(t)));
   const r = await run(target, {

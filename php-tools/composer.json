@@ -9,7 +9,8 @@
     "plugin-check/phpcs-sniffs": "2.2.0",
     "phpstan/phpstan": "^2.1",
     "szepeviktor/phpstan-wordpress": "^2.0",
-    "php-stubs/wordpress-stubs": "^7.0"
+    "php-stubs/wordpress-stubs": "^7.0",
+    "theme-check/theme-check": "20260901"
   },
   "config": {
     "allow-plugins": {
@@ -33,6 +34,19 @@
         "require": {
           "phpcsstandards/phpcsutils": "^1.0.8",
           "squizlabs/php_codesniffer": "^3.7.2"
+        }
+      }
+    },
+    {
+      "type": "package",
+      "package": {
+        "name": "theme-check/theme-check",
+        "version": "20260901",
+        "type": "library",
+        "dist": {
+          "url": "https://downloads.wordpress.org/plugin/theme-check.20260901.zip",
+          "type": "zip",
+          "shasum": "85c13a0c70078367d2d6f3dd68e435212df5881a"
         }
       }
     }

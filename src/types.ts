@@ -69,6 +69,18 @@ export interface Engine {
   run(ctx: EngineContext): Promise<RawFinding[]>;
 }
 
+/** The engines that matter for one gate, for example the theme directory of wordpress.org. */
+export interface Profile {
+  id: string;
+  title: string;
+  /** One sentence that says what the profile is for. */
+  summary: string;
+  /** The kinds of target the profile fits. */
+  kinds: readonly TargetKind[];
+  /** IDs of the engines the profile runs. */
+  engines: readonly string[];
+}
+
 /** An engine throws this when it cannot run here, for example when PHP is missing. The run continues. */
 export class EngineSkipped extends Error {}
 
@@ -101,6 +113,8 @@ export interface RunResult {
     /** `path` here is relative to the root target. */
     units: { kind: TargetKind; name: string; path: string }[];
   };
+  /** ID of the profile the run used. Absent when the run used none. */
+  profile?: string;
   startedAt: string;
   finishedAt: string;
   engines: EngineRun[];

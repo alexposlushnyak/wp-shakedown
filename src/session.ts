@@ -3,6 +3,7 @@ import path from 'node:path';
 import { loadBaseline } from './baseline.ts';
 import { diffRuns } from './diff.ts';
 import { assertReportDir, defaultReportDir, readPreviousRun, writeReports } from './report/write.ts';
+import { profileEngines } from './profiles.ts';
 import { run } from './runner.ts';
 import { detectTarget } from './target.ts';
 import type { Engine, RunDiff, RunEvent, RunResult } from './types.ts';
@@ -11,6 +12,7 @@ export interface SessionOptions {
   input: string;
   type?: 'theme' | 'plugin' | 'install';
   only?: string[];
+  profile?: string;
   out?: string;
   baselineFile?: string;
   engines: Engine[];
@@ -28,6 +30,8 @@ export interface SessionResult {
 /** The steps from a path to written reports. The command line and the local server share them. */
 export async function runSession(opts: SessionOptions): Promise<SessionResult> {
   const target = detectTarget(opts.input, opts.type ? { type: opts.type } : {});
+  if (opts.profile && opts.only) throw new Error('Use a profile or a list of engines, not both.');
+  const only = opts.profile ? profileEngines(opts.profile, target) : opts.only;
   let baselineFile = opts.baselineFile;
   if (!baselineFile && target.kind !== 'url') {
     const candidate = path.join(target.path, 'wp-shakedown-baseline.json');
@@ -39,7 +43,8 @@ export async function runSession(opts: SessionOptions): Promise<SessionResult> {
   const previous = readPreviousRun(dir);
   const result = await run(target, {
     engines: opts.engines,
-    ...(opts.only ? { only: opts.only } : {}),
+    ...(only ? { only } : {}),
+    ...(opts.profile ? { profile: opts.profile } : {}),
     ...(baseline ? { baseline } : {}),
     ...(opts.onEvent ? { onEvent: opts.onEvent } : {}),
     ...(opts.signal ? { signal: opts.signal } : {}),

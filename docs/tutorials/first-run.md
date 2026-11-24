@@ -31,6 +31,7 @@ You then see one line per engine, and a summary:
 ```
   php-lint: Checking syntax with PHP 8.4.25.
 ok php-lint: 1 finding, 0.2s
+ok theme-check: 2 findings, 0.1s
 ok wpcs: 2 findings, 0.2s
   php-compat: Checking against PHP 7.4 and newer.
 ok php-compat: 0 findings, 0.2s
@@ -38,7 +39,7 @@ ok phpstan: 1 finding, 1.8s
 ok wp-json: 0 findings, 0.1s
 ok eslint: 2 findings, 1.6s
 ok stylelint: 3 findings, 0.6s
-2 errors, 5 warnings, 2 notes.
+2 errors, 5 warnings, 4 notes.
 Report: /Users/you/.wp-shakedown/reports/your-theme-1a2b3c4d/report.md
 ```
 

@@ -1,12 +1,13 @@
 # Engines
 
-An engine runs one check and turns the result into findings. Eleven engines exist, in two groups.
+An engine runs one check and turns the result into findings. Twelve engines exist, in two groups.
 
-Seven check code. They run on a theme or a plugin, and on every theme and plugin inside a WordPress folder.
+Eight check code. They run on a theme or a plugin, and on every theme and plugin inside a WordPress folder. `theme-check` runs on themes only.
 
 | ID | Tool | Finds |
 |---|---|---|
 | `php-lint` | `php -l` | PHP syntax errors |
+| `theme-check` | Theme Check, the checks of the wordpress.org theme directory | Missing files and headers, functions a theme must not call, plugin features inside a theme, missing template tags |
 | `wpcs` | PHP_CodeSniffer with the WordPress Coding Standards, plus the Plugin Check review rules for plugins | Unescaped output, missing nonces, unprepared SQL, translation mistakes, discouraged functions, code style |
 | `php-compat` | PHP_CodeSniffer with PHPCompatibilityWP | Code that the declared PHP version cannot run |
 | `phpstan` | PHPStan with the WordPress extension | Calls to functions that do not exist, wrong argument counts and types |
@@ -23,17 +24,17 @@ Four check a WordPress folder as a whole. They read files and ask public service
 | `vulnerabilities` | Known vulnerabilities in the installed versions |
 | `config` | Risky settings in `wp-config.php` and files that should not be in a web folder |
 
-Run one engine with `--engine <id>`.
+Run one engine with `--engine <id>`. Run the engines for one gate with a [profile](profiles.md).
 
 ## What they need
 
-The four PHP engines need PHP on your `PATH`. `wpcs`, `php-compat` and `phpstan` also need Composer the first time they run. `wp-json` needs neither. It downloads a schema from schemas.wp.org and keeps it for a week. `eslint` and `stylelint` need npm, which comes with Node.js.
+The five PHP engines need PHP on your `PATH`. `theme-check`, `wpcs`, `php-compat` and `phpstan` also need Composer the first time they run. `wp-json` needs neither. It downloads a schema from schemas.wp.org and keeps it for a week. `eslint` and `stylelint` need npm, which comes with Node.js.
 
 On the first run the tool installs what the engines need into `~/.wp-shakedown/tools/`:
 
 | Tools | Pinned in | Size |
 |---|---|---|
-| PHP_CodeSniffer, the standards, PHPStan | [`php-tools/composer.lock`](../../php-tools/composer.lock) | about 60 MB |
+| PHP_CodeSniffer, the standards, PHPStan, Theme Check | [`php-tools/composer.lock`](../../php-tools/composer.lock) | about 60 MB |
 | ESLint, Stylelint and the WordPress configs | [`js-tools/package-lock.json`](../../js-tools/package-lock.json) | about 180 MB |
 
 You do not install any of these yourself, and a copy you already have is not used. The JavaScript and CSS tools are installed only when the target has a JavaScript or CSS file to check.
@@ -55,6 +56,28 @@ Runs `php -l` on every `.php` file. PHP_CodeSniffer reports nothing for a file i
 It checks the syntax of the PHP version that runs it, and the progress output names that version. Code that parses on your PHP and fails on an older one is the job of `php-compat`.
 
 Every finding is an `error` in the `correctness` category, with the rule `syntax`.
+
+## theme-check
+
+Runs [Theme Check](https://wordpress.org/plugins/theme-check/), the checks that wordpress.org runs on every theme upload. It runs on themes only.
+
+Theme Check is a WordPress plugin. Its checks read the theme as text, so the engine runs them with plain PHP and gives them the few WordPress functions they call. WordPress is not involved, and no file of the theme runs as code. See [ADR 0017](../adr/0017-theme-check-without-wordpress.md).
+
+Theme Check puts a label on each message. The engine turns the label into a severity:
+
+| Label | Severity |
+|---|---|
+| `REQUIRED` | `error` |
+| `WARNING` | `warning` |
+| `RECOMMENDED`, `INFO` | `info` |
+
+The rule is the name of the check, for example `bad-things`, `plugin-territory` or `style-css-header`. Most findings are in the `correctness` category, so the report lists each one. Forbidden functions, iframes and escaping are `security`. Text domains are `i18n`. Deprecated functions and version headers are `compatibility`.
+
+A check that searches the code gives a file and a line. A check that looks for something missing, such as `wp_head()` or `readme.txt`, gives no location.
+
+For a block theme, Theme Check leaves out the checks for classic templates. For a child theme it also reads the parent theme when the parent folder sits next to the theme. When it does not, the engine says so, and checks that look for template code may report it missing.
+
+Theme Check wants the folder name to match the theme name, as it does on wordpress.org. A theme in a folder with another name gets a warning about its text domain.
 
 ## wpcs
 

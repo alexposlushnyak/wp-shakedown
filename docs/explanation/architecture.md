@@ -1,6 +1,6 @@
 # Architecture
 
-This document describes the design. The core, the report writers, eleven engines and all three ways in exist: the `run` command, the local web page and the MCP server. The engines for a running site and for a site URL are not built. The version is below 1.0, so the command line and the report format may still change between minor versions.
+This document describes the design. The core, the report writers, twelve engines, the profiles and all three ways in exist: the `run` command, the local web page and the MCP server. The engines for a running site and for a site URL are not built. The version is below 1.0, so the command line and the report format may still change between minor versions.
 
 ## Principles
 
@@ -39,6 +39,7 @@ Each external tool sits behind an adapter that knows how to run it and how to re
 | Area | Engines | State |
 |---|---|---|
 | PHP code | `php -l`, PHP_CodeSniffer with WordPress Coding Standards and the Plugin Check review rules, PHPCompatibilityWP, PHPStan with the WordPress extension | Built. See [Engines](../reference/engines.md) |
+| Theme rules | Theme Check, run with plain PHP | Built. See [ADR 0017](../adr/0017-theme-check-without-wordpress.md) |
 | JSON | JSON Schema validation of `theme.json` and `block.json` | Built |
 | JS, CSS | ESLint and Stylelint with the WordPress configs | Built |
 | Install health | Official checksums for core and plugins, current versions from wordpress.org, `wp-config.php` and risky files | Built. See [ADR 0015](../adr/0015-install-health-without-a-running-site.md) |
@@ -48,7 +49,9 @@ Each external tool sits behind an adapter that knows how to run it and how to re
 
 The tools disagree on severity as well as on format. Each adapter maps its tool's levels to `error`, `warning` and `info`, and style findings never rank as errors. See [ADR 0011](../adr/0011-style-findings-do-not-fail-a-run.md).
 
-Plugin Check and Theme Check need a running WordPress. The code-reading part of Plugin Check runs without one, inside the `wpcs` engine ([ADR 0012](../adr/0012-plugin-check-rules-inside-wpcs.md)). The rest waits for the sandbox ([ADR 0007](../adr/0007-defer-sandbox-wordpress.md)).
+Plugin Check and Theme Check are WordPress plugins. Theme Check reads a theme as text, so the `theme-check` engine runs all of it with plain PHP ([ADR 0017](../adr/0017-theme-check-without-wordpress.md)). The code-reading part of Plugin Check runs inside the `wpcs` engine ([ADR 0012](../adr/0012-plugin-check-rules-inside-wpcs.md)). The rest of Plugin Check needs a running WordPress and waits for the sandbox ([ADR 0007](../adr/0007-defer-sandbox-wordpress.md)).
+
+A profile is a named list of engines for one gate, such as the theme directory of wordpress.org. It selects engines and changes nothing else: severities, finding IDs and the exit code stay the same. See [Profiles](../reference/profiles.md) and [ADR 0018](../adr/0018-a-profile-is-a-list-of-engines.md).
 
 ## Findings
 

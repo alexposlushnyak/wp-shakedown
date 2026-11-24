@@ -14,11 +14,19 @@ export interface EngineInfo {
 	kinds: string[];
 }
 
+export interface ProfileInfo {
+	id: string;
+	title: string;
+	summary: string;
+	kinds: string[];
+}
+
 export interface ServerState {
 	version: string;
 	home: string;
 	startDir: string;
 	engines: EngineInfo[];
+	profiles: ProfileInfo[];
 	running: boolean;
 }
 
