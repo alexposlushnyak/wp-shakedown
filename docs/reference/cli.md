@@ -22,6 +22,7 @@ In a WordPress folder the tool lists every theme in `wp-content/themes` and ever
 |---|---|
 | `--type <kind>` | Treats the path as `theme`, `plugin` or `install` without looking |
 | `--engine <id>` | Runs only this engine. Repeat it for more than one. [Engines](engines.md) lists the IDs |
+| `--profile <id>` | Runs the engines for one gate: `wporg-theme`, `wporg-plugin` or `site`. See [Profiles](profiles.md). It does not combine with `--engine` |
 | `--out <dir>` | Writes the report to this folder |
 | `--baseline <file>` | Uses this baseline file |
 | `--fail-on <level>` | Sets the severity that makes the command exit 1: `error`, `warning`, `info` or `never`. The default is `error` |

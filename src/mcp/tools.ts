@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { defaultReportDir, readPreviousRun } from '../report/write.ts';
 import { toMarkdown } from '../report/markdown.ts';
+import { profiles } from '../profiles.ts';
 import { runSession } from '../session.ts';
 import { detectTarget } from '../target.ts';
 import type { Engine, Finding, Severity } from '../types.ts';
@@ -83,6 +84,11 @@ export const tools: Tool[] = [
       {
         path: { type: 'string', description: 'Absolute path of the folder to test.' },
         engines: { type: 'array', items: { type: 'string' }, description: 'Engine IDs to run. Leave out to run all that fit.' },
+        profile: {
+          type: 'string',
+          enum: profiles.map((p) => p.id),
+          description: 'Run only the engines for one gate. ' + profiles.map((p) => `${p.id}: ${p.summary}`).join(' '),
+        },
         type: { type: 'string', enum: ['theme', 'plugin', 'install'], description: 'Use only when detection is wrong.' },
       },
       ['path'],
@@ -103,6 +109,7 @@ export const tools: Tool[] = [
           input: args.path as string,
           ...(type ? { type } : {}),
           ...(only?.length ? { only } : {}),
+          ...(args.profile ? { profile: args.profile as string } : {}),
           engines: ctx.engines,
           signal: ctx.signal,
           onEvent: (e) => {

@@ -32,7 +32,7 @@ export function toHtml(result: RunResult, diff?: RunDiff): string {
   const t = result.target;
   let body = `<h1>wp-shakedown report</h1>
 <p>Target: ${e(t.kind)} "${e(t.name)}" at ${e(t.path)}<br>
-Run: ${e(result.finishedAt)}, wp-shakedown ${e(result.tool.version)}</p>
+${result.profile ? `Profile: ${e(result.profile)}<br>\n` : ''}Run: ${e(result.finishedAt)}, wp-shakedown ${e(result.tool.version)}</p>
 <h2>Summary</h2>
 <p>${e(summaryLine(result))}</p>
 `;

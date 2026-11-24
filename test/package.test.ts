@@ -15,7 +15,7 @@ test('the npm package holds the command, the page and the tool manifests', { ski
   const parsed = JSON.parse(r.stdout) as unknown;
   const entry = (Array.isArray(parsed) ? parsed[0] : Object.values(parsed as object)[0]) as { files: { path: string }[] };
   const files = entry.files.map((f) => f.path);
-  for (const needed of ['dist/cli.js', 'dist/index.js', 'ui/dist/index.html', 'php-tools/composer.json', 'php-tools/composer.lock', 'js-tools/package.json', 'js-tools/package-lock.json', 'js-tools/eslint.config.mjs', 'js-tools/stylelint.config.mjs', 'README.md', 'LICENSE']) {
+  for (const needed of ['dist/cli.js', 'dist/index.js', 'ui/dist/index.html', 'php-tools/composer.json', 'php-tools/composer.lock', 'php-tools/theme-check.php', 'js-tools/package.json', 'js-tools/package-lock.json', 'js-tools/eslint.config.mjs', 'js-tools/stylelint.config.mjs', 'README.md', 'LICENSE']) {
     assert.ok(files.includes(needed), `${needed} is missing from the package`);
   }
   assert.ok(files.some((f) => /^ui\/dist\/assets\/.+\.js$/.test(f)), 'the page script is missing from the package');

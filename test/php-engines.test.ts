@@ -4,6 +4,7 @@ import { describe, test } from 'node:test';
 import './env.ts';
 import { phpCompat } from '../src/engines/php-compat.ts';
 import { phpLint } from '../src/engines/php-lint.ts';
+import { themeCheck } from '../src/engines/theme-check.ts';
 import { phpstan } from '../src/engines/phpstan.ts';
 import { wpJson } from '../src/engines/wp-json.ts';
 import { wpcs } from '../src/engines/wpcs.ts';
@@ -120,5 +121,26 @@ describe('php engines', opts, () => {
     assert.ok(r.findings.length > 0);
     assert.ok(r.findings.every((f) => f.rule.startsWith('WordPress.Security.EscapeOutput')));
     assert.ok(events.some((e) => e.type === 'engine:note' && e.message === 'Using the project ruleset phpcs.xml.dist.'));
+  });
+  test('theme check reports eval and a missing readme, and a missing parent theme', opts, async (t) => {
+    const dir = tmp(t);
+    write(path.join(dir, 'style.css'), '/*\nTheme Name: Bad\nVersion: 1.0\n*/\n');
+    write(path.join(dir, 'index.php'), '<?php\n');
+    write(path.join(dir, 'functions.php'), '<?php\neval( $x );\n');
+    const r = await run(detectTarget(dir), { engines: [themeCheck] });
+    assert.equal(r.engines[0]!.status, 'ok', r.engines[0]!.reason);
+    const bad = r.findings.find((f) => f.rule === 'bad-things');
+    assert.ok(bad);
+    assert.equal(bad.severity, 'error');
+    assert.equal(bad.location.file, 'functions.php');
+    assert.equal(bad.location.line, 2);
+    assert.ok(r.findings.some((f) => f.rule === 'file'));
+
+    const child = tmp(t);
+    write(path.join(child, 'style.css'), '/*\nTheme Name: Kid\nTemplate: nowhere\nVersion: 1.0\n*/\n');
+    write(path.join(child, 'index.php'), '<?php\n');
+    const notes: string[] = [];
+    await themeCheck.run({ target: detectTarget(child), note: (m) => notes.push(m) });
+    assert.ok(notes.some((n) => n.includes('nowhere')), JSON.stringify(notes));
   });
 });

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { test } from 'node:test';
 import { exec } from '../src/exec.ts';
@@ -58,4 +58,27 @@ test('run on a plugin shows progress on stderr', { timeout: 180000, ...(hasPhp ?
   assert.equal(r.status, 1, r.stderr);
   assert.match(r.stderr, /^ok wpcs:/m);
   assert.match(r.stdout, /Report:/);
+});
+
+test('--profile checks its input', (t) => {
+  const theme = makeTheme(tmp(t));
+  const unknown = cli('run', theme, '--profile', 'nope');
+  assert.equal(unknown.status, 2);
+  assert.match(unknown.stderr, /Unknown profile "nope"/);
+  const both = cli('run', theme, '--profile', 'wporg-theme', '--engine', 'php-lint');
+  assert.equal(both.status, 2);
+  assert.match(both.stderr, /Use a profile or a list of engines, not both\./);
+  assert.match(cli('--help').stdout, /--profile <id> .*wporg-theme, wporg-plugin or site/);
+});
+
+// A real run: the profile picks the engines, so no fake engine is needed. It needs PHP for php-lint and the tools for the rest.
+test('--profile runs only the engines of that profile', { timeout: 180000, ...(hasPhp ? {} : { skip: 'PHP and Composer are needed' }) }, (t) => {
+  const theme = makeTheme(tmp(t));
+  const out = path.join(tmp(t), 'out');
+  const r = cli('run', theme, '--profile', 'wporg-theme', '--out', out, '--fail-on', 'never');
+  assert.equal(r.status, 0, r.stderr);
+  const report = JSON.parse(readFileSync(path.join(out, 'report.json'), 'utf8')) as { profile: string; engines: { engine: string }[] };
+  assert.equal(report.profile, 'wporg-theme');
+  const allowed = ['php-lint', 'theme-check', 'wpcs', 'php-compat', 'wp-json'];
+  assert.ok(report.engines.length > 0 && report.engines.every((e) => allowed.includes(e.engine)));
 });

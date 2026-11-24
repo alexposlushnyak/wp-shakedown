@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "5678bc26a89a5ba7d8a4f580892c8189",
+    "content-hash": "f2431abe5fbf723ceb950d9d1839c3f5",
     "packages": [
         {
             "name": "dealerdirect/phpcodesniffer-composer-installer",
@@ -785,6 +785,16 @@
             },
             "time": "2026-05-22T16:22:09+00:00",
             "published-time": "2026-08-28T06:48:49+00:00"
+        },
+        {
+            "name": "theme-check/theme-check",
+            "version": "20260901",
+            "dist": {
+                "type": "zip",
+                "url": "https://downloads.wordpress.org/plugin/theme-check.20260901.zip",
+                "shasum": "85c13a0c70078367d2d6f3dd68e435212df5881a"
+            },
+            "type": "library"
         },
         {
             "name": "wp-coding-standards/wpcs",

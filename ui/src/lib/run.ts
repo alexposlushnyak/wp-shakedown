@@ -95,6 +95,11 @@ export function detectedText(d: { kind: string; name: string; units: { kind: str
 	return `Site ${d.name}`;
 }
 
+/** The profiles that fit a kind of target. */
+export function profilesFor<T extends { kinds: string[] }>(profiles: T[], kind: string | undefined): T[] {
+	return kind === undefined ? [] : profiles.filter((p) => p.kinds.includes(kind));
+}
+
 /** Builds the state of the run card from the events the server sent. */
 export function runModel(events: WireEvent[]): RunModel {
 	const model: RunModel = { started: false, running: false, target: null, jobs: [], summary: null, error: null };

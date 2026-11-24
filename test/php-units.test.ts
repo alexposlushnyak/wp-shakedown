@@ -4,6 +4,7 @@ import path from 'node:path';
 import { test } from 'node:test';
 import './env.ts';
 import { categorise, toFinding } from '../src/engines/wpcs.ts';
+import { toFindings } from '../src/engines/theme-check.ts';
 import { parseLint } from '../src/engines/php-lint.ts';
 import { exec, NotFound } from '../src/exec.ts';
 import { phpFiles, requiresPhp } from '../src/php/files.ts';
@@ -117,4 +118,49 @@ test('requiresPhp reads a version without a minor part as .0', (t) => {
 test('ignorePattern is anchored to the target and escapes it', () => {
   assert.equal(ignorePattern('/a/vendor/my.plugin (1)'), '^/a/vendor/my\\.plugin \\(1\\)/(.+/)?(vendor|node_modules)/');
   assert.equal(ignorePattern('/a,b'), '^/a\\,b/(.+/)?(vendor|node_modules)/');
+});
+
+test('theme check: a required message becomes an error with its line', () => {
+  const html =
+    '<span class="tc-lead tc-required">REQUIRED</span>: Found <strong>eval</strong> in the file <strong>functions.php</strong>. eval() is not allowed. <pre class=\'tc-grep\'>Line 3: <span class="tc-grep">eval</span>( $x );</pre>';
+  const found = toFindings([{ check: 'Bad_Things_Check', html }], (rel) => rel === 'functions.php');
+  assert.deepEqual(found, [
+    {
+      rule: 'bad-things',
+      severity: 'error',
+      category: 'security',
+      message: 'Found eval in the file functions.php. eval() is not allowed.',
+      location: { file: 'functions.php', line: 3 },
+    },
+  ]);
+});
+
+test('theme check: one finding per line with the same message', () => {
+  const html =
+    '<span class="tc-lead tc-warning">WARNING</span>: Found <strong>x</strong> in <strong>a.php</strong>. <pre>Line 9: x</pre><pre>Line 2: y</pre>';
+  const found = toFindings([{ check: 'Escaping_Check', html }], (rel) => rel === 'a.php');
+  assert.deepEqual(found.map((f) => f.location), [{ file: 'a.php', line: 2 }, { file: 'a.php', line: 9 }]);
+  assert.equal(new Set(found.map((f) => f.message)).size, 1);
+  assert.equal(found[0]!.severity, 'warning');
+});
+
+test('theme check: a note with no file is info', () => {
+  const html = '<span class="tc-lead tc-recommended">RECOMMENDED</span> No reference to <strong>add_editor_style()</strong> was found in the theme.';
+  const found = toFindings([{ check: 'Editor_Style_Check', html }], () => false);
+  assert.equal(found.length, 1);
+  assert.equal(found[0]!.severity, 'info');
+  assert.deepEqual(found[0]!.location, {});
+  assert.equal(found[0]!.rule, 'editor-style');
+  assert.equal(found[0]!.category, 'correctness');
+});
+
+test('theme check: docs link, decoded entities and rule names', () => {
+  const html =
+    '<span class="tc-lead tc-info">INFO</span>: Don&#039;t use &lt;b&gt; <a href="https://make.wordpress.org/themes/handbook/review/accessibility/">Read more</a>';
+  const [f] = toFindings([{ check: 'TextDomain_Check', html }], () => false);
+  assert.equal(f!.docs, 'https://make.wordpress.org/themes/handbook/review/accessibility/');
+  assert.equal(f!.message, "Don't use <b> Read more");
+  assert.equal(f!.rule, 'textdomain');
+  assert.equal(f!.category, 'i18n');
+  assert.equal(f!.severity, 'info');
 });

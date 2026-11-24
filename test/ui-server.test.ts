@@ -56,6 +56,8 @@ test('the token guards /api', async (t) => {
   const body = (await ok.json()) as { engines: { id: string }[]; running: boolean };
   assert.deepEqual(body.engines.map((e) => e.id), ['found']);
   assert.equal(body.running, false);
+  const state = (await (await fetch(`${base}/api/state`, { headers: { 'x-shakedown-token': ui.token } })).json()) as { profiles: { id: string }[] };
+  assert.equal(state.profiles.length, 3);
   assert.equal((await fetch(`${base}/api/state?t=${ui.token}`)).status, 200);
 });
 
@@ -129,6 +131,11 @@ test('POST /api/run checks its input', async (t) => {
   const unknown = await post('/api/run', { path: theme, engines: ['nope'] });
   assert.equal(unknown.status, 400);
   assert.deepEqual(await unknown.json(), { error: 'Unknown engine "nope".' });
+  const profile = await post('/api/run', { path: theme, profile: 'nope' });
+  assert.equal(profile.status, 400);
+  assert.deepEqual(await profile.json(), { error: 'Unknown profile "nope".' });
+  const both = await post('/api/run', { path: theme, profile: 'wporg-theme', engines: ['found'] });
+  assert.equal(both.status, 400);
   const big = await post('/api/run', { path: 'x'.repeat(70000) });
   assert.equal(big.status, 413);
 });

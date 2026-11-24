@@ -20,6 +20,8 @@ Each record states one decision, the options that were considered, and the reaso
 | [0014](0014-local-web-page.md) | The local web page is a built React page with shadcn/ui, fed by server-sent events | Accepted |
 | [0015](0015-install-health-without-a-running-site.md) | Install health works from files and public data, without a running site | Accepted |
 | [0016](0016-mcp-server-written-by-hand.md) | The MCP server speaks the protocol by hand | Accepted |
+| [0017](0017-theme-check-without-wordpress.md) | Theme Check runs without WordPress | Accepted |
+| [0018](0018-a-profile-is-a-list-of-engines.md) | A profile is a list of engines | Accepted |
 
 ## Adding a record
 

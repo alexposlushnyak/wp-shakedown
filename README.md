@@ -20,8 +20,10 @@ Testing WordPress work means running PHPCS, PHPStan, WP-CLI checks, Site Health 
 
 | Target | Checks |
 |---|---|
-| Theme or plugin folder | Coding standards, static analysis, PHP compatibility, `theme.json` and `block.json`, JavaScript and CSS |
+| Theme or plugin folder | Coding standards, static analysis, PHP compatibility, `theme.json` and `block.json`, JavaScript and CSS. For a theme, the Theme Check rules of wordpress.org |
 | WordPress folder | The same code checks across every theme and plugin in it, plus file integrity, known vulnerabilities, outdated or abandoned software, and risky settings and files |
+
+A profile runs only what one gate checks: `--profile wporg-theme`, `wporg-plugin` or `site`.
 
 ## How you run it
 
@@ -49,6 +51,7 @@ Version 0.1 is tested on macOS and Linux. Windows is not tested yet.
 - [Local web page](docs/reference/ui.md)
 - [MCP server](docs/reference/mcp.md)
 - [Engines](docs/reference/engines.md)
+- [Profiles](docs/reference/profiles.md)
 - [Report format](docs/reference/report.md)
 - [Architecture](docs/explanation/architecture.md)
 - [Decision records](docs/adr/README.md)

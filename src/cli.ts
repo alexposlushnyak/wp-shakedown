@@ -4,6 +4,7 @@ import { statSync } from 'node:fs';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
 import { engines } from './engines/index.ts';
+import { profiles } from './profiles.ts';
 import { progressLine } from './progress.ts';
 import { noEngineLine, summaryLine } from './report/markdown.ts';
 import { exitCode } from './runner.ts';
@@ -12,6 +13,8 @@ import { startMcp } from './mcp/server.ts';
 import { startUi } from './ui/server.ts';
 import { VERSION } from './version.ts';
 import type { Severity } from './types.ts';
+
+const profileList = `${profiles.slice(0, -1).map((p) => p.id).join(', ')} or ${profiles[profiles.length - 1]!.id}`;
 
 const HELP = `wp-shakedown ${VERSION}
 
@@ -23,6 +26,7 @@ Usage:
 Options:
   --type <kind>       Treat the path as a theme, plugin or install
   --engine <id>       Run only this engine. Repeat for more than one
+  --profile <id>      Run the engines for one gate: ${profileList}
   --out <dir>         Write the report here
   --baseline <file>   Use this baseline file
   --fail-on <level>   Exit 1 at this severity: error, warning, info or never
@@ -76,6 +80,7 @@ async function main(argv: string[]): Promise<number> {
       options: {
         type: { type: 'string' },
         engine: { type: 'string', multiple: true },
+        profile: { type: 'string' },
         out: { type: 'string' },
         baseline: { type: 'string' },
         'fail-on': { type: 'string' },
@@ -114,6 +119,7 @@ async function main(argv: string[]): Promise<number> {
       input,
       ...(type ? { type } : {}),
       ...(values.engine ? { only: values.engine } : {}),
+      ...(values.profile ? { profile: values.profile } : {}),
       ...(values.out ? { out: values.out } : {}),
       ...(values.baseline ? { baselineFile: values.baseline } : {}),
       engines,

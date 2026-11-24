@@ -149,3 +149,11 @@ test('markdown says so when only style findings exist', () => {
   assert.ok(md.includes('No findings apart from code style.'));
   assert.ok(md.includes('1 style finding in 1 rule.'));
 });
+
+test('the reports show the profile only when the run has one', () => {
+  const withProfile = result([], { profile: 'wporg-theme' });
+  assert.match(toMarkdown(withProfile), /- Target: .*\n- Profile: wporg-theme\n- Run: /);
+  assert.match(toHtml(withProfile), /Profile: wporg-theme<br>\nRun: /);
+  assert.doesNotMatch(toMarkdown(result([])), /Profile:/);
+  assert.doesNotMatch(toHtml(result([])), /Profile:/);
+});

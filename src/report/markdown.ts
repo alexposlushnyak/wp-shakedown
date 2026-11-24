@@ -28,7 +28,7 @@ export function toMarkdown(result: RunResult, diff?: RunDiff): string {
   const out: string[] = [];
   out.push('# wp-shakedown report');
   out.push(
-    `- Target: ${result.target.kind} "${result.target.name}" at ${result.target.path}\n- Run: ${result.finishedAt}, wp-shakedown ${result.tool.version}`,
+    `- Target: ${result.target.kind} "${result.target.name}" at ${result.target.path}${result.profile ? `\n- Profile: ${result.profile}` : ''}\n- Run: ${result.finishedAt}, wp-shakedown ${result.tool.version}`,
   );
 
   const summary = ['## Summary', summaryLine(result)];

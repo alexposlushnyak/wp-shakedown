@@ -7,6 +7,7 @@ import {
   filterFindings,
   groupByFile,
   jobStatusText,
+  profilesFor,
   progress,
   runModel,
   severityCounts,
@@ -120,4 +121,11 @@ test('crumbs splits a path for the folder browser', () => {
 
 test('aiPrompt names the report file', () => {
   assert.ok(aiPrompt('/r/report.md').includes('/r/report.md'));
+});
+
+test('profilesFor keeps the profiles that fit the kind', () => {
+  const all = [{ id: 'a', kinds: ['theme'] }, { id: 'b', kinds: ['plugin'] }, { id: 'c', kinds: ['theme', 'plugin'] }];
+  assert.deepEqual(profilesFor(all, 'theme').map((p) => p.id), ['a', 'c']);
+  assert.deepEqual(profilesFor(all, 'install'), []);
+  assert.deepEqual(profilesFor(all, undefined), []);
 });

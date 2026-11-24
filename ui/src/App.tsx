@@ -35,10 +35,10 @@ export default function App() {
 		);
 	}, []);
 
-	function run(path: string, engines: string[] | undefined) {
+	function run(path: string, engines: string[] | undefined, profile: string | undefined) {
 		setError('');
 		setReport(null);
-		api('/api/run', { path, ...(engines ? { engines } : {}) }).catch((err: Error) => setError(err.message));
+		api('/api/run', { path, ...(engines ? { engines } : {}), ...(profile ? { profile } : {}) }).catch((err: Error) => setError(err.message));
 	}
 
 	const message = error || model.error;
@@ -58,7 +58,7 @@ export default function App() {
 				</Alert>
 			)}
 
-			{info && <TargetCard engines={info.engines} startDir={info.startDir} running={model.running} onRun={run} onError={setError} />}
+			{info && <TargetCard engines={info.engines} profiles={info.profiles} startDir={info.startDir} running={model.running} onRun={run} onError={setError} />}
 			{model.started && <RunCard model={model} onStop={() => api('/api/cancel', {}).catch((err: Error) => setError(err.message))} />}
 			{report && !model.running && <ResultsCard report={report} />}
 
