@@ -81,7 +81,9 @@ Most reports go to an AI assistant that then fixes the code. For that loop you c
 
 ## Local web page
 
-`wp-shakedown ui` starts an HTTP server on `127.0.0.1` and opens a browser tab. On the page you pick a folder, start a run, watch progress and read the findings. [Local web page](../reference/ui.md) describes it.
+`wp-shakedown ui` starts an HTTP server on `127.0.0.1` and opens a browser tab. The page is a hub: it lists the user's projects, runs several at once and shows each run live. It shows counts and states only. The findings are in the report, one click away. [Local web page](../reference/ui.md) describes it.
+
+The same list of projects works in the terminal with `add`, `list`, `remove` and `run --all`. It is a JSON file with paths, and the report folders hold the results ([ADR 0021](../adr/0021-the-hub-keeps-projects-in-a-file.md)).
 
 - The server picks the folder, because a browser page cannot give another process an absolute path.
 - The server reads the disk and starts processes, so it accepts a request only with the token it put into the link.

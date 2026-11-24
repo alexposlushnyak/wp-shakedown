@@ -4,29 +4,24 @@ import {
   aiPrompt,
   crumbs,
   detectedText,
-  filterFindings,
-  groupByFile,
+  fromSnapshot,
   jobStatusText,
+  lastRunText,
+  parseRoute,
   profilesFor,
   progress,
+  projectTone,
   runModel,
-  severityCounts,
-  styleCounts,
-  summaryText,
+  timeAgo,
+  withEvent,
 } from '../ui/src/lib/run.ts';
 import type { WireEvent } from '../ui/src/lib/run.ts';
-import { finding } from './helpers.ts';
 
 const start: WireEvent = {
   type: 'run:start',
   target: { kind: 'theme', name: 'T', path: '/t', units: 0 },
   jobs: [{ engine: 'a' }, { engine: 'b', unit: 'theme:x' }],
 };
-
-test('summaryText matches the terminal wording', () => {
-  assert.equal(summaryText({ error: 1, warning: 0, info: 2, suppressed: 0 }), '1 error, 0 warnings, 2 notes.');
-  assert.equal(summaryText({ error: 0, warning: 1, info: 1, suppressed: 3 }), '0 errors, 1 warning, 1 note. 3 suppressed.');
-});
 
 test('detectedText describes each kind of target', () => {
   assert.equal(detectedText({ kind: 'theme', name: 'Aurora', units: [] }), 'Theme "Aurora"');
@@ -75,36 +70,6 @@ test('a second run:start replaces the first run', () => {
   assert.deepEqual(m.jobs.map((j) => [j.engine, j.status]), [['c', 'waiting']]);
 });
 
-test('filterFindings leaves out style and suppressed findings unless asked', () => {
-  const all = [
-    finding({ id: 'e1', severity: 'error', message: 'Not escaped', engine: 'wpcs' }),
-    finding({ id: 's1', severity: 'warning', category: 'standards', engine: 'wpcs' }),
-    finding({ id: 'x1', severity: 'error', suppressed: { reason: 'r' } }),
-    finding({ id: 'w1', severity: 'warning', engine: 'phpstan', location: { file: 'inc/a.php' } }),
-  ];
-  assert.deepEqual(filterFindings(all, {}).map((f) => f.id), ['e1', 'w1']);
-  assert.deepEqual(filterFindings(all, { style: true }).map((f) => f.id), ['e1', 's1', 'w1']);
-  assert.deepEqual(filterFindings(all, { severity: 'error' }).map((f) => f.id), ['e1']);
-  assert.deepEqual(filterFindings(all, { engine: 'phpstan' }).map((f) => f.id), ['w1']);
-  assert.deepEqual(filterFindings(all, { text: 'ESCAPED' }).map((f) => f.id), ['e1']);
-  assert.deepEqual(filterFindings(all, { text: 'inc/a' }).map((f) => f.id), ['w1']);
-  assert.deepEqual(severityCounts(all, false), { error: 1, warning: 1, info: 0 });
-  assert.deepEqual(severityCounts(all, true), { error: 1, warning: 2, info: 0 });
-});
-
-test('groupByFile and styleCounts', () => {
-  const all = [
-    finding({ id: 'a', location: { file: 'a.php' } }),
-    finding({ id: 'b', location: { file: 'b.php' } }),
-    finding({ id: 'c', location: { file: 'a.php' } }),
-    finding({ id: 's1', category: 'standards', rule: 'Sp.A' }),
-    finding({ id: 's2', category: 'standards', rule: 'Sp.A' }),
-    finding({ id: 's3', category: 'standards', rule: 'Sp.B' }),
-  ];
-  assert.deepEqual(groupByFile(all.slice(0, 3)).map((g) => [g.file, g.items.length]), [['a.php', 2], ['b.php', 1]]);
-  assert.deepEqual(styleCounts(all), [{ rule: 'fake: Sp.A', count: 2 }, { rule: 'fake: Sp.B', count: 1 }]);
-});
-
 test('crumbs splits a path for the folder browser', () => {
   assert.deepEqual(crumbs('/Users/me/site'), [
     { name: '/', path: '/' },
@@ -128,4 +93,45 @@ test('profilesFor keeps the profiles that fit the kind', () => {
   assert.deepEqual(profilesFor(all, 'theme').map((p) => p.id), ['a', 'c']);
   assert.deepEqual(profilesFor(all, 'install'), []);
   assert.deepEqual(profilesFor(all, undefined), []);
+});
+
+const sum = (error: number, warning: number) => ({ error, warning, info: 4, suppressed: 0 });
+
+test('lastRunText and projectTone describe the last run', () => {
+  assert.equal(lastRunText(undefined), 'Not run yet');
+  assert.equal(lastRunText({ summary: sum(0, 0), failed: 0 }), 'Clean');
+  assert.equal(lastRunText({ summary: sum(2, 5), failed: 0 }), '2 errors, 5 warnings');
+  assert.equal(lastRunText({ summary: sum(1, 0), failed: 0 }), '1 error');
+  assert.equal(lastRunText({ summary: sum(0, 1), failed: 0 }), '1 warning');
+  assert.equal(projectTone(undefined), 'none');
+  assert.equal(projectTone({ summary: sum(0, 0), failed: 0 }), 'clean');
+  assert.equal(projectTone({ summary: sum(0, 3), failed: 0 }), 'warning');
+  assert.equal(projectTone({ summary: sum(1, 3), failed: 0 }), 'error');
+  assert.equal(projectTone({ summary: sum(0, 0), failed: 1 }), 'error');
+});
+
+test('timeAgo rounds down to the unit', () => {
+  const now = Date.parse('2026-01-10T12:00:00Z');
+  const ago = (ms: number) => timeAgo(new Date(now - ms).toISOString(), now);
+  assert.equal(ago(30_000), 'just now');
+  assert.equal(ago(5 * 60_000 + 1000), '5 min ago');
+  assert.equal(ago(2.5 * 3600_000), '2 h ago');
+  assert.equal(ago(3.5 * 86400_000), '3 d ago');
+  assert.equal(timeAgo(new Date(now + 60_000).toISOString(), now), 'just now');
+});
+
+test('parseRoute opens a project only when it exists', () => {
+  assert.equal(parseRoute('#/p/abc', ['abc']), 'abc');
+  assert.equal(parseRoute('#/p/zzz', ['abc']), undefined);
+  assert.equal(parseRoute('#/', ['abc']), undefined);
+  assert.equal(parseRoute('', ['abc']), undefined);
+});
+
+test('events are kept per run and a run:start replaces that run only', () => {
+  const a = withEvent(withEvent({}, 'a', start), 'a', { type: 'engine:start', engine: 'a' });
+  const both = withEvent(a, 'b', start);
+  assert.equal(both.a!.length, 2);
+  assert.equal(both.b!.length, 1);
+  assert.equal(withEvent(both, 'a', start).a!.length, 1);
+  assert.deepEqual(fromSnapshot([{ id: 'x', events: [start] }]), { x: [start] });
 });

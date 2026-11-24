@@ -6,6 +6,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { customEngines } from '../engines/custom.ts';
 import { profiles } from '../profiles.ts';
+import { addProject, listProjects, removeProject } from '../projects.ts';
+import { readPreviousRun } from '../report/write.ts';
 import { runSession } from '../session.ts';
 import type { SessionResult } from '../session.ts';
 import { detectTarget } from '../target.ts';
@@ -51,6 +53,9 @@ const HEADERS = {
     "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; connect-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'",
 };
 const MAX_BODY = 65536;
+const MAX_RUNNING = 3;
+const REPORT_CSP = "default-src 'none'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'";
+const REPORT_FILES = ['report.md', 'report.json', 'report.sarif', 'report.html'];
 
 function toWire(e: RunEvent): WireEvent {
   if (e.type === 'run:start') {
@@ -71,10 +76,20 @@ export function startUi(opts: { engines: Engine[]; port?: number; startDir?: str
   const token = opts.token ?? randomBytes(24).toString('base64url');
   const startDir = path.resolve(opts.startDir ?? process.cwd());
   let port = 0;
-  let controller: AbortController | undefined;
-  let events: WireEvent[] = [];
-  let last: SessionResult | undefined;
   const clients = new Set<http.ServerResponse>();
+
+  interface Active {
+    path: string;
+    state: 'queued' | 'running';
+    controller: AbortController;
+    events: WireEvent[];
+    depth?: Depth;
+    profile?: string;
+  }
+  const active = new Map<string, Active>();
+  const queue: string[] = [];
+  // What a page that connects later can still show: the last run of each project in this server session.
+  const finished = new Map<string, { events: WireEvent[]; session?: SessionResult }>();
 
   const send = (res: http.ServerResponse, status: number, body: unknown): void => {
     res.writeHead(status, { ...HEADERS, 'Content-Type': 'application/json; charset=utf-8' });
@@ -83,9 +98,12 @@ export function startUi(opts: { engines: Engine[]; port?: number; startDir?: str
   const sse = (res: http.ServerResponse, name: string, data: unknown): void => {
     res.write(`event: ${name}\ndata: ${JSON.stringify(data)}\n\n`);
   };
-  const push = (e: WireEvent): void => {
-    events.push(e);
-    for (const c of clients) sse(c, 'run', e);
+  const broadcast = (name: string, data: unknown): void => {
+    for (const c of clients) sse(c, name, data);
+  };
+  const push = (id: string, a: Active, event: WireEvent): void => {
+    a.events.push(event);
+    broadcast('run', { id, event });
   };
 
   function readBody(req: http.IncomingMessage): Promise<string | undefined> {
@@ -105,42 +123,86 @@ export function startUi(opts: { engines: Engine[]; port?: number; startDir?: str
     });
   }
 
-  function start(
-    input: string,
-    type: 'theme' | 'plugin' | 'install' | undefined,
-    only: string[] | undefined,
-    profile: string | undefined,
-    depth: Depth | undefined,
-  ): void {
-    const ctl = new AbortController();
-    controller = ctl;
-    events = [];
+  function begin(id: string, a: Active): void {
+    const ctl = a.controller;
+    a.state = 'running';
+    finished.delete(id);
     let ended = false;
+    let session: SessionResult | undefined;
+    broadcast('projects', {});
     runSession({
-      input,
-      ...(type ? { type } : {}),
-      ...(only ? { only } : {}),
-      ...(profile ? { profile } : {}),
-      ...(depth ? { depth } : {}),
+      input: a.path,
+      ...(a.profile ? { profile: a.profile } : {}),
+      ...(a.depth ? { depth: a.depth } : {}),
       engines: opts.engines,
       signal: ctl.signal,
       onEvent: (e) => {
         // A stopped run reports one message, not a partial result.
         if (e.type === 'run:end' && ctl.signal.aborted) return;
         if (e.type === 'run:end') ended = true;
-        push(toWire(e));
+        push(id, a, toWire(e));
       },
     })
       .then((s) => {
-        if (!ctl.signal.aborted) last = s;
+        if (!ctl.signal.aborted) session = s;
       })
       .catch((err: unknown) => {
-        if (!ctl.signal.aborted) push({ type: 'run:error', message: err instanceof Error ? err.message : String(err) });
+        if (!ctl.signal.aborted) push(id, a, { type: 'run:error', message: err instanceof Error ? err.message : String(err) });
       })
       .finally(() => {
-        if (ctl.signal.aborted && !ended) push({ type: 'run:error', message: 'The run was stopped.' });
-        if (controller === ctl) controller = undefined;
+        if (ctl.signal.aborted && !ended) push(id, a, { type: 'run:error', message: 'The run was stopped.' });
+        active.delete(id);
+        finished.set(id, { events: a.events, ...(session ? { session } : {}) });
+        pump();
+        broadcast('projects', {});
       });
+  }
+
+  function pump(): void {
+    const running = () => [...active.values()].filter((a) => a.state === 'running').length;
+    while (running() < MAX_RUNNING && queue.length > 0) {
+      const id = queue.shift()!;
+      const a = active.get(id);
+      if (a) begin(id, a);
+    }
+  }
+
+  function cancel(id: string): void {
+    const a = active.get(id);
+    if (!a) return;
+    const at = queue.indexOf(id);
+    if (at >= 0) {
+      queue.splice(at, 1);
+      active.delete(id);
+      broadcast('projects', {});
+    } else a.controller.abort();
+  }
+
+  async function jsonBody(req: http.IncomingMessage, res: http.ServerResponse): Promise<Record<string, unknown> | undefined> {
+    if (!(req.headers['content-type'] ?? '').startsWith('application/json')) {
+      send(res, 415, { error: 'Send JSON.' });
+      return undefined;
+    }
+    const text = await readBody(req);
+    if (text === undefined) {
+      res.setHeader('Connection', 'close');
+      send(res, 413, { error: 'The request is too large.' });
+      return undefined;
+    }
+    try {
+      const data = JSON.parse(text) as unknown;
+      return data !== null && typeof data === 'object' && !Array.isArray(data) ? (data as Record<string, unknown>) : {};
+    } catch {
+      return {};
+    }
+  }
+
+  /** The report folder and finished session of a project, or undefined when it has no report. */
+  function reportOf(id: string): { dir: string; session?: SessionResult } | undefined {
+    const session = finished.get(id)?.session;
+    if (session) return { dir: session.dir, session };
+    const dir = listProjects().find((p) => p.id === id)?.last?.dir;
+    return dir ? { dir } : undefined;
   }
 
   const handle = async (req: http.IncomingMessage, res: http.ServerResponse): Promise<void> => {
@@ -177,14 +239,17 @@ export function startUi(opts: { engines: Engine[]; port?: number; startDir?: str
       '/api/state': 'GET',
       '/api/dirs': 'GET',
       '/api/detect': 'GET',
+      '/api/projects': 'GET, POST',
+      '/api/projects/remove': 'POST',
       '/api/run': 'POST',
       '/api/cancel': 'POST',
       '/api/report': 'GET',
+      '/api/report.html': 'GET',
       '/api/events': 'GET',
     };
     const want = methods[route];
     if (!want) return send(res, 404, { error: 'Not found.' });
-    if (method !== want) return send(res, 405, { error: 'Method not allowed.' });
+    if (!want.split(', ').includes(method)) return send(res, 405, { error: 'Method not allowed.' });
 
     switch (route) {
       case '/api/state':
@@ -194,7 +259,6 @@ export function startUi(opts: { engines: Engine[]; port?: number; startDir?: str
           startDir,
           engines: [...opts.engines, ...customEngines()].map(({ id, title, kinds, depth }) => ({ id, title, kinds, depth: depth ?? 'standard' })),
           profiles: profiles.map(({ id, title, summary, kinds }) => ({ id, title, summary, kinds })),
-          running: controller !== undefined,
         });
 
       case '/api/dirs': {
@@ -231,53 +295,116 @@ export function startUi(opts: { engines: Engine[]; port?: number; startDir?: str
         }
       }
 
+      case '/api/projects': {
+        if (method === 'GET') {
+          return send(res, 200, { projects: listProjects().map((p) => ({ ...p, ...(active.has(p.id) ? { run: active.get(p.id)!.state } : {}) })) });
+        }
+        const body = await jsonBody(req, res);
+        if (!body) return;
+        if (typeof body.path !== 'string' || body.path === '') return send(res, 400, { error: 'Send a path.' });
+        try {
+          const added = addProject(body.path);
+          if (added.added) broadcast('projects', {});
+          return send(res, 200, added);
+        } catch (err) {
+          return send(res, 400, { error: err instanceof Error ? err.message : String(err) });
+        }
+      }
+
+      case '/api/projects/remove': {
+        const body = await jsonBody(req, res);
+        if (!body) return;
+        const id = body.id;
+        if (typeof id !== 'string' || !listProjects().some((p) => p.id === id)) return send(res, 404, { error: 'No such project.' });
+        if (active.has(id)) return send(res, 409, { error: 'Stop the run first.' });
+        removeProject(id);
+        finished.delete(id);
+        broadcast('projects', {});
+        return send(res, 200, { ok: true });
+      }
+
       case '/api/run': {
-        if (!(req.headers['content-type'] ?? '').startsWith('application/json')) return send(res, 415, { error: 'Send JSON.' });
+        const body = await jsonBody(req, res);
+        if (!body) return;
+        const ids = body.ids;
+        if (!Array.isArray(ids) || ids.length === 0 || !ids.every((x) => typeof x === 'string')) return send(res, 400, { error: 'Send the projects to run.' });
+        const all = listProjects();
+        const chosen = (ids as string[]).map((id) => all.find((p) => p.id === id));
+        if (chosen.some((p) => !p?.kind)) return send(res, 400, { error: 'No such project.' });
+        const depth = body.depth;
+        if (depth !== undefined && !DEPTHS.some((d) => d === depth)) return send(res, 400, { error: `Unknown depth "${String(depth)}".` });
+        const profile = body.profile;
+        if (profile !== undefined) {
+          const found = typeof profile === 'string' ? profiles.find((p) => p.id === profile) : undefined;
+          if (!found) return send(res, 400, { error: `Unknown profile "${String(profile)}".` });
+          if (chosen.length > 1) return send(res, 400, { error: 'A profile works with one project.' });
+          if (!found.kinds.includes(chosen[0]!.kind!)) return send(res, 400, { error: `The ${found.id} profile does not fit "${chosen[0]!.name}".` });
+        }
+        const started: string[] = [];
+        for (const p of chosen as NonNullable<(typeof chosen)[number]>[]) {
+          if (active.has(p.id)) continue;
+          active.set(p.id, {
+            path: p.path,
+            state: 'queued',
+            controller: new AbortController(),
+            events: [],
+            ...(depth ? { depth: depth as Depth } : {}),
+            ...(profile ? { profile: profile as string } : {}),
+          });
+          queue.push(p.id);
+          started.push(p.id);
+        }
+        pump();
+        if (started.length > 0) broadcast('projects', {});
+        return send(res, 202, { started });
+      }
+
+      case '/api/cancel': {
         const text = await readBody(req);
         if (text === undefined) {
           res.setHeader('Connection', 'close');
           return send(res, 413, { error: 'The request is too large.' });
         }
-        type Body = { path?: unknown; type?: unknown; engines?: unknown; profile?: unknown; depth?: unknown } | null;
-        const body = ((): Body => {
-          try {
-            return JSON.parse(text) as Body;
-          } catch {
-            return null; // answered as a missing path
-          }
-        })();
-        if (!body || typeof body.path !== 'string' || body.path === '') return send(res, 400, { error: 'Send a path.' });
-        if (controller) return send(res, 409, { error: 'A run is in progress.' });
-        const type = body.type === 'theme' || body.type === 'plugin' || body.type === 'install' ? body.type : undefined;
-        const ids = Array.isArray(body.engines) ? body.engines.filter((x): x is string => typeof x === 'string') : [];
-        const profile = body.profile;
-        if (profile !== undefined && (typeof profile !== 'string' || !profiles.some((p) => p.id === profile))) {
-          return send(res, 400, { error: `Unknown profile "${String(profile)}".` });
-        }
-        const depth = body.depth;
-        if (depth !== undefined && !DEPTHS.some((d) => d === depth)) return send(res, 400, { error: `Unknown depth "${String(depth)}".` });
-        if (profile !== undefined && ids.length > 0) return send(res, 400, { error: 'Use a profile or a list of engines, not both.' });
+        let id: unknown;
         try {
-          detectTarget(body.path, type ? { type } : {});
-        } catch (err) {
-          return send(res, 400, { error: err instanceof Error ? err.message : String(err) });
+          id = (JSON.parse(text) as { id?: unknown } | null)?.id;
+        } catch {
+          // An empty or unreadable body means every run.
         }
-        const known = [...opts.engines, ...customEngines()];
-        for (const id of ids) {
-          if (!known.some((e) => e.id === id)) return send(res, 400, { error: `Unknown engine "${id}".` });
-        }
-        start(body.path, type, ids.length > 0 ? ids : undefined, profile as string | undefined, depth as Depth | undefined);
-        return send(res, 202, { ok: true });
+        if (typeof id === 'string') cancel(id);
+        else for (const key of [...active.keys()]) cancel(key);
+        return send(res, 200, { ok: true });
       }
 
-      case '/api/cancel':
-        controller?.abort();
-        return send(res, 200, { ok: true });
-
       case '/api/report': {
-        if (!last) return send(res, 404, { error: 'No report yet.' });
-        const { result, diff, files, dir } = last;
-        return send(res, 200, { result, ...(diff ? { diff } : {}), files, dir });
+        const id = url.searchParams.get('id') ?? '';
+        const found = reportOf(id);
+        if (!found) return send(res, 404, { error: 'No report yet.' });
+        const result = found.session?.result ?? readPreviousRun(found.dir);
+        if (!result) return send(res, 404, { error: 'No report yet.' });
+        const diff = found.session?.diff;
+        return send(res, 200, {
+          summary: result.summary,
+          engines: result.engines,
+          finishedAt: result.finishedAt,
+          ...(result.profile ? { profile: result.profile } : {}),
+          ...(result.depth ? { depth: result.depth } : {}),
+          ...(diff ? { diff: { fixed: diff.fixed.length, added: diff.added.length, open: diff.open.length } } : {}),
+          files: found.session?.files ?? REPORT_FILES.map((f) => path.join(found.dir, f)),
+          dir: found.dir,
+        });
+      }
+
+      case '/api/report.html': {
+        const found = reportOf(url.searchParams.get('id') ?? '');
+        try {
+          const body = readFileSync(path.join(found?.dir ?? '', 'report.html'));
+          if (!found) throw new Error('none');
+          res.writeHead(200, { ...HEADERS, 'Content-Security-Policy': REPORT_CSP, 'Content-Type': TYPES['.html']! });
+          return void res.end(body);
+        } catch {
+          return send(res, 404, { error: 'No report yet.' });
+        }
       }
 
       default: {
@@ -286,7 +413,11 @@ export function startUi(opts: { engines: Engine[]; port?: number; startDir?: str
           'Content-Type': 'text/event-stream; charset=utf-8',
           Connection: 'keep-alive',
         });
-        sse(res, 'snapshot', { running: controller !== undefined, events });
+        const runs = [
+          ...[...finished].map(([id, f]) => ({ id, state: 'ended' as const, events: f.events })),
+          ...[...active].map(([id, a]) => ({ id, state: a.state, events: a.events })),
+        ];
+        sse(res, 'snapshot', { runs });
         clients.add(res);
         const ping = setInterval(() => res.write(': ping\n\n'), 25000);
         res.on('close', () => {
@@ -314,7 +445,8 @@ export function startUi(opts: { engines: Engine[]; port?: number; startDir?: str
         token,
         close: () =>
           new Promise<void>((done) => {
-            controller?.abort();
+            queue.length = 0;
+            for (const a of active.values()) a.controller.abort();
             for (const c of clients) c.end();
             clients.clear();
             server.close(() => done());
