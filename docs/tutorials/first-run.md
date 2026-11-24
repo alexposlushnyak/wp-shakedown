@@ -1,26 +1,28 @@
 # Your first run
 
-This tutorial takes you from a clone of the repository to a report on a theme. The tool is not on npm yet, so you run it from source.
+This tutorial takes you from nothing installed to a report on a theme.
 
-You need Node.js 22.18 or newer, PHP and Composer.
+## 1. Check what you have
 
-## 1. Build the tool
+You need Node.js 22.18 or newer. For the PHP checks you also need PHP and Composer.
 
 ```bash
-git clone https://github.com/alexposlushnyak/wp-shakedown.git
-cd wp-shakedown
-npm install
-npm install --prefix ui
-npm run build
+node --version
+php --version
+composer --version
 ```
+
+Without PHP or Composer the tool still runs. It skips the checks that need them and says so.
 
 ## 2. Run it on a theme
 
 Point it at a theme folder. A plugin folder or a whole WordPress folder works the same way.
 
 ```bash
-node dist/cli.js run /path/to/your-theme
+npx wp-shakedown run /path/to/your-theme
 ```
+
+`npx` downloads the tool the first time. Nothing is added to your project.
 
 The first run installs the tools the engines use: PHP_CodeSniffer, the WordPress standards, PHPStan, ESLint and Stylelint. That takes under a minute and happens once.
 
@@ -73,7 +75,7 @@ To hand the work to an AI assistant, give it the path of `report.md` and ask it 
 ## 5. Try the web page
 
 ```bash
-node dist/cli.js ui /path/to/your-theme
+npx wp-shakedown ui /path/to/your-theme
 ```
 
 A page opens in your browser. Choose Run the checks to see the same engines work, then filter and search the findings. [Local web page](../reference/ui.md) describes it.

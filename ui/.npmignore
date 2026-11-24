@@ -1,0 +1,3 @@
+# npm reads this file in place of ui/.gitignore, which ignores dist.
+# The root package.json ships ui/dist, so dist must not be ignored here.
+node_modules

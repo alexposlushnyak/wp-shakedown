@@ -10,12 +10,10 @@ You do not start the command by hand. You name it in the assistant's settings an
 
 ## Connect an assistant
 
-The tool is not on npm yet, so point the assistant at your build. Replace the path with the folder of your clone.
-
 Claude Code:
 
 ```bash
-claude mcp add wp-shakedown -- node /path/to/wp-shakedown/dist/cli.js mcp
+claude mcp add wp-shakedown -- npx -y wp-shakedown mcp
 ```
 
 Any client that reads a JSON config, such as Cursor or Claude Desktop:
@@ -24,8 +22,8 @@ Any client that reads a JSON config, such as Cursor or Claude Desktop:
 {
   "mcpServers": {
     "wp-shakedown": {
-      "command": "node",
-      "args": ["/path/to/wp-shakedown/dist/cli.js", "mcp"]
+      "command": "npx",
+      "args": ["-y", "wp-shakedown", "mcp"]
     }
   }
 }

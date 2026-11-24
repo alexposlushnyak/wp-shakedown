@@ -102,6 +102,7 @@ Public text here must read as if a person wrote it. Before you commit any text, 
 | [docs/explanation/](docs/explanation/architecture.md) | How the tool is designed and why |
 | [docs/adr/](docs/adr/README.md) | Architecture decision records |
 | [CHANGELOG.md](CHANGELOG.md) | What changed in each release |
+| [docs/how-to/release.md](docs/how-to/release.md) | How the maintainer cuts a release |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | How to report, propose and contribute |
 
 ## AI disclosure
