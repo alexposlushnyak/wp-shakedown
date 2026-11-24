@@ -1,0 +1,47 @@
+{
+  "name": "wp-shakedown",
+  "version": "0.0.0",
+  "description": "Runs the usual WordPress checks on a theme, a plugin or a whole WordPress folder and writes one report.",
+  "license": "GPL-2.0-or-later",
+  "type": "module",
+  "bin": {
+    "wp-shakedown": "dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "prepack": "npm run build",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "node --test \"test/**/*.test.ts\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alexposlushnyak/wp-shakedown.git"
+  },
+  "bugs": "https://github.com/alexposlushnyak/wp-shakedown/issues",
+  "homepage": "https://github.com/alexposlushnyak/wp-shakedown#readme",
+  "keywords": [
+    "wordpress",
+    "testing",
+    "phpcs",
+    "phpstan",
+    "wp-cli",
+    "mcp",
+    "cli"
+  ],
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "typescript": "^7.0.2"
+  }
+}

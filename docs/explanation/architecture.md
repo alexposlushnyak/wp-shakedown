@@ -1,6 +1,6 @@
 # Architecture
 
-This document describes the design. Nothing here is implemented yet, and details may change until the first release.
+This document describes the design. The core, the report writers and the `run` command exist. No engine exists yet, so a run finds nothing. The local web page and the MCP server are not built. Details may change until the first release.
 
 ## Principles
 
@@ -56,7 +56,9 @@ The tools emit different formats: custom JSON, checkstyle XML, JUnit, SARIF. Ada
 - a location: file and line, or URL and selector
 - the message, a fix hint, and the command that re-runs this one check
 
-The tool exports the report as Markdown, JSON, SARIF and HTML. See [ADR 0005](../adr/0005-normalized-finding-schema.md).
+The tool exports the report as Markdown, JSON, SARIF and HTML. [Report format](../reference/report.md) lists every field, and [ADR 0005](../adr/0005-normalized-finding-schema.md) gives the reason for the shape.
+
+The report folder is outside the target. See [ADR 0009](../adr/0009-reports-outside-the-target.md).
 
 ## The fix loop
 

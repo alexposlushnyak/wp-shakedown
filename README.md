@@ -2,7 +2,7 @@
 
 wp-shakedown runs the usual WordPress checks on a theme, a plugin or a whole WordPress folder from one place and writes one report.
 
-> In development. There is nothing to install yet.
+> In development. The core and the `run` command work, but no check is wired in yet, so there is nothing useful to install.
 
 ## Why
 
@@ -28,13 +28,15 @@ You run it from the terminal, from a local web page, or from an AI assistant ove
 
 ## Documentation
 
+- [Command line](docs/reference/cli.md)
+- [Report format](docs/reference/report.md)
 - [Architecture](docs/explanation/architecture.md)
 - [Decision records](docs/adr/README.md)
 - [All docs](docs/README.md)
 
 ## Development
 
-AI agents write most of this project and the maintainer reviews their work. [AGENTS.md](AGENTS.md) describes the process. To contribute, read [CONTRIBUTING.md](CONTRIBUTING.md).
+AI agents write most of this project and the maintainer reviews their work. The model is Claude Fable 5.2. [AGENTS.md](AGENTS.md) describes the process. To contribute, read [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 

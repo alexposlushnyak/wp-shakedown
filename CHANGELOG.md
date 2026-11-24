@@ -11,3 +11,10 @@ All notable changes to this project are recorded here. The format follows [Keep 
 - `AGENTS.md` as the entry file for AI agents.
 - Contributing guide, security policy, issue forms and pull request template.
 - Code of conduct (Contributor Covenant 2.0), with reports handled through GitHub.
+- `wp-shakedown run <path>`, which detects a theme, a plugin or a WordPress folder and lists the themes and plugins inside a WordPress folder.
+- The engine contract and the runner. No engine ships yet.
+- Finding IDs that stay the same between runs.
+- Reports in Markdown, JSON, SARIF and HTML, written outside the target.
+- Comparison with the previous run on the same target.
+- Baseline file for silencing findings, with a required reason per entry.
+- CI on Node.js 22, 24 and 26.
