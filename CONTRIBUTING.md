@@ -2,6 +2,8 @@
 
 Thanks for looking. The project is in early development, so the most useful contributions right now are bug reports about the docs and ideas about what the tool should check.
 
+Everyone taking part follows the [code of conduct](CODE_OF_CONDUCT.md).
+
 ## Report a problem or suggest something
 
 - Something is wrong: open a [bug report](https://github.com/alexposlushnyak/wp-shakedown/issues/new?template=bug_report.yml).

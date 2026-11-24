@@ -10,3 +10,4 @@ All notable changes to this project are recorded here. The format follows [Keep 
 - README, architecture document and the first seven decision records.
 - `AGENTS.md` as the entry file for AI agents.
 - Contributing guide, security policy, issue forms and pull request template.
+- Code of conduct (Contributor Covenant 2.0), with reports handled through GitHub.
