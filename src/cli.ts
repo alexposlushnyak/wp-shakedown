@@ -53,13 +53,15 @@ async function ui(input: string | undefined, portText: string | undefined, noOpe
   const startDir = path.resolve(input ?? process.cwd());
   if (!statSync(startDir, { throwIfNoEntry: false })?.isDirectory()) throw new Error(`"${input}" is not a folder.`);
   const server = await startUi({ engines, startDir, ...(port !== undefined ? { port } : {}) });
-  console.log(`wp-shakedown is running at ${server.url}`);
-  console.log('Press Ctrl+C to stop.');
-  if (!noOpen) openBrowser(server.url);
-  await new Promise<void>((resolve) => {
+  // Listen for the signal before printing the address. Whoever reads that line may send the signal at once.
+  const stopped = new Promise<void>((resolve) => {
     process.once('SIGINT', resolve);
     process.once('SIGTERM', resolve);
   });
+  console.log(`wp-shakedown is running at ${server.url}`);
+  console.log('Press Ctrl+C to stop.');
+  if (!noOpen) openBrowser(server.url);
+  await stopped;
   await server.close();
   return 0;
 }
