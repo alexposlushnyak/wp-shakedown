@@ -24,12 +24,13 @@ Testing WordPress work means running PHPCS, PHPStan, WP-CLI checks, Site Health 
 
 ## How you run it
 
-You run it from the terminal, from a local web page, or from an AI assistant over MCP. All three use the same core.
+You run it from the terminal or from a local web page. A server for AI assistants over MCP is planned. All of them use the same core.
 
 ## Documentation
 
 - [Your first run](docs/tutorials/first-run.md)
 - [Command line](docs/reference/cli.md)
+- [Local web page](docs/reference/ui.md)
 - [Engines](docs/reference/engines.md)
 - [Report format](docs/reference/report.md)
 - [Architecture](docs/explanation/architecture.md)

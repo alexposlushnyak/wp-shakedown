@@ -16,7 +16,7 @@ Everyone taking part follows the [code of conduct](CODE_OF_CONDUCT.md).
 1. Open an issue first, or pick an existing one. One issue per change.
 2. Branch from `main` as `feat/<name>`, `fix/<name>` or `chore/<name>`.
 3. Commit with [Conventional Commits](https://www.conventionalcommits.org/), for example `fix(report): keep finding IDs stable across runs`. One commit covers one logical unit of work, including its docs.
-4. Run `npm install`, then `npm run typecheck` and `npm test`. You need Node.js 22.18 or newer.
+4. Run `npm install` and `npm install --prefix ui`, then `npm run typecheck`, `npm run build` and `npm test`. You need Node.js 22.18 or newer.
 5. Update the docs the change makes stale, and add a line to [CHANGELOG.md](CHANGELOG.md) under Unreleased.
 6. Open a pull request and list `Closes #N` for each issue.
 

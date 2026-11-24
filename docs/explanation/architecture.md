@@ -1,6 +1,6 @@
 # Architecture
 
-This document describes the design. The core, the report writers, the `run` command and seven engines exist. The engines for a whole install and for a site URL, the local web page and the MCP server are not built. Details may change until the first release.
+This document describes the design. The core, the report writers, the `run` command, seven engines and the local web page exist. The engines for a whole install and for a site URL and the MCP server are not built. Details may change until the first release.
 
 ## Principles
 
@@ -73,10 +73,12 @@ Most reports go to an AI assistant that then fixes the code. For that loop you c
 
 ## Local web page
 
-`wp-shakedown ui` starts an HTTP server on `127.0.0.1` and opens a browser tab. On the page you pick a folder, start a run, watch progress over a WebSocket and read the report.
+`wp-shakedown ui` starts an HTTP server on `127.0.0.1` and opens a browser tab. On the page you pick a folder, start a run, watch progress and read the findings. [Local web page](../reference/ui.md) describes it.
 
 - The server picks the folder, because a browser page cannot give another process an absolute path.
-- The server reads the disk and starts processes, so it accepts a request only with the token it put into the page.
+- The server reads the disk and starts processes, so it accepts a request only with the token it put into the link.
+- Progress reaches the page as server-sent events. A page that opens late gets the events of the current run first.
+- The page is a React app made of shadcn/ui components, built into static files that the server serves. See [ADR 0014](../adr/0014-local-web-page.md).
 
 ## PHP runtime
 

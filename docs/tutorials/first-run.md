@@ -10,6 +10,7 @@ You need Node.js 22.18 or newer, PHP and Composer.
 git clone https://github.com/alexposlushnyak/wp-shakedown.git
 cd wp-shakedown
 npm install
+npm install --prefix ui
 npm run build
 ```
 
@@ -68,6 +69,14 @@ Fix one of the errors and run the same command again. The output now has a line 
 ```
 
 To hand the work to an AI assistant, give it the path of `report.md` and ask it to fix the findings.
+
+## 5. Try the web page
+
+```bash
+node dist/cli.js ui /path/to/your-theme
+```
+
+A page opens in your browser. Choose Run the checks to see the same engines work, then filter and search the findings. [Local web page](../reference/ui.md) describes it.
 
 ## Next
 

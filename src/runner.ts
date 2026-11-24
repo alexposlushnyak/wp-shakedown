@@ -85,7 +85,11 @@ export async function run(target: Target, opts: RunOptions): Promise<RunResult> 
   }
 
   const startedAt = now().toISOString();
-  emit({ type: 'run:start', target });
+  emit({
+    type: 'run:start',
+    target,
+    jobs: jobs.map((j) => ({ engine: j.engine.id, ...(j.unit ? { unit: unitLabel(j.unit) } : {}) })),
+  });
 
   const engineRuns: EngineRun[] = [];
   const raw: Omit<Finding, 'id'>[] = [];

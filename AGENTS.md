@@ -14,9 +14,12 @@ You need Node.js 22.18 or newer. The engine tests also need PHP and Composer. Wi
 
 | Command | What it does |
 |---|---|
-| `npm install` | Installs the two dev dependencies |
+| `npm install` | Installs the dev dependencies of the tool |
+| `npm install --prefix ui` | Installs what the web page needs to build |
 | `npm run typecheck` | Type-checks `src` and `test` |
-| `npm run build` | Compiles `src` to `dist` |
+| `npm run build` | Compiles `src` to `dist` and builds the web page into `ui/dist` |
+| `npm run build:core` | Compiles `src` only |
+| `npm run dev --prefix ui` | Starts Vite for work on the page. Run `wp-shakedown ui` next to it for the API |
 | `npm test` | Runs the tests with the Node test runner |
 
 Node runs the TypeScript sources directly, so tests need no build. Write TypeScript that Node can strip: no enums, no namespaces, no parameter properties, and `.ts` in relative imports.
@@ -41,6 +44,9 @@ To add an engine: write the adapter in `src/engines/`, add it to `src/engines/in
 | `js-tools/` | The npm manifest, lock file and configs for ESLint and Stylelint |
 | `src/report/` | The four report writers |
 | `src/cli.ts` | The `wp-shakedown` command |
+| `src/session.ts` | The steps from a path to a written report, shared by the command and the web page |
+| `src/ui/server.ts` | The local server and its API |
+| `ui/` | The web page: React, Tailwind and shadcn/ui, built with Vite |
 | `test/` | Tests, one file per source file |
 
 ## Before you start
@@ -65,6 +71,10 @@ To add an engine: write the adapter in `src/engines/`, add it to `src/engines/in
 - Write [Conventional Commits](https://www.conventionalcommits.org/). One commit covers one logical unit of work, including its docs.
 - Open a pull request that lists `Closes #N` for each issue. A review is posted on the pull request before it is merged.
 - Update the docs in the same change: the document for the area you touched, [CHANGELOG.md](CHANGELOG.md), and a new decision record when you make an architecture decision.
+
+## The web page
+
+The page is built from shadcn/ui components. Do not hand-write a control that shadcn/ui has. Add a component with `npx shadcn@latest add <name>` inside `ui/`, or through the shadcn MCP server set up in `.mcp.json`. Logic that does not need the browser goes into `ui/src/lib/run.ts`, where the root tests cover it.
 
 ## Writing
 

@@ -13,3 +13,6 @@ dist/
 
 # Tool cache used by the tests
 .cache/
+
+# Local agent config
+.claude/

@@ -1,15 +1,14 @@
 #!/usr/bin/env node
-import { existsSync } from 'node:fs';
+import { spawn } from 'node:child_process';
+import { statSync } from 'node:fs';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
-import { loadBaseline } from './baseline.ts';
-import { diffRuns } from './diff.ts';
 import { engines } from './engines/index.ts';
 import { progressLine } from './progress.ts';
 import { noEngineLine, summaryLine } from './report/markdown.ts';
-import { assertReportDir, defaultReportDir, readPreviousRun, writeReports } from './report/write.ts';
-import { exitCode, run } from './runner.ts';
-import { detectTarget } from './target.ts';
+import { exitCode } from './runner.ts';
+import { runSession } from './session.ts';
+import { startUi } from './ui/server.ts';
 import { VERSION } from './version.ts';
 import type { Severity } from './types.ts';
 
@@ -17,6 +16,7 @@ const HELP = `wp-shakedown ${VERSION}
 
 Usage:
   wp-shakedown run <path> [options]
+  wp-shakedown ui [path] [options]
 
 Options:
   --type <kind>       Treat the path as a theme, plugin or install
@@ -24,11 +24,47 @@ Options:
   --out <dir>         Write the report here
   --baseline <file>   Use this baseline file
   --fail-on <level>   Exit 1 at this severity: error, warning, info or never
+  --port <n>          Port for the ui command. The default is a free port
+  --no-open           Do not open the browser
   -h, --help          Show this help
   -v, --version       Show the version
 
 Exit codes: 0 clean, 1 findings at or above --fail-on, 2 the run itself failed.
 `;
+
+function openBrowser(url: string): void {
+  const [cmd, args]: [string, string[]] =
+    process.platform === 'darwin' ? ['open', [url]] : process.platform === 'win32' ? ['cmd', ['/c', 'start', '""', url]] : ['xdg-open', [url]];
+  try {
+    const child = spawn(cmd, args, { detached: true, stdio: 'ignore' });
+    child.on('error', () => {});
+    child.unref();
+  } catch {
+    // The URL is printed, so a missing opener costs nothing.
+  }
+}
+
+async function ui(input: string | undefined, portText: string | undefined, noOpen: boolean): Promise<number> {
+  let port: number | undefined;
+  if (portText !== undefined) {
+    port = Number(portText);
+    if (!/^\d+$/.test(portText) || port > 65535) throw new Error('--port must be a number from 0 to 65535.');
+  }
+  const startDir = path.resolve(input ?? process.cwd());
+  if (!statSync(startDir, { throwIfNoEntry: false })?.isDirectory()) throw new Error(`"${input}" is not a folder.`);
+  const server = await startUi({ engines, startDir, ...(port !== undefined ? { port } : {}) });
+  // Listen for the signal before printing the address. Whoever reads that line may send the signal at once.
+  const stopped = new Promise<void>((resolve) => {
+    process.once('SIGINT', resolve);
+    process.once('SIGTERM', resolve);
+  });
+  console.log(`wp-shakedown is running at ${server.url}`);
+  console.log('Press Ctrl+C to stop.');
+  if (!noOpen) openBrowser(server.url);
+  await stopped;
+  await server.close();
+  return 0;
+}
 
 async function main(argv: string[]): Promise<number> {
   try {
@@ -41,6 +77,8 @@ async function main(argv: string[]): Promise<number> {
         out: { type: 'string' },
         baseline: { type: 'string' },
         'fail-on': { type: 'string' },
+        port: { type: 'string' },
+        'no-open': { type: 'boolean' },
         help: { type: 'boolean', short: 'h' },
         version: { type: 'boolean', short: 'v' },
       },
@@ -54,6 +92,7 @@ async function main(argv: string[]): Promise<number> {
       return 0;
     }
     const [command, input] = positionals;
+    if (command === 'ui') return await ui(input, values.port, values['no-open'] ?? false);
     if (command !== 'run') throw new Error(`Unknown command "${command}". Run wp-shakedown --help.`);
     if (!input) throw new Error('Give a folder to test, for example: wp-shakedown run ./my-theme');
     const type = values.type;
@@ -65,27 +104,18 @@ async function main(argv: string[]): Promise<number> {
       throw new Error('--fail-on must be error, warning, info or never.');
     }
 
-    const target = detectTarget(input, type ? { type } : {});
-    let baselineFile = values.baseline;
-    if (!baselineFile && target.kind !== 'url') {
-      const candidate = path.join(target.path, 'wp-shakedown-baseline.json');
-      if (existsSync(candidate)) baselineFile = candidate;
-    }
-    const baseline = baselineFile ? loadBaseline(baselineFile) : undefined;
-    const dir = values.out ?? defaultReportDir(target);
-    assertReportDir(target, dir);
-    const previous = readPreviousRun(dir);
-    const result = await run(target, {
-      engines,
+    const { result, diff, files } = await runSession({
+      input,
+      ...(type ? { type } : {}),
       ...(values.engine ? { only: values.engine } : {}),
-      ...(baseline ? { baseline } : {}),
+      ...(values.out ? { out: values.out } : {}),
+      ...(values.baseline ? { baselineFile: values.baseline } : {}),
+      engines,
       onEvent: (e) => {
         const line = progressLine(e);
         if (line) console.error(line);
       },
     });
-    const diff = previous ? diffRuns(previous, result) : undefined;
-    const files = writeReports(result, dir, diff);
 
     console.log(summaryLine(result));
     if (result.engines.length === 0) console.log(noEngineLine(result));
