@@ -1,8 +1,7 @@
-import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { Ajv } from 'ajv';
-import { home } from '../home.ts';
+import { getJson, Unreachable } from '../net.ts';
 import { EngineSkipped } from '../types.ts';
 import type { Engine, RawFinding, Target } from '../types.ts';
 
@@ -46,34 +45,14 @@ export function schemaUrl(kind: Kind, declared: unknown): string {
 const WEEK = 7 * 24 * 3600 * 1000;
 
 export async function loadSchema(url: string): Promise<object> {
-  const hash = createHash('sha256').update(url).digest('hex').slice(0, 8);
-  const file = path.join(home(), 'cache', 'schemas', `${hash}.json`);
-  const cached = existsSync(file);
-  if (cached && Date.now() - statSync(file).mtimeMs < WEEK) {
-    try {
-      return JSON.parse(readFileSync(file, 'utf8'));
-    } catch {
-      // A cache file that does not parse is downloaded again.
-    }
-  }
+  const skip = new EngineSkipped(`Cannot download ${url}. The engine needs the schema once and then works offline for a week.`);
   try {
-    const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
-    if (res.status !== 200) throw new Error(`HTTP ${res.status}`);
-    const text = await res.text();
-    const schema = JSON.parse(text);
-    mkdirSync(path.dirname(file), { recursive: true });
-    writeFileSync(file, text);
-    return schema;
-  } catch {
-    if (cached) {
-      try {
-        return JSON.parse(readFileSync(file, 'utf8'));
-      } catch {
-        // An unreadable cache file counts as no cache.
-      }
-    }
-    throw new EngineSkipped(`Cannot download ${url}. The engine needs the schema once and then works offline for a week.`);
+    const r = await getJson(url, { ttlMs: WEEK });
+    if (r.status === 200 && r.data && typeof r.data === 'object') return r.data;
+  } catch (err) {
+    if (!(err instanceof Unreachable)) throw err;
   }
+  throw skip;
 }
 
 const ajv = new Ajv({ strict: false, allErrors: true, validateFormats: false });

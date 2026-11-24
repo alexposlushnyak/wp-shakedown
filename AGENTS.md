@@ -6,7 +6,7 @@ Instructions for AI coding agents working in this repository. Humans should star
 
 wp-shakedown is a local test runner for WordPress themes, plugins and installs. It orchestrates existing tools, runs outside WordPress, and produces one report. Stack: Node.js and TypeScript, one npm package.
 
-The core, the report writers, the `run` command and three PHP engines exist.
+The core, the report writers, the `run` and `ui` commands and eleven engines exist.
 
 ## Commands
 
@@ -39,6 +39,8 @@ To add an engine: write the adapter in `src/engines/`, add it to `src/engines/in
 | `src/runner.ts` | Runs engines and builds the result |
 | `src/engines/` | One adapter per external tool |
 | `src/php/` | What the PHP engines share: finding PHP, installing the tools, running PHPCS |
+| `src/health/` | What the install engines share: reading versions and packages from a WordPress folder |
+| `src/net.ts` | Cached requests to public services. Tests replace its fetch and never use the network |
 | `php-tools/` | The Composer manifest and lock file for the PHP tools |
 | `src/js/` | What the JavaScript and CSS engines share: installing the tools, finding source files |
 | `js-tools/` | The npm manifest, lock file and configs for ESLint and Stylelint |

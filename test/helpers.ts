@@ -2,6 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import type { TestContext } from 'node:test';
+import { net } from '../src/net.ts';
 import type { Engine, EngineRun, Finding, RawFinding, RunResult, Severity, TargetKind } from '../src/types.ts';
 
 export function tmp(t: TestContext): string {
@@ -22,8 +23,8 @@ export function makeTheme(dir: string, name = 'Fixture Theme'): string {
   return dir;
 }
 
-export function makePlugin(dir: string, name = 'Fixture Plugin'): string {
-  write(path.join(dir, 'main.php'), `<?php\n/**\n * Plugin Name: ${name}\n */\n`);
+export function makePlugin(dir: string, name = 'Fixture Plugin', version?: string): string {
+  write(path.join(dir, 'main.php'), `<?php\n/**\n * Plugin Name: ${name}\n${version ? ` * Version: ${version}\n` : ''} */\n`);
   return dir;
 }
 
@@ -32,8 +33,8 @@ export function makeInstall(dir: string): string {
   write(path.join(dir, 'wp-includes', 'version.php'), '<?php $wp_version = "6.8";\n');
   makeTheme(path.join(dir, 'wp-content', 'themes', 'b'), 'Bee');
   makeTheme(path.join(dir, 'wp-content', 'themes', 'a'), 'Ay');
-  makePlugin(path.join(dir, 'wp-content', 'plugins', 'folder-plugin'), 'Folder Plugin');
-  write(path.join(dir, 'wp-content', 'plugins', 'single.php'), '<?php\n/*\nPlugin Name: Single\n*/\n');
+  makePlugin(path.join(dir, 'wp-content', 'plugins', 'folder-plugin'), 'Folder Plugin', '2.1.0');
+  write(path.join(dir, 'wp-content', 'plugins', 'single.php'), '<?php\n/*\nPlugin Name: Single\nVersion: 0.5\n*/\n');
   write(path.join(dir, 'wp-content', 'plugins', 'index.php'), '<?php // Silence is golden.\n');
   return dir;
 }
@@ -94,4 +95,29 @@ export function makeSample(dir: string): string {
   write(path.join(dir, 'inc', 'broken.php'), '<?php\nfunction broken( {\n');
   write(path.join(dir, 'vendor', 'lib.php'), '<?php\nfunction vendored( {\n');
   return dir;
+}
+
+export interface FakeCall {
+  url: string;
+  init?: RequestInit;
+}
+
+/** Replaces net.fetch with answers from a map and gives the test its own cache folder. Unknown URLs fail like a lost connection. */
+export function fakeNet(t: TestContext, routes: Map<string, { status: number; body?: unknown }>): FakeCall[] {
+  const calls: FakeCall[] = [];
+  const oldFetch = net.fetch;
+  const oldHome = process.env.WP_SHAKEDOWN_HOME;
+  process.env.WP_SHAKEDOWN_HOME = tmp(t);
+  net.fetch = async (url, init) => {
+    calls.push({ url, ...(init ? { init } : {}) });
+    const r = routes.get(url);
+    if (!r) throw new Error(`No route for ${url}`);
+    return new Response(typeof r.body === 'string' ? r.body : JSON.stringify(r.body ?? null), { status: r.status });
+  };
+  t.after(() => {
+    net.fetch = oldFetch;
+    if (oldHome === undefined) delete process.env.WP_SHAKEDOWN_HOME;
+    else process.env.WP_SHAKEDOWN_HOME = oldHome;
+  });
+  return calls;
 }

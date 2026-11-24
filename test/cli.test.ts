@@ -22,7 +22,7 @@ test('run writes the four reports and shows the diff on the second run', (t) => 
   const out = path.join(tmp(t), 'out');
   const first = cli('run', theme, '--type', 'install', '--out', out);
   assert.equal(first.status, 0, first.stderr);
-  assert.match(first.stdout, /No engine ran\. This version has no engine for a WordPress folder yet\./);
+  assert.match(first.stdout, /0 errors, 0 warnings, 0 notes\./);
   assert.match(first.stdout, /Report: /);
   for (const f of ['md', 'json', 'sarif', 'html']) assert.ok(existsSync(path.join(out, `report.${f}`)));
   assert.doesNotMatch(first.stdout, /still open/);
