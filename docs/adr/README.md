@@ -1,0 +1,21 @@
+# Architecture decision records
+
+Each record states one decision, the options that were considered, and the reason for the choice. Records use the [MADR](https://adr.github.io/madr/) format.
+
+| # | Decision | Status |
+|---|---|---|
+| [0001](0001-document-with-diataxis-and-madr.md) | Document with Diátaxis and MADR | Accepted |
+| [0002](0002-orchestrate-existing-tools-outside-wordpress.md) | Orchestrate existing tools from outside WordPress | Accepted |
+| [0003](0003-node-typescript-single-package.md) | Node.js and TypeScript in one npm package | Accepted |
+| [0004](0004-license-gpl-2-or-later.md) | License under GPL-2.0-or-later | Accepted |
+| [0005](0005-normalized-finding-schema.md) | One finding schema, SARIF as an export | Accepted |
+| [0006](0006-php-runtime-user-choice.md) | The user chooses the PHP runtime | Accepted |
+| [0007](0007-defer-sandbox-wordpress.md) | Defer the disposable WordPress sandbox | Accepted |
+
+## Adding a record
+
+1. Copy the newest record and take the next number.
+2. Fill in the context, the options and the outcome. Keep it to one decision.
+3. Add a row to the table above.
+
+An accepted record is not edited to change its decision. Write a new record and mark the old one as superseded.

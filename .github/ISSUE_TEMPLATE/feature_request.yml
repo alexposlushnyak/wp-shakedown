@@ -1,0 +1,27 @@
+name: Feature request
+description: A check or capability the tool should have
+labels: ["feature"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What you are trying to test or find out, and what gets in the way today.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would help
+      description: If an existing tool already does this check, name it.
+  - type: dropdown
+    id: target
+    attributes:
+      label: What it applies to
+      options:
+        - Theme or plugin folder
+        - WordPress install
+        - Site URL
+        - Report
+        - Terminal, web page or MCP
+        - Other
