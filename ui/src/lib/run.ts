@@ -1,26 +1,10 @@
 // Pure logic for the page. No DOM and no React in here, so the root test suite can import the file.
 
-export type Severity = 'error' | 'warning' | 'info';
-
 export interface Summary {
 	error: number;
 	warning: number;
 	info: number;
 	suppressed: number;
-}
-
-export interface Finding {
-	id: string;
-	engine: string;
-	rule: string;
-	severity: Severity;
-	category: string;
-	message: string;
-	location: { file?: string; line?: number; column?: number; url?: string; selector?: string };
-	hint?: string;
-	docs?: string;
-	unit?: string;
-	suppressed?: { reason: string };
 }
 
 export type JobStatus = 'waiting' | 'running' | 'ok' | 'skipped' | 'failed';
@@ -59,21 +43,8 @@ export interface RunModel {
 	error: string | null;
 }
 
-export interface Filter {
-	severity?: Severity | '';
-	engine?: string;
-	category?: string;
-	text?: string;
-	style?: boolean;
-}
-
 export function plural(n: number, one: string, many: string): string {
 	return `${n} ${n === 1 ? one : many}`;
-}
-
-export function summaryText(s: Summary): string {
-	const base = `${plural(s.error, 'error', 'errors')}, ${plural(s.warning, 'warning', 'warnings')}, ${plural(s.info, 'note', 'notes')}.`;
-	return s.suppressed > 0 ? `${base} ${s.suppressed} suppressed.` : base;
 }
 
 export function seconds(ms: number): string {
@@ -149,58 +120,6 @@ export function progress(jobs: Job[]): number {
 	return Math.round((done / jobs.length) * 100);
 }
 
-export function isStyle(f: { category: string }): boolean {
-	return f.category === 'standards';
-}
-
-export function filterFindings(findings: Finding[], filter: Filter): Finding[] {
-	const text = (filter.text ?? '').trim().toLowerCase();
-	return findings.filter((f) => {
-		if (f.suppressed) return false;
-		if (!filter.style && isStyle(f)) return false;
-		if (filter.severity && f.severity !== filter.severity) return false;
-		if (filter.engine && f.engine !== filter.engine) return false;
-		if (filter.category && f.category !== filter.category) return false;
-		if (!text) return true;
-		return [f.message, f.rule, f.location.file ?? f.location.url ?? '', f.id].some((v) => v.toLowerCase().includes(text));
-	});
-}
-
-export function groupByFile(findings: Finding[]): { file: string; items: Finding[] }[] {
-	const groups = new Map<string, Finding[]>();
-	for (const f of findings) {
-		const name = f.location.file ?? f.location.url ?? '(no file)';
-		const g = groups.get(name);
-		if (g) g.push(f);
-		else groups.set(name, [f]);
-	}
-	return [...groups].map(([file, items]) => ({ file, items }));
-}
-
-export function styleCounts(findings: Finding[]): { rule: string; count: number }[] {
-	const counts = new Map<string, number>();
-	for (const f of findings) {
-		if (f.suppressed || !isStyle(f)) continue;
-		const rule = `${f.engine}: ${f.rule}`;
-		counts.set(rule, (counts.get(rule) ?? 0) + 1);
-	}
-	return [...counts].map(([rule, count]) => ({ rule, count })).sort((a, b) => b.count - a.count || (a.rule < b.rule ? -1 : 1));
-}
-
-/** Counts for the severity tabs, without style findings unless they are listed. */
-export function severityCounts(findings: Finding[], style: boolean): Record<Severity, number> {
-	const counts = { error: 0, warning: 0, info: 0 };
-	for (const f of findings) {
-		if (f.suppressed || (!style && isStyle(f))) continue;
-		counts[f.severity]++;
-	}
-	return counts;
-}
-
-export function distinct(findings: Finding[], key: 'engine' | 'category'): string[] {
-	return [...new Set(findings.filter((f) => !f.suppressed).map((f) => f[key]))].sort();
-}
-
 export function aiPrompt(reportFile: string): string {
 	return `Read the wp-shakedown report at ${reportFile} and fix the findings, starting with the errors. Run wp-shakedown again when you are done and check that the findings are gone.`;
 }
@@ -220,4 +139,51 @@ export function crumbs(p: string): { name: string; path: string }[] {
 			out.push({ name: part, path: acc });
 		});
 	return out;
+}
+
+export type Tone = 'error' | 'warning' | 'clean' | 'none';
+
+interface Last {
+	summary: Summary;
+	failed: number;
+}
+
+/** The color of a project's status dot: what its last run found. */
+export function projectTone(last: Last | undefined): Tone {
+	if (!last) return 'none';
+	if (last.summary.error > 0 || last.failed > 0) return 'error';
+	return last.summary.warning > 0 ? 'warning' : 'clean';
+}
+
+/** What a project row says about its last run. Notes stay out. */
+export function lastRunText(last: Last | undefined): string {
+	if (!last) return 'Not run yet';
+	const { error, warning } = last.summary;
+	const parts = [error > 0 ? plural(error, 'error', 'errors') : '', warning > 0 ? plural(warning, 'warning', 'warnings') : ''].filter(Boolean);
+	return parts.length > 0 ? parts.join(', ') : 'Clean';
+}
+
+export function timeAgo(iso: string, now: number): string {
+	const minutes = Math.floor((now - Date.parse(iso)) / 60000);
+	if (!(minutes >= 1)) return 'just now';
+	if (minutes < 60) return `${minutes} min ago`;
+	if (minutes < 60 * 24) return `${Math.floor(minutes / 60)} h ago`;
+	return `${Math.floor(minutes / 60 / 24)} d ago`;
+}
+
+/** The view for an address hash: a project ID, or undefined for the hub. */
+export function parseRoute(hash: string, ids: string[]): string | undefined {
+	const id = /^#\/p\/([^/]+)$/.exec(hash)?.[1];
+	return id && ids.includes(id) ? id : undefined;
+}
+
+export type RunEvents = Record<string, WireEvent[]>;
+
+/** Adds an event to the events of one run. A run:start begins that run again. */
+export function withEvent(runs: RunEvents, id: string, event: WireEvent): RunEvents {
+	return { ...runs, [id]: event.type === 'run:start' ? [event] : [...(runs[id] ?? []), event] };
+}
+
+export function fromSnapshot(snapshot: { id: string; events: WireEvent[] }[]): RunEvents {
+	return Object.fromEntries(snapshot.map((r) => [r.id, r.events]));
 }

@@ -13,8 +13,11 @@ All notable changes to this project are recorded here. The format follows [Keep 
 - `--depth quick`, `standard` or `deep` sets how thorough a run is.
 - Checks of your own: a JSON file in `~/.wp-shakedown/checks/` adds a pattern, a list of files or a command to the run as its own engine, with a setting for what happens when the check itself breaks.
 - A list of projects: `add`, `list` and `remove` keep it, and `run --all` or `run` with several paths checks projects in parallel.
+- The author and jkdevstudio are credited in the README, in `package.json` and at the foot of the web page.
 
 ### Changed
+
+- The web page is a hub: it lists the projects, runs up to three at once and shows each run live. It shows counts and no longer lists findings. A button opens the HTML report.
 
 - `phpstan` runs at `--depth deep` and no longer by default.
 - Stale baseline entries are reported only by a run that left out no engine.

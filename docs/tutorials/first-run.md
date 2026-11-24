@@ -78,7 +78,7 @@ To hand the work to an AI assistant, give it the path of `report.md` and ask it 
 npx wp-shakedown ui /path/to/your-theme
 ```
 
-A page opens in your browser. Choose Run the checks to see the same engines work, then filter and search the findings. [Local web page](../reference/ui.md) describes it.
+A page opens in your browser with the theme on its list. Open the theme and choose Run the checks to watch the same engines work. Open the report shows the findings. [Local web page](../reference/ui.md) describes it.
 
 ## Next
 
