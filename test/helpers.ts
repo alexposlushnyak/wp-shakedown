@@ -70,3 +70,22 @@ export function result(findings: Finding[] = [], over: Partial<RunResult> = {}):
     ...over,
   };
 }
+
+const SAMPLE = `<?php
+/**
+ * Plugin Name: Sample
+ * Requires PHP: 7.4
+ */
+
+function sample_render( $title ) {
+	echo $title;
+	$r = match ( $title ) { 'a' => 1, default => 2 };
+}
+`;
+
+export function makeSample(dir: string): string {
+  write(path.join(dir, 'sample.php'), SAMPLE);
+  write(path.join(dir, 'inc', 'broken.php'), '<?php\nfunction broken( {\n');
+  write(path.join(dir, 'vendor', 'lib.php'), '<?php\nfunction vendored( {\n');
+  return dir;
+}

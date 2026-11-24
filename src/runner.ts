@@ -99,7 +99,11 @@ export async function run(target: Target, opts: RunOptions): Promise<RunResult> 
     let reason: string | undefined;
     let found: RawFinding[] = [];
     try {
-      found = await job.engine.run({ target: job.target, ...(opts.signal ? { signal: opts.signal } : {}) });
+      found = await job.engine.run({
+        target: job.target,
+        note: (message) => emit({ type: 'engine:note', engine: job.engine.id, ...(unit ? { unit } : {}), message }),
+        ...(opts.signal ? { signal: opts.signal } : {}),
+      });
     } catch (err) {
       if (err instanceof EngineSkipped) status = 'skipped';
       else status = 'failed';

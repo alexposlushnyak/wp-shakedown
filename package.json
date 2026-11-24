@@ -14,7 +14,8 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "php-tools"
   ],
   "engines": {
     "node": ">=22.18"

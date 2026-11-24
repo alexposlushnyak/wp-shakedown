@@ -3,12 +3,13 @@ import { spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { test } from 'node:test';
-import { fileURLToPath } from 'node:url';
+import { exec } from '../src/exec.ts';
 import { VERSION } from '../src/version.ts';
-import { makeTheme, tmp } from './helpers.ts';
+import { root, testHome } from './env.ts';
+import { makeSample, makeTheme, tmp } from './helpers.ts';
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const cli = (...args: string[]) => spawnSync(process.execPath, ['src/cli.ts', ...args], { cwd: root, encoding: 'utf8' });
+const cli = (...args: string[]) =>
+  spawnSync(process.execPath, ['src/cli.ts', ...args], { cwd: root, encoding: 'utf8', env: { ...process.env, WP_SHAKEDOWN_HOME: testHome } });
 
 test('--version and --help', () => {
   assert.equal(cli('--version').stdout.trim(), VERSION);
@@ -17,15 +18,15 @@ test('--version and --help', () => {
 });
 
 test('run writes the four reports and shows the diff on the second run', (t) => {
-  const theme = makeTheme(tmp(t));
+  const theme = tmp(t);
   const out = path.join(tmp(t), 'out');
-  const first = cli('run', theme, '--out', out);
+  const first = cli('run', theme, '--type', 'install', '--out', out);
   assert.equal(first.status, 0, first.stderr);
-  assert.match(first.stdout, /No engine ran/);
+  assert.match(first.stdout, /No engine ran\. This version has no engine for a WordPress folder yet\./);
   assert.match(first.stdout, /Report: /);
   for (const f of ['md', 'json', 'sarif', 'html']) assert.ok(existsSync(path.join(out, `report.${f}`)));
   assert.doesNotMatch(first.stdout, /still open/);
-  const second = cli('run', theme, '--out', out);
+  const second = cli('run', theme, '--type', 'install', '--out', out);
   assert.match(second.stdout, /0 fixed, 0 new, 0 still open\./);
 });
 
@@ -43,4 +44,17 @@ test('failures exit 2 with a message', (t) => {
   const inside = cli('run', theme, '--out', path.join(theme, 'out'));
   assert.equal(inside.status, 2);
   assert.match(inside.stderr, /inside the target/);
+});
+
+const hasPhp = await Promise.all([exec('php', ['-v']), exec('composer', ['--version'])]).then(
+  (r) => r.every((x) => x.code === 0),
+  () => false,
+);
+
+test('run on a plugin shows progress on stderr', { timeout: 180000, ...(hasPhp ? {} : { skip: 'PHP and Composer are needed' }) }, (t) => {
+  const plugin = makeSample(tmp(t));
+  const r = cli('run', plugin, '--out', path.join(tmp(t), 'out'));
+  assert.equal(r.status, 1, r.stderr);
+  assert.match(r.stderr, /^ok wpcs:/m);
+  assert.match(r.stdout, /Report:/);
 });

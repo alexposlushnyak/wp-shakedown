@@ -5,6 +5,7 @@ import { parseArgs } from 'node:util';
 import { loadBaseline } from './baseline.ts';
 import { diffRuns } from './diff.ts';
 import { engines } from './engines/index.ts';
+import { progressLine } from './progress.ts';
 import { noEngineLine, summaryLine } from './report/markdown.ts';
 import { assertReportDir, defaultReportDir, readPreviousRun, writeReports } from './report/write.ts';
 import { exitCode, run } from './runner.ts';
@@ -78,6 +79,10 @@ async function main(argv: string[]): Promise<number> {
       engines,
       ...(values.engine ? { only: values.engine } : {}),
       ...(baseline ? { baseline } : {}),
+      onEvent: (e) => {
+        const line = progressLine(e);
+        if (line) console.error(line);
+      },
     });
     const diff = previous ? diffRuns(previous, result) : undefined;
     const files = writeReports(result, dir, diff);

@@ -21,14 +21,30 @@ In a WordPress folder the tool lists every theme in `wp-content/themes` and ever
 | Option | What it does |
 |---|---|
 | `--type <kind>` | Treats the path as `theme`, `plugin` or `install` without looking |
-| `--engine <id>` | Runs only this engine. Repeat it for more than one |
+| `--engine <id>` | Runs only this engine. Repeat it for more than one. [Engines](engines.md) lists the IDs |
 | `--out <dir>` | Writes the report to this folder |
 | `--baseline <file>` | Uses this baseline file |
 | `--fail-on <level>` | Sets the severity that makes the command exit 1: `error`, `warning`, `info` or `never`. The default is `error` |
 
+### Progress
+
+While it runs, the command prints one line per engine to standard error:
+
+```
+  php-lint: Checking syntax with PHP 8.4.25.
+ok php-lint: 1 finding, 0.2s
+ok wpcs: 2 findings, 0.2s
+  php-compat: Checking against PHP 7.4 and newer.
+ok php-compat: 0 findings, 0.2s
+```
+
+An indented line is a note from the engine. An engine that cannot run starts its line with `skipped` and gives the reason. In a WordPress folder each line also names the theme or plugin, for example `ok wpcs theme:aurora: 2 findings, 0.2s`.
+
+The summary and the report path go to standard output.
+
 ### Where the report goes
 
-Without `--out`, the report goes to `~/.wp-shakedown/reports/<name>-<hash>/`. The folder name comes from the target, so every run on the same target writes to the same place. The command prints the path of `report.md` when it finishes.
+Without `--out`, the report goes to `~/.wp-shakedown/reports/<name>-<hash>/`. Set `WP_SHAKEDOWN_HOME` to use another folder in place of `~/.wp-shakedown`. The folder name comes from the target, so every run on the same target writes to the same place. The command prints the path of `report.md` when it finishes.
 
 The tool refuses a report folder inside the target. It does not write into what it tests.
 

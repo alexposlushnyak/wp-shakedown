@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
+import { home } from '../home.ts';
 import type { RunDiff, RunResult, Target } from '../types.ts';
 import { toHtml } from './html.ts';
 import { toJson } from './json.ts';
@@ -11,7 +11,7 @@ import { toSarif } from './sarif.ts';
 export function defaultReportDir(target: Target): string {
   const slug = target.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40).replace(/-+$/, '') || 'target';
   const hash = createHash('sha256').update(target.path).digest('hex').slice(0, 8);
-  return path.join(os.homedir(), '.wp-shakedown', 'reports', `${slug}-${hash}`);
+  return path.join(home(), 'reports', `${slug}-${hash}`);
 }
 
 export function readPreviousRun(dir: string): RunResult | undefined {

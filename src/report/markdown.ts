@@ -45,7 +45,8 @@ export function toMarkdown(result: RunResult, diff?: RunDiff): string {
 
   if (diff) {
     out.push('## Since the last run', `${diff.fixed.length} fixed, ${diff.added.length} new, ${diff.open.length} still open.`);
-    const list = (title: string, items: Finding[]): void => {
+    const list = (title: string, all: Finding[]): void => {
+      const items = all.filter((f) => f.category !== 'standards');
       if (items.length) out.push(`${title}\n\n${items.map((f) => `- ${groupName(f)}: ${findingText(f)}`).join('\n')}`);
     };
     list('New:', diff.added);
@@ -54,9 +55,13 @@ export function toMarkdown(result: RunResult, diff?: RunDiff): string {
 
   out.push('## Findings');
   const active = result.findings.filter((f) => !f.suppressed);
+  // A real theme has thousands of style findings. Listed one by one they bury the few that matter, so they are counted per rule below.
+  const detail = active.filter((f) => f.category !== 'standards');
+  const style = active.filter((f) => f.category === 'standards');
   if (active.length === 0) out.push('No findings.');
+  else if (detail.length === 0) out.push('No findings apart from code style.');
   const groups = new Map<string, Finding[]>();
-  for (const f of active) {
+  for (const f of detail) {
     const g = groups.get(groupName(f));
     if (g) g.push(f);
     else groups.set(groupName(f), [f]);
@@ -69,6 +74,19 @@ export function toMarkdown(result: RunResult, diff?: RunDiff): string {
       return s;
     });
     out.push(`### ${name}`, lines.join('\n'));
+  }
+
+  if (style.length) {
+    const counts = new Map<string, number>();
+    for (const f of style) counts.set(`${f.engine}: ${f.rule}`, (counts.get(`${f.engine}: ${f.rule}`) ?? 0) + 1);
+    const rows = [...counts]
+      .sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1))
+      .map(([rule, n]) => `| ${cell(rule)} | ${n} |`);
+    out.push(
+      '## Code style',
+      `${plural(style.length, 'style finding', 'style findings')} in ${plural(counts.size, 'rule', 'rules')}. report.json lists each one with its file and line.`,
+      ['| Rule | Findings |', '|---|---|', ...rows].join('\n'),
+    );
   }
 
   const suppressed = result.findings.filter((f) => f.suppressed);

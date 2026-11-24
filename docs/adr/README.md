@@ -13,6 +13,8 @@ Each record states one decision, the options that were considered, and the reaso
 | [0007](0007-defer-sandbox-wordpress.md) | Defer the disposable WordPress sandbox | Accepted |
 | [0008](0008-finding-ids-without-line-numbers.md) | Finding IDs leave out the line number | Accepted |
 | [0009](0009-reports-outside-the-target.md) | Reports are written outside the target | Accepted |
+| [0010](0010-install-php-tools-with-composer.md) | Install the PHP tools with Composer on first run | Accepted |
+| [0011](0011-style-findings-do-not-fail-a-run.md) | Style findings do not fail a run | Accepted |
 
 ## Adding a record
 

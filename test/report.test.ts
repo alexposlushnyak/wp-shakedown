@@ -133,3 +133,19 @@ test('html escapes a line value read from an old report', () => {
   const html = toHtml(result([finding({ location: { file: 'a.php', line: '<b>1</b>' as unknown as number } })]));
   assert.ok(!html.includes('<b>1</b>'));
 });
+
+test('markdown counts style findings per rule and does not list them', () => {
+  const style = (id: string, rule: string) => finding({ id, rule, category: 'standards', severity: 'warning', message: `Style ${id}` });
+  const md = toMarkdown(result([style('s1', 'Sp.A'), style('s2', 'Sp.A'), style('s3', 'Sp.B'), finding({ id: 'real', message: 'Real problem' })]));
+  assert.ok(md.includes('Real problem'));
+  assert.ok(!md.includes('Style s1'));
+  assert.ok(md.includes('## Code style'));
+  assert.ok(md.includes('3 style findings in 2 rules.'));
+  assert.ok(md.indexOf('| fake: Sp.A | 2 |') < md.indexOf('| fake: Sp.B | 1 |'));
+});
+
+test('markdown says so when only style findings exist', () => {
+  const md = toMarkdown(result([finding({ category: 'standards', severity: 'info' })]));
+  assert.ok(md.includes('No findings apart from code style.'));
+  assert.ok(md.includes('1 style finding in 1 rule.'));
+});
