@@ -24,6 +24,7 @@ export interface RunOptions {
   only?: string[];
   profile?: string;
   depth?: Depth;
+  experimental?: boolean;
   baseline?: Baseline;
   signal?: AbortSignal;
   onEvent?: (e: RunEvent) => void;
@@ -82,10 +83,10 @@ export async function run(target: Target, opts: RunOptions): Promise<RunResult> 
   const named = opts.only ? opts.engines.filter((e) => opts.only!.includes(e.id)) : opts.engines;
   // Engines named by hand skip the depth filter. A profile names engines too, but it keeps the filter.
   const byHand = opts.only !== undefined && opts.profile === undefined;
-  const passes = (e: Engine): boolean => byHand || DEPTH_RANK[e.depth ?? 'standard'] <= DEPTH_RANK[depth];
+  const passes = (e: Engine): boolean => byHand || (DEPTH_RANK[e.depth ?? 'standard'] <= DEPTH_RANK[depth] && (!e.experimental || opts.experimental === true));
   const active = named.filter(passes);
   const kindsHere = new Set<string>([target.kind, ...target.units.map((u) => u.kind)]);
-  const depthSkipped = named.some((e) => !passes(e) && e.kinds.some((k) => kindsHere.has(k)));
+  const leftOut = named.some((e) => !passes(e) && e.kinds.some((k) => kindsHere.has(k)));
   const now = opts.now ?? (() => new Date());
   const emit = opts.onEvent ?? (() => {});
 
@@ -154,7 +155,7 @@ export async function run(target: Target, opts: RunOptions): Promise<RunResult> 
     const applied = applyBaseline(findings, opts.baseline);
     findings = applied.findings;
     // An entry is only stale when every engine ran. After a partial run it may belong to an engine that did not.
-    const complete = !opts.only && !depthSkipped && engineRuns.length === jobs.length && engineRuns.every((e) => e.status === 'ok');
+    const complete = !opts.only && !leftOut && engineRuns.length === jobs.length && engineRuns.every((e) => e.status === 'ok');
     staleBaseline = complete ? applied.stale : [];
   }
 
@@ -175,6 +176,7 @@ export async function run(target: Target, opts: RunOptions): Promise<RunResult> 
     },
     ...(opts.profile ? { profile: opts.profile } : {}),
     depth,
+    ...(opts.experimental ? { experimental: true as const } : {}),
     startedAt,
     finishedAt: now().toISOString(),
     engines: engineRuns,

@@ -15,6 +15,7 @@ export interface SessionOptions {
   only?: string[];
   profile?: string;
   depth?: Depth;
+  experimental?: boolean;
   out?: string;
   baselineFile?: string;
   engines: Engine[];
@@ -48,6 +49,7 @@ export async function runSession(opts: SessionOptions): Promise<SessionResult> {
     ...(only ? { only } : {}),
     ...(opts.profile ? { profile: opts.profile } : {}),
     ...(opts.depth ? { depth: opts.depth } : {}),
+    ...(opts.experimental ? { experimental: true } : {}),
     ...(baseline ? { baseline } : {}),
     ...(opts.onEvent ? { onEvent: opts.onEvent } : {}),
     ...(opts.signal ? { signal: opts.signal } : {}),

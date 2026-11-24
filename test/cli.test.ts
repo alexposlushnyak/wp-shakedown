@@ -140,3 +140,7 @@ test('--depth checks its input', () => {
   assert.match(bad.stderr, /--depth must be quick, standard or deep\./);
   assert.match(cli('--help').stdout, /--depth <level> {5}How thorough the run is: quick, standard or deep\. The default is standard/);
 });
+
+test('--help lists --experimental', () => {
+  assert.match(cli('--help').stdout, /--experimental {6}Also run the experimental engines/);
+});

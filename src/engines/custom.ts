@@ -99,7 +99,7 @@ const list = (v: string | string[] | undefined): string[] => (v === undefined ? 
 const MAX_FILE = 2 * 1024 * 1024;
 
 /** The files of the target as POSIX paths relative to its folder. */
-function walk(target: Target): { root: string; files: string[] } {
+export function walk(target: Target): { root: string; files: string[] } {
   if (statSync(target.path).isFile()) return { root: path.dirname(target.path), files: [path.basename(target.path)] };
   const files: string[] = [];
   const visit = (dir: string): void => {

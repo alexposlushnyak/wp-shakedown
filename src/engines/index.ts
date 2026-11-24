@@ -7,9 +7,10 @@ import { phpLint } from './php-lint.ts';
 import { phpstan } from './phpstan.ts';
 import { stylelint } from './stylelint.ts';
 import { themeCheck } from './theme-check.ts';
+import { themeReview } from './theme-review.ts';
 import { updates } from './updates.ts';
 import { vulnerabilities } from './vulnerabilities.ts';
 import { wpJson } from './wp-json.ts';
 import { wpcs } from './wpcs.ts';
 
-export const engines: Engine[] = [phpLint, themeCheck, wpcs, phpCompat, phpstan, wpJson, eslint, stylelint, integrity, updates, vulnerabilities, config];
+export const engines: Engine[] = [phpLint, themeCheck, themeReview, wpcs, phpCompat, phpstan, wpJson, eslint, stylelint, integrity, updates, vulnerabilities, config];

@@ -85,6 +85,7 @@ export function startUi(opts: { engines: Engine[]; port?: number; startDir?: str
     events: WireEvent[];
     depth?: Depth;
     profile?: string;
+    experimental?: boolean;
   }
   const active = new Map<string, Active>();
   const queue: string[] = [];
@@ -134,6 +135,7 @@ export function startUi(opts: { engines: Engine[]; port?: number; startDir?: str
       input: a.path,
       ...(a.profile ? { profile: a.profile } : {}),
       ...(a.depth ? { depth: a.depth } : {}),
+      ...(a.experimental ? { experimental: true } : {}),
       engines: opts.engines,
       signal: ctl.signal,
       onEvent: (e) => {
@@ -257,7 +259,7 @@ export function startUi(opts: { engines: Engine[]; port?: number; startDir?: str
           version: VERSION,
           home: os.homedir(),
           startDir,
-          engines: [...opts.engines, ...customEngines()].map(({ id, title, kinds, depth }) => ({ id, title, kinds, depth: depth ?? 'standard' })),
+          engines: [...opts.engines, ...customEngines()].map(({ id, title, kinds, depth, experimental }) => ({ id, title, kinds, depth: depth ?? 'standard', ...(experimental ? { experimental } : {}) })),
           profiles: profiles.map(({ id, title, summary, kinds }) => ({ id, title, summary, kinds })),
         });
 
@@ -350,6 +352,7 @@ export function startUi(opts: { engines: Engine[]; port?: number; startDir?: str
             events: [],
             ...(depth ? { depth: depth as Depth } : {}),
             ...(profile ? { profile: profile as string } : {}),
+            ...(body.experimental === true ? { experimental: true } : {}),
           });
           queue.push(p.id);
           started.push(p.id);
@@ -389,6 +392,7 @@ export function startUi(opts: { engines: Engine[]; port?: number; startDir?: str
           finishedAt: result.finishedAt,
           ...(result.profile ? { profile: result.profile } : {}),
           ...(result.depth ? { depth: result.depth } : {}),
+          ...(result.experimental ? { experimental: true } : {}),
           ...(diff ? { diff: { fixed: diff.fixed.length, added: diff.added.length, open: diff.open.length } } : {}),
           files: found.session?.files ?? REPORT_FILES.map((f) => path.join(found.dir, f)),
           dir: found.dir,

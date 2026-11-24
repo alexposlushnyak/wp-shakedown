@@ -165,3 +165,11 @@ test('the reports show the depth only when it is not standard', () => {
   assert.doesNotMatch(toMarkdown(result([], { depth: 'standard' })), /Depth:/);
   assert.doesNotMatch(toHtml(result([])), /Depth:/);
 });
+
+test('the reports show experimental checks only when they were on', () => {
+  const on = result([], { experimental: true });
+  assert.match(toMarkdown(on), /- Target: .*\n- Experimental checks: on\n- Run: /);
+  assert.match(toHtml(on), /Experimental checks: on<br>\nRun: /);
+  assert.doesNotMatch(toMarkdown(result([])), /Experimental/);
+  assert.doesNotMatch(toHtml(result([])), /Experimental/);
+});

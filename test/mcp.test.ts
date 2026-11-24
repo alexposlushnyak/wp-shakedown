@@ -236,3 +236,13 @@ test('run_checks offers the depths and refuses an unknown one', async (t) => {
   assert.equal(bad.result.isError, true);
   assert.match(bad.result.content[0].text, /^Invalid arguments: .*depth/);
 });
+
+test('run_checks offers experimental and list_engines marks the engines that need it', async (t) => {
+  const x = { ...fakeEngine('x', ['theme'], async () => []), experimental: true as const };
+  const s = boot(t, [one, x]);
+  const { tools } = (await s.request(1, 'tools/list')).result;
+  assert.equal(tools.find((y: Msg) => y.name === 'run_checks').inputSchema.properties.experimental.type, 'boolean');
+  const list = JSON.parse((await s.callTool(2, 'list_engines')).result.content[0].text);
+  assert.equal(list[1].experimental, true);
+  assert.ok(!('experimental' in list[0]));
+});

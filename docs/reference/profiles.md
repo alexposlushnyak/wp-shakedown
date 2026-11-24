@@ -8,7 +8,7 @@ wp-shakedown run ./my-theme --profile wporg-theme
 
 | Profile | For | Engines |
 |---|---|---|
-| `wporg-theme` | A theme on its way to the wordpress.org theme directory | `php-lint`, `theme-check`, `wpcs`, `php-compat`, `wp-json` |
+| `wporg-theme` | A theme on its way to the wordpress.org theme directory | `php-lint`, `theme-check`, `wpcs`, `php-compat`, `wp-json`, and `theme-review` with `--experimental` |
 | `wporg-plugin` | A plugin on its way to the wordpress.org plugin directory | `php-lint`, `wpcs`, `php-compat` |
 | `site` | A WordPress folder | `integrity`, `updates`, `vulnerabilities`, `config`, plus `php-lint` and `php-compat` on every theme and plugin |
 
@@ -27,6 +27,12 @@ The [MCP server](mcp.md) takes a profile as an argument of `run_checks`, and the
 ## wporg-theme
 
 The theme directory runs Theme Check on every upload. The profile runs it through the [`theme-check`](engines.md#theme-check) engine, with the checks for PHP syntax, PHP versions, `theme.json` and the WordPress Coding Standards.
+
+Theme Check covers the rules a script can state exactly. Reviewers ask for more. With `--experimental` the profile also runs [`theme-review`](engines.md#theme-review), which looks for the points reviewers raise most:
+
+```bash
+wp-shakedown run ./my-theme --profile wporg-theme --experimental
+```
 
 It leaves out `phpstan`, `eslint` and `stylelint`. They report code quality, which is outside the rules of the directory.
 

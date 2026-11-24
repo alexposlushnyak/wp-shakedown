@@ -61,6 +61,7 @@ export interface ProjectReport {
 	finishedAt: string;
 	profile?: string;
 	depth?: Depth;
+	experimental?: boolean;
 	diff?: { fixed: number; added: number; open: number };
 	files: string[];
 	dir: string;

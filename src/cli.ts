@@ -35,6 +35,7 @@ Options:
   --engine <id>       Run only this engine. Repeat for more than one
   --profile <id>      Run the engines for one gate: ${profileList}
   --depth <level>     How thorough the run is: quick, standard or deep. The default is standard
+  --experimental      Also run the experimental engines
   --out <dir>         Write the report here
   --baseline <file>   Use this baseline file
   --fail-on <level>   Exit 1 at this severity: error, warning, info or never
@@ -94,6 +95,7 @@ interface RunFlags {
   only?: string[];
   profile?: string;
   depth?: 'quick' | 'standard' | 'deep';
+  experimental?: boolean;
   failOn: Severity | 'never';
 }
 
@@ -119,6 +121,7 @@ async function runHub(inputs: string[], jobs: number, f: RunFlags): Promise<numb
       ...(f.type ? { type: f.type } : {}),
       ...(f.only ? { only: f.only } : {}),
       ...(f.profile ? { profile: f.profile } : {}),
+      ...(f.experimental ? { experimental: true } : {}),
       ...(f.depth ? { depth: f.depth } : {}),
     },
     onChange: (all, row, event) => {
@@ -192,6 +195,7 @@ async function main(argv: string[]): Promise<number> {
         engine: { type: 'string', multiple: true },
         profile: { type: 'string' },
         depth: { type: 'string' },
+        experimental: { type: 'boolean' },
         out: { type: 'string' },
         baseline: { type: 'string' },
         'fail-on': { type: 'string' },
@@ -255,6 +259,7 @@ async function main(argv: string[]): Promise<number> {
         ...(values.engine ? { only: values.engine } : {}),
         ...(values.profile ? { profile: values.profile } : {}),
         ...(depth ? { depth } : {}),
+        ...(values.experimental ? { experimental: true } : {}),
         failOn: failOn as Severity | 'never',
       });
     }
@@ -265,6 +270,7 @@ async function main(argv: string[]): Promise<number> {
       ...(values.engine ? { only: values.engine } : {}),
       ...(values.profile ? { profile: values.profile } : {}),
       ...(depth ? { depth } : {}),
+      ...(values.experimental ? { experimental: true } : {}),
       ...(values.out ? { out: values.out } : {}),
       ...(values.baseline ? { baselineFile: values.baseline } : {}),
       engines,

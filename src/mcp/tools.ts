@@ -75,7 +75,7 @@ export const tools: Tool[] = [
     inputSchema: schema({}, []),
     annotations: { readOnlyHint: true },
     handler: async (_args, ctx) =>
-      JSON.stringify([...ctx.engines, ...customEngines()].map(({ id, title, kinds, depth }) => ({ id, title, kinds, depth: depth ?? 'standard' })), null, 2),
+      JSON.stringify([...ctx.engines, ...customEngines()].map(({ id, title, kinds, depth, experimental }) => ({ id, title, kinds, depth: depth ?? 'standard', ...(experimental ? { experimental: true } : {}) })), null, 2),
   },
   {
     name: 'run_checks',
@@ -92,6 +92,7 @@ export const tools: Tool[] = [
           description: 'Run only the engines for one gate. ' + profiles.map((p) => `${p.id}: ${p.summary}`).join(' '),
         },
         depth: { type: 'string', enum: ['quick', 'standard', 'deep'], description: 'How thorough the run is. quick runs the fast checks, standard is the default, deep adds static analysis.' },
+        experimental: { type: 'boolean', description: 'Also run the experimental engines, such as theme-review.' },
         type: { type: 'string', enum: ['theme', 'plugin', 'install'], description: 'Use only when detection is wrong.' },
       },
       ['path'],
@@ -116,6 +117,7 @@ export const tools: Tool[] = [
           ...(only?.length ? { only } : {}),
           ...(args.profile ? { profile: args.profile as string } : {}),
           ...(depth ? { depth } : {}),
+          ...(args.experimental ? { experimental: true } : {}),
           engines: ctx.engines,
           signal: ctx.signal,
           onEvent: (e) => {

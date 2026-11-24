@@ -83,9 +83,9 @@ export default function App() {
 		}
 	}
 
-	function run(ids: string[], profile?: string) {
+	function run(ids: string[], profile?: string, experimental?: boolean) {
 		setError('');
-		api('/api/run', { ids, depth, ...(profile ? { profile } : {}) }).then(loadProjects, fail);
+		api('/api/run', { ids, depth, ...(profile ? { profile } : {}), ...(experimental ? { experimental: true } : {}) }).then(loadProjects, fail);
 	}
 
 	const stop = (id?: string) => api('/api/cancel', id ? { id } : {}).catch(fail);
@@ -118,7 +118,7 @@ export default function App() {
 						profiles={info?.profiles ?? []}
 						depth={depth}
 						onDepth={setDepth}
-						onRun={(profile) => run([open.id], profile)}
+						onRun={(profile, experimental) => run([open.id], profile, experimental)}
 						onStop={() => stop(open.id)}
 						onRemove={() => {
 							api('/api/projects/remove', { id: open.id }).then(() => {

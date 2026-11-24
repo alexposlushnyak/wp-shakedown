@@ -13,6 +13,13 @@ export function daysSince(dateText: string, now: Date): number | undefined {
   return Math.floor((now.getTime() - Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]))) / 86400000);
 }
 
+/** The latest WordPress version, or undefined when the service gives none. Throws Unreachable when it cannot be reached. */
+export async function latestWordPress(signal?: AbortSignal): Promise<string | undefined> {
+  const offers = rec((await getJson('https://api.wordpress.org/core/version-check/1.7/', { ttlMs: HALF_DAY, ...(signal ? { signal } : {}) })).data)?.offers;
+  const latest = rec(Array.isArray(offers) ? offers[0] : undefined)?.version;
+  return typeof latest === 'string' ? latest : undefined;
+}
+
 export const updates: Engine = {
   id: 'updates',
   title: 'Updates',
