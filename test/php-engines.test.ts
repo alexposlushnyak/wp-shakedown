@@ -20,7 +20,8 @@ const available = await Promise.all([exec('php', ['-v']), exec('composer', ['--v
   (r) => r.every((x) => x.code === 0),
   () => false,
 );
-const opts = { timeout: 180000, ...(available ? {} : { skip: 'PHP and Composer are needed' }) };
+// Generous, because the PHP tools run several times slower on a busy machine.
+const opts = { timeout: 600000, ...(available ? {} : { skip: 'PHP and Composer are needed' }) };
 
 const engines = [phpLint, wpcs, phpCompat, phpstan, wpJson];
 

@@ -91,7 +91,25 @@ A baseline silences findings you have decided to keep. Put `wp-shakedown-baselin
 
 Every entry needs a reason. The tool rejects a baseline with an entry that has none.
 
-A suppressed finding stays in the report under its own heading and does not count toward the exit code. When an entry matches nothing, the report lists it as stale so you can remove it. Only a run that left out no engine can tell, so for a theme or a plugin that is a run with `--depth deep`. It does that only after a run where every engine ran, because after a partial run the entry may belong to an engine that did not.
+A suppressed finding stays in the report under its own heading and does not count toward the exit code. When an entry matches nothing, the report lists it as stale so you can remove it. It does that only after a run where every engine ran, because after a partial run the entry may belong to an engine that did not. For a theme or a plugin that is a run with `--depth deep`.
+
+## Projects
+
+Keep a list of the folders you test, and run them together.
+
+| Command | What it does |
+|---|---|
+| `wp-shakedown add <path>...` | Puts a theme, a plugin or a WordPress folder on the list |
+| `wp-shakedown list` | Shows the list with the result of each project's last run |
+| `wp-shakedown remove <project>...` | Takes a project off the list by ID, path or name. Its reports stay |
+| `wp-shakedown run --all` | Runs every project on the list |
+| `wp-shakedown run <path> <path>...` | Runs several folders, on the list or not |
+
+Several projects run at once, three by default. `--jobs <n>` sets how many, from 1 to 8. In a terminal each project has one line that updates while it runs. When the output goes to a file or a pipe, each engine gets a line with the project name in front.
+
+`--engine`, `--profile`, `--depth` and `--fail-on` apply to every project. `--out` and `--baseline` work with one path only. The exit code is the highest one among the runs.
+
+The list is the file `~/.wp-shakedown/projects.json`. The [web page](ui.md) reads the same file. See [ADR 0021](../adr/0021-the-hub-keeps-projects-in-a-file.md).
 
 ## Other commands
 
