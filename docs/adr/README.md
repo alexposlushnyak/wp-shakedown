@@ -15,6 +15,7 @@ Each record states one decision, the options that were considered, and the reaso
 | [0009](0009-reports-outside-the-target.md) | Reports are written outside the target | Accepted |
 | [0010](0010-install-php-tools-with-composer.md) | Install the PHP tools with Composer on first run | Accepted |
 | [0011](0011-style-findings-do-not-fail-a-run.md) | Style findings do not fail a run | Accepted |
+| [0012](0012-plugin-check-rules-inside-wpcs.md) | The Plugin Check review rules run inside the wpcs engine | Accepted |
 
 ## Adding a record
 

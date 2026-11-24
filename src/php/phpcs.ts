@@ -48,7 +48,7 @@ const firstLine = (s: string): string => s.split('\n').map((l) => l.trim()).find
 
 export async function runPhpcs(opts: {
   target: Target;
-  standard: string;
+  standard: string | ((tools: string) => string);
   extra?: string[];
   signal?: AbortSignal;
   note: (m: string) => void;
@@ -63,7 +63,7 @@ export async function runPhpcs(opts: {
     '--report=json', '-q', '--no-colors', '--extensions=php',
     ...(isFile ? [] : [`--ignore=${ignorePattern(base)}`]),
     `--basepath=${base}`,
-    `--standard=${opts.standard}`,
+    `--standard=${typeof opts.standard === 'function' ? opts.standard(tools) : opts.standard}`,
     ...(opts.extra ?? []),
     opts.target.path,
   ];
