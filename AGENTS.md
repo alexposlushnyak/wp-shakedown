@@ -20,6 +20,7 @@ The repository currently holds documentation only. No tool code exists yet.
 - Every engine's output goes through the shared finding schema. No engine gets its own report path.
 - Keep the README short. Detail belongs in `docs/`.
 - Use English for code, comments, commits, issues and docs.
+- Write every public text plainly. The Writing section below applies to docs, issues, commit messages and every string the tool prints.
 - Do not bundle data or rules whose license forbids redistribution. See [ADR 0004](docs/adr/0004-license-gpl-2-or-later.md).
 
 ## Workflow
@@ -29,6 +30,20 @@ The repository currently holds documentation only. No tool code exists yet.
 - Write [Conventional Commits](https://www.conventionalcommits.org/). One commit covers one logical unit of work, including its docs.
 - Open a pull request that lists `Closes #N` for each issue. A review is posted on the pull request before it is merged.
 - Update the docs in the same change: the document for the area you touched, [CHANGELOG.md](CHANGELOG.md), and a new decision record when you make an architecture decision.
+
+## Writing
+
+Public text here must read as if a person wrote it. Before you commit any text, check it against these rules:
+
+- Say the thing. Cut openers, summaries of what you are about to say, and closing lines that restate the point.
+- Use active voice and name who does the action. "The server picks the folder", not "the folder is chosen".
+- Use "is" and "has". Skip "serves as", "features", "boasts".
+- No em dashes or en dashes. Use a period, a comma or a colon.
+- No bold labels at the start of list items, no emoji, sentence case in headings.
+- Do not group things in threes out of habit, and do not rotate synonyms. Repeat the clear word.
+- Drop filler and hedges: "in order to", "it is worth noting", "genuinely", "robust", "seamless", "leverage", "comprehensive".
+- Do not tell the reader something is important or interesting. Give the fact.
+- Describe what exists now. Only the changelog talks about what changed.
 
 ## Documentation map
 
@@ -42,4 +57,4 @@ The repository currently holds documentation only. No tool code exists yet.
 
 ## AI disclosure
 
-Most of this project is written by AI agents under the direction and review of the maintainer. Commits made with an agent carry a `Co-Authored-By` trailer naming it.
+AI agents write most of this project. The maintainer directs the work and reviews it. A commit made with an agent carries a `Co-Authored-By` trailer that names the agent.

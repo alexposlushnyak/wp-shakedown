@@ -42,7 +42,7 @@ Every issue gets one type and one area. The issue forms set the type. The mainta
 
 ## AI-assisted contributions
 
-This project is itself built with AI agents, and contributions made with them are welcome. They are held to the same review as any other change. If an agent wrote your change, say so in the pull request. Agents working in this repository follow [AGENTS.md](AGENTS.md).
+AI agents write most of this project, and you can use one for your contribution too. It gets the same review as any other change. If an agent wrote your change, say so in the pull request. Agents working in this repository follow [AGENTS.md](AGENTS.md).
 
 ## License
 

@@ -17,7 +17,7 @@ PHP_CodeSniffer, PHPStan and the other PHP tools need PHP. Requiring a local PHP
 
 The user chooses at setup: the bundled runtime or the PHP on the machine. The choice is stored in the config and can be changed.
 
-Neither option fits everyone. Someone without PHP wants the tool to just work. Someone with PHP wants the speed.
+People without PHP want the tool to run with nothing else installed. People who have PHP want the speed.
 
 ## Consequences
 

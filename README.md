@@ -1,30 +1,30 @@
 # wp-shakedown
 
-One local test run for WordPress themes, plugins and installs, with one report at the end.
+wp-shakedown runs the usual WordPress checks on a theme, a plugin or a whole WordPress folder from one place and writes one report.
 
-> **Status:** in development. There is nothing to install yet.
+> In development. There is nothing to install yet.
 
 ## Why
 
-Testing WordPress work means running PHPCS, PHPStan, WP-CLI checks, Site Health and more, each installed and run on its own. wp-shakedown runs them from one place and merges the results.
+Testing WordPress work means running PHPCS, PHPStan, WP-CLI checks, Site Health and more. You install each one and run each one by hand. wp-shakedown runs them together and merges the results.
 
 ## What it does
 
-- Runs existing, trusted tools. It adds its own checks only where no tool exists.
-- Works outside WordPress. Nothing is installed into the site it tests.
-- Writes one report, structured so an AI assistant can fix what was found.
+- It runs the tools you already use and adds a check of its own only where no tool exists.
+- It runs outside WordPress and installs nothing into the site it tests.
+- It writes one report that an AI assistant can read and fix from.
 
 ## What it checks
 
 | Target | Checks |
 |---|---|
 | Theme or plugin folder | Coding standards, static analysis, PHP compatibility, `theme.json` and `block.json` |
-| WordPress install | Core and plugin integrity, configuration, outdated or vulnerable plugins and themes |
-| Site URL | Accessibility, performance, broken links |
+| WordPress folder | The same code checks across every theme and plugin in it, plus core integrity, configuration, outdated or vulnerable plugins and themes |
+| Site URL (separate module) | Accessibility, performance, broken links |
 
 ## How you run it
 
-From the terminal, from a local web page, or from an AI assistant over MCP. All three use the same core.
+You run it from the terminal, from a local web page, or from an AI assistant over MCP. All three use the same core.
 
 ## Documentation
 
@@ -34,8 +34,8 @@ From the terminal, from a local web page, or from an AI assistant over MCP. All 
 
 ## Development
 
-This project is built with AI assistance, in the open. [AGENTS.md](AGENTS.md) describes how. Contributions are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
+AI agents write most of this project and the maintainer reviews their work. [AGENTS.md](AGENTS.md) describes the process. To contribute, read [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
-[GPL-2.0-or-later](LICENSE). Free, with no paid tier.
+[GPL-2.0-or-later](LICENSE). The tool is free and has no paid tier.

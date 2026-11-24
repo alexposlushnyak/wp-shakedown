@@ -5,7 +5,7 @@
 
 ## Context and problem statement
 
-The project is developed with AI agents and in public. Agents start every session without memory, and readers judge the project by how its docs are organised. The docs need a structure that is recognised, not invented here.
+AI agents write this project, in public. An agent starts each session without memory, and a reader judges the project by how its docs are organised. The docs need a structure people already know.
 
 ## Considered options
 
@@ -17,7 +17,7 @@ The project is developed with AI agents and in public. Agents start every sessio
 
 Diátaxis for `docs/`, MADR for `docs/adr/`, and `AGENTS.md` as the entry file for agents.
 
-Both formats are widely used, so a new contributor or agent already knows where to look. A custom layout would have to be explained first. A single README would break the rule that the README stays short.
+Many projects use both formats, so a new contributor or agent knows where to look. A custom layout needs explaining first. A single README would break the rule that the README stays short.
 
 ## Consequences
 

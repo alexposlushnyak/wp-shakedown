@@ -5,7 +5,7 @@
 
 ## Context and problem statement
 
-WordPress testing is spread over tools that are installed and run one by one: PHPCS with WPCS, PHPStan, Theme Check, Plugin Check, Site Health, WP-CLI commands. Several of them are WordPress plugins, so they live inside the site they judge. There is no single run and no single result.
+To test WordPress work you install and run tools one by one: PHPCS with WPCS, PHPStan, Theme Check, Plugin Check, Site Health, WP-CLI commands. Several of them are WordPress plugins, so they live inside the site they judge. Each tool gives its own result in its own format.
 
 ## Considered options
 
@@ -17,7 +17,7 @@ WordPress testing is spread over tools that are installed and run one by one: PH
 
 A separate process that orchestrates existing tools.
 
-The existing tools are maintained by the people who define the standards. Rewriting their rules would mean chasing them forever. Tide, an earlier attempt to score all plugins and themes, stopped being maintained. A plugin would put the tester inside the thing being tested and could not check a broken install.
+The people who define the standards maintain these tools. Rewriting their rules would mean tracking every upstream change by hand. Tide, an earlier project that scored plugins and themes, lost its maintainers. A plugin would put the tester inside the site it tests, and it could not check an install that is broken.
 
 ## Consequences
 
