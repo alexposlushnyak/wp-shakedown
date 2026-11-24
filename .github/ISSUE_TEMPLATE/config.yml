@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question or idea
+    url: https://github.com/alexposlushnyak/wp-shakedown/discussions
+    about: Ask and discuss here before opening an issue.
+  - name: Security vulnerability
+    url: https://github.com/alexposlushnyak/wp-shakedown/security/advisories/new
+    about: Report security problems privately, never in a public issue.
