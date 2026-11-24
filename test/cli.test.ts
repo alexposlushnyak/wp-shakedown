@@ -11,11 +11,62 @@ import { makeSample, makeTheme, tmp } from './helpers.ts';
 const cli = (...args: string[]) =>
   spawnSync(process.execPath, ['src/cli.ts', ...args], { cwd: root, encoding: 'utf8', env: { ...process.env, WP_SHAKEDOWN_HOME: testHome } });
 
+const cliHome = (home: string, ...args: string[]) =>
+  spawnSync(process.execPath, ['src/cli.ts', ...args], { cwd: root, encoding: 'utf8', env: { ...process.env, WP_SHAKEDOWN_HOME: home } });
+
 test('--version and --help', () => {
   assert.equal(cli('--version').stdout.trim(), VERSION);
   assert.match(cli('--help').stdout, /Usage:/);
   assert.match(cli('--help').stdout, /wp-shakedown mcp/);
   assert.match(cli().stdout, /Usage:/);
+  for (const text of ['wp-shakedown add <path>...', 'wp-shakedown remove <project>...', 'wp-shakedown list', 'run --all', '--jobs <n>']) {
+    assert.ok(cli('--help').stdout.includes(text), text);
+  }
+});
+
+test('add, list and remove', (t) => {
+  const home = tmp(t);
+  const theme = makeTheme(tmp(t), 'Alpha');
+  assert.match(cliHome(home, 'list').stdout, /No projects yet\. Add one with: wp-shakedown add <path>/);
+  assert.match(cliHome(home, 'add', theme).stdout, /Added the theme "Alpha"\./);
+  assert.match(cliHome(home, 'add', theme).stdout, /"Alpha" is already on the list\./);
+  const listed = cliHome(home, 'list');
+  assert.match(listed.stdout, /Alpha .*never/);
+  const bad = cliHome(home, 'add', '/no/such/folder');
+  assert.equal(bad.status, 2);
+  assert.equal(cliHome(home, 'add').status, 2);
+  assert.match(cliHome(home, 'remove', 'alpha').stdout, /Removed "alpha"\. Its reports stay\./);
+  const gone = cliHome(home, 'remove', 'alpha');
+  assert.equal(gone.status, 2);
+  assert.match(gone.stderr, /No project fits "alpha"/);
+  assert.equal(cliHome(home, 'remove').status, 2);
+});
+
+test('run with several targets checks its input', (t) => {
+  const home = tmp(t);
+  const a = makeTheme(tmp(t), 'Alpha');
+  const b = makeTheme(tmp(t), 'Beta');
+  const noneYet = cliHome(home, 'run', '--all');
+  assert.equal(noneYet.status, 2);
+  assert.match(noneYet.stderr, /No projects yet/);
+  assert.equal(cliHome(home, 'run', a, '--jobs', '0').status, 2);
+  assert.match(cliHome(home, 'run', a, '--jobs', 'x').stderr, /--jobs must be a number from 1 to 8\./);
+  assert.match(cliHome(home, 'run', a, b, '--out', 'x').stderr, /--out works with one path\./);
+  assert.match(cliHome(home, 'run', a, b, '--baseline', 'x').stderr, /--baseline works with one path\./);
+  assert.match(cliHome(home, 'run', a, '--all').stderr, /Use --all or paths, not both\./);
+});
+
+test('run --all runs every project on the list', (t) => {
+  const home = tmp(t);
+  cliHome(home, 'add', makeTheme(tmp(t), 'Alpha'), makeTheme(tmp(t), 'Beta'));
+  const r = cliHome(home, 'run', '--all', '--engine', 'wp-json', '--fail-on', 'never');
+  assert.equal(r.status, 0, r.stderr);
+  const lines = r.stdout.trim().split('\n');
+  assert.equal(lines.length, 2);
+  assert.match(lines[0]!, /^Alpha: .* Report: /);
+  assert.match(lines[1]!, /^Beta: .* Report: /);
+  assert.match(r.stderr, /^\[Alpha\] ok wp-json/m);
+  assert.match(cliHome(home, 'list').stdout, /Alpha .*\d{4}-\d\d-\d\d \d\d:\d\d/);
 });
 
 test('run writes the four reports and shows the diff on the second run', (t) => {

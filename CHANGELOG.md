@@ -12,6 +12,7 @@ All notable changes to this project are recorded here. The format follows [Keep 
 - A wordmark, in the README and on the web page.
 - `--depth quick`, `standard` or `deep` sets how thorough a run is.
 - Checks of your own: a JSON file in `~/.wp-shakedown/checks/` adds a pattern, a list of files or a command to the run as its own engine, with a setting for what happens when the check itself breaks.
+- A list of projects: `add`, `list` and `remove` keep it, and `run --all` or `run` with several paths checks projects in parallel.
 
 ### Changed
 

@@ -35,6 +35,7 @@
     "url": "git+https://github.com/alexposlushnyak/wp-shakedown.git"
   },
   "bugs": "https://github.com/alexposlushnyak/wp-shakedown/issues",
+  "author": "alexposlushnyak (https://github.com/alexposlushnyak)",
   "homepage": "https://github.com/alexposlushnyak/wp-shakedown#readme",
   "keywords": [
     "wordpress",

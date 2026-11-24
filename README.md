@@ -69,3 +69,7 @@ AI agents write most of this project and the maintainer reviews their work. The 
 ## License
 
 [GPL-2.0-or-later](LICENSE). The tool is free and has no paid tier.
+
+## Credits
+
+Made by [alexposlushnyak](https://github.com/alexposlushnyak). Backed by [jkdevstudio](https://jkdevstudio.com), a studio that builds WordPress themes.
