@@ -4,23 +4,23 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-25
+
 ### Added
 
 - `theme-check` engine: the checks of the wordpress.org theme directory, run with plain PHP and without WordPress.
-- Profiles: `--profile wporg-theme`, `wporg-plugin` or `site` runs the engines for one gate. The `run_checks` tool of the MCP server and the web page take a profile too.
-- The report names the profile a run used.
-- A wordmark, in the README and on the web page.
+- Profiles: `--profile wporg-theme`, `envato`, `wporg-plugin` or `site` runs the engines for one gate. The `run_checks` tool of the MCP server and the web page take a profile too, and the report names it.
+- Under the `envato` profile, `theme-check` runs the version of Theme Check that Envato keeps for ThemeForest.
+- `theme-review`, an experimental engine for themes: sixteen rules for what reviewers of the wordpress.org theme directory ask for most, taken from a study of 878 reviews. It runs with `--experimental`, and the `wporg-theme` profile includes it then.
 - `--depth quick`, `standard` or `deep` sets how thorough a run is.
 - Checks of your own: a JSON file in `~/.wp-shakedown/checks/` adds a pattern, a list of files or a command to the run as its own engine, with a setting for what happens when the check itself breaks.
 - A list of projects: `add`, `list` and `remove` keep it, and `run --all` or `run` with several paths checks projects in parallel.
+- A wordmark, in the README and on the web page.
 - The author and jkdevstudio are credited in the README, in `package.json` and at the foot of the web page.
-- `theme-review`, an experimental engine for themes: sixteen rules for what reviewers of the wordpress.org theme directory ask for most, taken from a study of 878 reviews. It runs with `--experimental`, and the `wporg-theme` profile includes it then.
-- The `envato` profile, for a theme on its way to ThemeForest. Under it `theme-check` runs the version of Theme Check that Envato keeps.
 
 ### Changed
 
 - The web page is a hub: it lists the projects, runs up to three at once and shows each run live. It shows counts and no longer lists findings. A button opens the HTML report.
-
 - `phpstan` runs at `--depth deep` and no longer by default.
 - Stale baseline entries are reported only by a run that left out no engine.
 
@@ -65,5 +65,6 @@ A WordPress folder gets the engines above for every theme and plugin in it, and 
 
 - The PHP tools install themselves with Composer on the first run, and the JavaScript and CSS tools with npm. Versions are pinned.
 
-[Unreleased]: https://github.com/alexposlushnyak/wp-shakedown/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/alexposlushnyak/wp-shakedown/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/alexposlushnyak/wp-shakedown/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/alexposlushnyak/wp-shakedown/releases/tag/v0.1.0

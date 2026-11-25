@@ -1,6 +1,6 @@
 {
   "name": "wp-shakedown",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Runs the usual WordPress checks on a theme, a plugin or a whole WordPress folder and writes one report.",
   "license": "GPL-2.0-or-later",
   "type": "module",
