@@ -47,7 +47,7 @@ All three use the same core.
 
 You do not install PHPCS, PHPStan, ESLint or Stylelint. The first run fetches pinned versions into `~/.wp-shakedown`.
 
-Version 0.1 is tested on macOS and Linux. Windows is not tested yet.
+Version 0.2 is tested on macOS and Linux. Windows is not tested yet.
 
 ## Documentation
 
