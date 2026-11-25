@@ -29,7 +29,7 @@ The list is the file `~/.wp-shakedown/projects.json`, the same one [`wp-shakedow
 
 ## One project
 
-Select a line to open the project. There you choose a [profile](profiles.md) and the depth, and start or stop the run. For a theme, a switch turns on the [experimental checks](engines.md#theme-review) from theme reviews. While it runs, every engine has a line with its state.
+Select a line to open the project. There you choose a [profile](profiles.md) and the depth, and start or stop the run. For a theme, a switch turns on the [experimental checks](engines.md#theme-review) from theme reviews. While it runs, every engine has a line with its state. In a WordPress folder the lines come in one group per theme and plugin, each with how many of its engines are done.
 
 After the run the page shows three numbers: errors, warnings and notes. Under them it says when the run happened, how it compares with the run before, and whether an engine failed.
 

@@ -71,6 +71,17 @@ export function profilesFor<T extends { kinds: string[] }>(profiles: T[], kind: 
 	return kind === undefined ? [] : profiles.filter((p) => p.kinds.includes(kind));
 }
 
+/** The jobs of the folder itself first, then one group per theme or plugin, in the order the run lists them. */
+export function groupJobs(jobs: Job[]): { unit?: string; jobs: Job[] }[] {
+	const groups: { unit?: string; jobs: Job[] }[] = [];
+	for (const job of jobs) {
+		const group = groups.find((g) => g.unit === job.unit);
+		if (group) group.jobs.push(job);
+		else groups.push(job.unit === undefined ? { jobs: [job] } : { unit: job.unit, jobs: [job] });
+	}
+	return groups.sort((a, b) => (a.unit === undefined ? 0 : 1) - (b.unit === undefined ? 0 : 1));
+}
+
 /** Builds the state of the run card from the events the server sent. */
 export function runModel(events: WireEvent[]): RunModel {
 	const model: RunModel = { started: false, running: false, target: null, jobs: [], summary: null, error: null };

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
+  groupJobs,
   aiPrompt,
   crumbs,
   detectedText,
@@ -134,4 +135,18 @@ test('events are kept per run and a run:start replaces that run only', () => {
   assert.equal(both.b!.length, 1);
   assert.equal(withEvent(both, 'a', start).a!.length, 1);
   assert.deepEqual(fromSnapshot([{ id: 'x', events: [start] }]), { x: [start] });
+});
+
+test('groupJobs puts the folder first and keeps one group per part', () => {
+  const job = (engine: string, unit?: string) => ({ engine, ...(unit ? { unit } : {}), status: 'waiting' as const, findings: 0, durationMs: 0, reason: '', notes: [] });
+  const groups = groupJobs([job('php-lint', 'theme:a'), job('integrity'), job('wpcs', 'theme:a'), job('php-lint', 'plugin:b'), job('config')]);
+  assert.deepEqual(
+    groups.map((g) => [g.unit, g.jobs.map((j) => j.engine)]),
+    [
+      [undefined, ['integrity', 'config']],
+      ['theme:a', ['php-lint', 'wpcs']],
+      ['plugin:b', ['php-lint']],
+    ],
+  );
+  assert.deepEqual(groupJobs([job('wpcs')]).length, 1);
 });
