@@ -71,7 +71,8 @@ test('integrity: no checksums gives a note', async (t) => {
 
 test('integrity: a wrong plugin checksum is modified', async (t) => {
   const s = site(t);
-  s.routes.set(PLUGIN, { status: 200, body: { files: { 'pl.php': { md5: ['aaa', 'bbb'] }, 'gone.php': { md5: 'ccc' } } } });
+  // readme.txt is in the list with a wrong checksum: wordpress.org changes it without a release, so it is left out.
+  s.routes.set(PLUGIN, { status: 200, body: { files: { 'pl.php': { md5: ['aaa', 'bbb'] }, 'gone.php': { md5: 'ccc' }, 'readme.txt': { md5: 'ddd' } } } });
   fakeNet(t, s.routes);
   const r = await go(s.dir);
   assert.deepEqual(r.rules.sort(), ['plugin.missing', 'plugin.modified']);

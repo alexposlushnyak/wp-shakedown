@@ -119,6 +119,8 @@ Reviewers also raise points that files do not show, such as keyboard focus and m
 
 Runs the `WordPress-Extra` standard. If the folder has its own ruleset (`.phpcs.xml`, `phpcs.xml`, `.phpcs.xml.dist` or `phpcs.xml.dist`), the engine uses that file and nothing else.
 
+When the theme or plugin has a `Text Domain` header, the engine passes it to WPCS, which then reports translation calls with another text domain as `WordPress.WP.I18n.TextDomainMismatch`. A project ruleset sets its own text domain, so the engine passes nothing then.
+
 ### Plugins
 
 For a plugin the engine adds the review ruleset of [Plugin Check](https://wordpress.org/plugins/plugin-check/), the tool that wordpress.org runs on every submission. That ruleset brings its own sniffs, such as the one for shortened URLs, and it sets the level that plugin reviewers use. A missing nonce check is an error in WPCS and a warning for a plugin.
@@ -235,6 +237,8 @@ Compares every core file with the checksums that wordpress.org publishes for tha
 | `plugin.missing` | `warning` | A plugin file is not there |
 
 A changed core file is the usual trace of a hacked site, and of a developer who edited core by hand. Plugins that are not on wordpress.org have no checksums, and the engine says how many it could not compare. Themes have no checksums at all.
+
+The `readme.txt` or `readme.md` at the top of a plugin is left out. wordpress.org lets authors change it without a release, so its checksum often differs from the file a site has. WP-CLI leaves it out of `wp plugin verify-checksums` for the same reason.
 
 ### updates
 

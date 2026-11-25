@@ -7,6 +7,13 @@ All notable changes to this project are recorded here. The format follows [Keep 
 ### Added
 
 - `site-health`, an engine for a WordPress folder: it runs the tests of the Site Health screen through WP-CLI and leaves the database as it was. The `site` profile includes it.
+- `wpcs` passes the `Text Domain` header of a theme or plugin to WPCS, which then reports translation calls with another text domain.
+- The web page groups the engine lines of a WordPress folder by theme and plugin.
+
+### Fixed
+
+- `integrity` no longer reports the `readme.txt` of a plugin as modified. wordpress.org changes it without a release.
+- A link to one project of the web page that carries the token opens that project, not the list.
 
 ## [0.2.0] - 2026-11-25
 

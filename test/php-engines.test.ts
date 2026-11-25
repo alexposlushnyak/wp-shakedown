@@ -81,6 +81,16 @@ describe('php engines', opts, () => {
     assert.ok(!r.findings.some((f) => f.rule.startsWith('PluginCheck.')));
   });
 
+  test('wpcs checks the text domain of the theme header', async (t) => {
+    const dir = tmp(t);
+    write(path.join(dir, 'style.css'), '/*\nTheme Name: Acme\nText Domain: acme\n*/\n');
+    write(path.join(dir, 'index.php'), "<?php\nesc_html_e( 'Hello', 'other' );\nesc_html_e( 'Hi', 'acme' );\n");
+    const r = await run(detectTarget(dir), { engines: [wpcs] });
+    assert.equal(r.engines[0]!.status, 'ok', r.engines[0]!.reason);
+    const lines = r.findings.filter((f) => f.rule === 'WordPress.WP.I18n.TextDomainMismatch').map((f) => f.location.line);
+    assert.deepEqual(lines, [2]);
+  });
+
   test('wp-json reports schema and syntax problems in a theme', async (t) => {
     const dir = makeTheme(tmp(t));
     write(path.join(dir, 'theme.json'), '{"$schema":"https://schemas.wp.org/trunk/theme.json","version":3,"settings":{"notARealSetting":true}}');

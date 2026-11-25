@@ -2,6 +2,7 @@ import { existsSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { runPhpcs } from '../php/phpcs.ts';
 import type { PhpcsMessage } from '../php/phpcs.ts';
+import { textDomain } from '../target.ts';
 import type { Category, Engine, RawFinding, Severity } from '../types.ts';
 
 const RULES: [RegExp, Category][] = [
@@ -56,13 +57,18 @@ export const wpcs: Engine = {
   kinds: ['theme', 'plugin'],
   async run({ target, signal, note }) {
     let standard: string | ((tools: string) => string) = target.kind === 'plugin' ? pluginRuleset : 'WordPress-Extra';
+    let own = false;
     if (statSync(target.path).isDirectory()) {
       const name = RULESETS.find((n) => existsSync(path.join(target.path, n)));
       if (name) {
         standard = path.join(target.path, name);
+        own = true;
         note(`Using the project ruleset ${name}.`);
       }
     }
-    return (await runPhpcs({ target, standard, ...(signal ? { signal } : {}), note })).map(toFinding);
+    // A text domain from the command line would override the one a project ruleset sets.
+    const domain = own ? undefined : textDomain(target);
+    const extra = domain ? ['--runtime-set', 'text_domain', domain] : [];
+    return (await runPhpcs({ target, standard, extra, ...(signal ? { signal } : {}), note })).map(toFinding);
   },
 };
