@@ -1,8 +1,6 @@
 <h1>
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset=".github/assets/wordmark-on-dark.png">
-    <img alt="wp-shakedown" src=".github/assets/wordmark-on-light.png" width="360">
-  </picture>
+  <img alt="wp-shakedown" src=".github/assets/wordmark-on-light.png#gh-light-mode-only" width="360">
+  <img alt="wp-shakedown" src=".github/assets/wordmark-on-dark.png#gh-dark-mode-only" width="360">
 </h1>
 
 wp-shakedown runs the usual WordPress checks on a theme, a plugin or a whole WordPress folder from one place and writes one report.
@@ -47,7 +45,7 @@ All three use the same core.
 
 You do not install PHPCS, PHPStan, ESLint or Stylelint. The first run fetches pinned versions into `~/.wp-shakedown`.
 
-Version 0.2 is tested on macOS and Linux. Windows is not tested yet.
+Version 0.3 is tested on macOS and Linux. Windows is not tested yet.
 
 ## Documentation
 
