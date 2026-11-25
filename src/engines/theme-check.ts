@@ -1,8 +1,7 @@
 import { statSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { exec } from '../exec.ts';
-import { phpBinary, phpVersion } from '../php/php.ts';
+import { phpPath, phpVersion, runPhp } from '../php/php.ts';
 import { phpTools } from '../php/tools.ts';
 import type { Category, Engine, RawFinding, Severity } from '../types.ts';
 
@@ -83,12 +82,11 @@ export const themeCheck: Engine = {
   depth: 'quick',
   variant: (profile) => (profile === 'envato' ? 'envato' : undefined),
   async run({ target, signal, note, profile }) {
-    await phpVersion();
+    await phpVersion(note);
     const tools = await phpTools(note);
-    const r = await exec(
-      phpBinary(),
-      ['-d', 'memory_limit=-1', runner, path.join(tools, 'vendor', ...(profile === 'envato' ? ['envato', 'envato-theme-check'] : ['theme-check', 'theme-check'])), target.path],
-      signal ? { signal } : {},
+    const r = await runPhp(
+      ['-d', 'memory_limit=-1', phpPath(runner), path.join(tools, 'vendor', ...(profile === 'envato' ? ['envato', 'envato-theme-check'] : ['theme-check', 'theme-check'])), phpPath(target.path)],
+      { note, ...(signal ? { signal } : {}) },
     );
     if (r.code !== 0) {
       const line = lastLine(r.stderr).replace(/^PHP /, '').replace(/^Fatal error: /, '');

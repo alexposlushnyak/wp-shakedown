@@ -1,5 +1,6 @@
 import { existsSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+import { phpPath } from '../php/php.ts';
 import { runPhpcs } from '../php/phpcs.ts';
 import type { PhpcsMessage } from '../php/phpcs.ts';
 import { textDomain } from '../target.ts';
@@ -61,7 +62,7 @@ export const wpcs: Engine = {
     if (statSync(target.path).isDirectory()) {
       const name = RULESETS.find((n) => existsSync(path.join(target.path, n)));
       if (name) {
-        standard = path.join(target.path, name);
+        standard = path.join(phpPath(target.path), name);
         own = true;
         note(`Using the project ruleset ${name}.`);
       }

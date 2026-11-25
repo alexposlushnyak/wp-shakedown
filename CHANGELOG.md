@@ -9,6 +9,7 @@ All notable changes to this project are recorded here. The format follows [Keep 
 - `site-health`, an engine for a WordPress folder: it runs the tests of the Site Health screen through WP-CLI and leaves the database as it was. The `site` profile includes it.
 - `wpcs` passes the `Text Domain` header of a theme or plugin to WPCS, which then reports translation calls with another text domain.
 - The web page groups the engine lines of a WordPress folder by theme and plugin.
+- `WP_SHAKEDOWN_PHP=bundled` runs the PHP engines on the WebAssembly PHP of WordPress Playground, for a machine without PHP. The tool downloads it, and Composer, on the first run.
 
 ### Fixed
 

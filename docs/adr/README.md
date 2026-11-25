@@ -28,6 +28,7 @@ Each record states one decision, the options that were considered, and the reaso
 | [0022](0022-experimental-engines.md) | Experimental engines are off until the user turns them on | Accepted |
 | [0023](0023-the-envato-profile-swaps-the-theme-check-release.md) | The envato profile runs Envato's fork inside the theme-check engine | Accepted |
 | [0024](0024-site-health-through-wp-cli.md) | Site Health runs through WP-CLI and leaves the database as it was | Accepted |
+| [0025](0025-bundled-php-is-opt-in.md) | The bundled PHP is opt-in, through WP_SHAKEDOWN_PHP | Accepted |
 
 ## Adding a record
 

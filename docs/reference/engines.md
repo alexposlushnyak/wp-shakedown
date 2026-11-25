@@ -30,7 +30,7 @@ A run at the default [depth](cli.md#depth) leaves out `phpstan`, which runs with
 
 ## What they need
 
-The five PHP engines need PHP on your `PATH`. `theme-check`, `wpcs`, `php-compat` and `phpstan` also need Composer the first time they run. `wp-json` needs neither. It downloads a schema from schemas.wp.org and keeps it for a week. `eslint` and `stylelint` need npm, which comes with Node.js.
+The five PHP engines need PHP on your `PATH`. `theme-check`, `wpcs`, `php-compat` and `phpstan` also need Composer the first time they run. Without PHP and Composer, set `WP_SHAKEDOWN_PHP=bundled` and the tool runs them on a PHP it downloads. See [Without PHP](#without-php). `wp-json` needs neither. It downloads a schema from schemas.wp.org and keeps it for a week. `eslint` and `stylelint` need npm, which comes with Node.js.
 
 On the first run the tool installs what the engines need into `~/.wp-shakedown/tools/`:
 
@@ -45,12 +45,29 @@ When PHP, Composer or npm is missing, the engine is skipped and the report says 
 
 | Variable | Use |
 |---|---|
-| `WP_SHAKEDOWN_PHP` | Path to the PHP binary, when it is not on your `PATH` |
+| `WP_SHAKEDOWN_PHP` | Path to the PHP binary, when it is not on your `PATH`. `bundled` runs the PHP engines on a PHP that wp-shakedown downloads |
 | `WP_SHAKEDOWN_COMPOSER` | Path to Composer |
 | `WP_SHAKEDOWN_NPM` | Path to npm |
 | `WP_SHAKEDOWN_WORDFENCE_KEY` | API key for Wordfence Intelligence, used by the `vulnerabilities` engine |
 | `WP_SHAKEDOWN_WP` | Path to WP-CLI, used by the `site-health` engine |
 | `WP_SHAKEDOWN_HOME` | Folder for tools and reports, in place of `~/.wp-shakedown` |
+
+### Without PHP
+
+```bash
+WP_SHAKEDOWN_PHP=bundled npx wp-shakedown run ./my-theme
+```
+
+With `WP_SHAKEDOWN_PHP=bundled` the PHP engines run on the WebAssembly PHP 8.4 of WordPress Playground (`@php-wasm/node`), with nothing else installed.
+
+| | |
+|---|---|
+| First run | npm downloads the runtime, about 160 MB, and Composer comes from getcomposer.org. Composer then fetches the PHP tools, which takes a few minutes |
+| Disk | About 470 MB for the runtime in `~/.wp-shakedown/tools/` |
+| Speed | Two to three times slower than PHP on the machine |
+| Findings | The same as with PHP on the machine |
+
+Under the bundled PHP, `php-lint` checks files in batches, `wpcs` and `php-compat` leave out the PHPCS syntax sniff that `php-lint` covers, and `phpstan` runs in one process. `site-health` still needs WP-CLI with a PHP of its own. See [ADR 0025](../adr/0025-bundled-php-is-opt-in.md).
 
 ## php-lint
 

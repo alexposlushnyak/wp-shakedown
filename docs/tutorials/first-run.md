@@ -12,7 +12,7 @@ php --version
 composer --version
 ```
 
-Without PHP or Composer the tool still runs. It skips the checks that need them and says so.
+Without PHP or Composer the tool still runs. It skips the checks that need them and says so. To run those checks anyway, set `WP_SHAKEDOWN_PHP=bundled`: the tool downloads a PHP of its own on the first run, about 160 MB.
 
 ## 2. Run it on a theme
 

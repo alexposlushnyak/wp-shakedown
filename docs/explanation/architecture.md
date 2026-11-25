@@ -99,9 +99,9 @@ The server answers `run_checks` with the Markdown report, which was shaped for a
 
 ## PHP runtime
 
-PHP tools need PHP. The design lets you choose at setup between a bundled runtime that needs nothing installed and the PHP already on your machine. See [ADR 0006](../adr/0006-php-runtime-user-choice.md).
+PHP tools need PHP. The engines use the PHP on your `PATH`, and Composer installs PHP_CodeSniffer and the standards into the tool's own folder on the first run. See [ADR 0010](../adr/0010-install-php-tools-with-composer.md).
 
-Only the second path exists now. The engines use the PHP on your `PATH`, and Composer installs PHP_CodeSniffer and the standards into the tool's own folder on the first run. See [ADR 0010](../adr/0010-install-php-tools-with-composer.md).
+Without PHP on the machine, `WP_SHAKEDOWN_PHP=bundled` runs the same tools on the WebAssembly PHP of WordPress Playground. The tool downloads it, and Composer, on the first run. The findings are the same, and runs are two to three times slower. See [ADR 0006](../adr/0006-php-runtime-user-choice.md) and [ADR 0025](../adr/0025-bundled-php-is-opt-in.md).
 
 The JavaScript and CSS tools are installed the same way, with npm. See [ADR 0013](../adr/0013-javascript-and-css-tools.md).
 

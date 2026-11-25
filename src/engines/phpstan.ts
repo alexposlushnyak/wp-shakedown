@@ -1,10 +1,9 @@
-import { existsSync, mkdtempSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { exec } from '../exec.ts';
 import { home } from '../home.ts';
 import { phpFiles } from '../php/files.ts';
-import { phpBinary, phpVersion } from '../php/php.ts';
+import { phpPath, phpVersion, runPhp, usesBundledPhp } from '../php/php.ts';
 import { phpTools } from '../php/tools.ts';
 import type { Engine, RawFinding } from '../types.ts';
 
@@ -57,6 +56,12 @@ export function parsePhpstan(json: string, base: string): RawFinding[] {
   return out;
 }
 
+/** The JSON report: from the first line that starts with a brace. With --debug, PHPStan prints file paths before it. */
+export function phpstanJson(stdout: string): string | undefined {
+  const start = stdout.search(/^\{/m);
+  return start < 0 ? undefined : stdout.slice(start);
+}
+
 const isDir = (p: string): boolean => existsSync(p) && statSync(p).isDirectory();
 
 export const phpstan: Engine = {
@@ -65,10 +70,11 @@ export const phpstan: Engine = {
   kinds: ['theme', 'plugin'],
   depth: 'deep',
   async run({ target, signal, note }) {
-    await phpVersion();
+    await phpVersion(note);
     const tools = await phpTools(note);
-    const isFile = statSync(target.path).isFile();
-    const base = isFile ? path.dirname(target.path) : target.path;
+    const targetPath = phpPath(target.path);
+    const isFile = statSync(targetPath).isFile();
+    const base = isFile ? path.dirname(targetPath) : targetPath;
     const exclude = isFile ? [] : [path.join(base, 'vendor'), path.join(base, 'node_modules')].filter(isDir);
     const vendor = !isFile && isDir(path.join(base, 'vendor')) ? path.join(base, 'vendor') : undefined;
     if (!isFile && ['phpstan.neon', 'phpstan.neon.dist', 'phpstan.dist.neon'].some((n) => existsSync(path.join(base, n)))) {
@@ -77,25 +83,28 @@ export const phpstan: Engine = {
     const files = phpFiles(target.path);
     // PHPStan stops with an error when it has no file to read. A block theme can have no PHP at all.
     if (files.length === 0) return [];
-    const cfgDir = mkdtempSync(path.join(os.tmpdir(), 'wps-phpstan-'));
+    const cfgDir = phpPath(mkdtempSync(path.join(os.tmpdir(), 'wps-phpstan-')));
+    const cacheDir = path.join(home(), 'cache', 'phpstan');
+    mkdirSync(cacheDir, { recursive: true });
     const analyse = async (broken: string[]): Promise<RawFinding[]> => {
       const cfgFile = path.join(cfgDir, 'phpstan.neon');
       writeFileSync(
         cfgFile,
-        neon({ tools, target: target.path, isFile, tmpDir: path.join(home(), 'cache', 'phpstan'), ...(vendor ? { vendor } : {}), exclude: [...exclude, ...broken] }),
+        neon({ tools, target: targetPath, isFile, tmpDir: phpPath(cacheDir), ...(vendor ? { vendor } : {}), exclude: [...exclude, ...broken] }),
       );
-      const r = await exec(
-        phpBinary(),
-        ['-d', 'memory_limit=1G', path.join(tools, 'vendor', 'bin', 'phpstan'), 'analyse', '-c', cfgFile, '--error-format=json', '--no-progress', '--no-interaction', '--memory-limit=1G'],
-        { cwd: base, ...(signal ? { signal } : {}) },
+      // Parallel workers cannot connect in the bundled PHP, so PHPStan runs in one process. --debug does that and lists each file before the JSON.
+      const r = await runPhp(
+        ['-d', 'memory_limit=1G', path.join(tools, 'vendor', 'bin', 'phpstan'), 'analyse', '-c', cfgFile, '--error-format=json', '--no-progress', '--no-interaction', '--memory-limit=1G', ...(usesBundledPhp() ? ['--debug'] : [])],
+        { cwd: base, note, ...(signal ? { signal } : {}) },
       );
-      if (!r.stdout.trim().startsWith('{')) {
+      const json = phpstanJson(r.stdout);
+      if (json === undefined) {
         const line = [r.stderr, r.stdout]
           .flatMap((s) => s.split('\n').map((l) => l.trim()))
           .find((l) => l && !l.startsWith('Warning: Module'));
         throw new Error(`PHPStan stopped: ${line ?? 'no output'}`);
       }
-      return parsePhpstan(r.stdout, base);
+      return parsePhpstan(json, base);
     };
     try {
       const found = await analyse([]);

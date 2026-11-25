@@ -17,6 +17,7 @@
     "dist",
     "php-tools",
     "js-tools",
+    "php-wasm",
     "ui/dist"
   ],
   "engines": {
