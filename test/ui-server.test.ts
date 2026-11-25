@@ -82,7 +82,7 @@ test('the token guards /api', async (t) => {
   assert.equal(body.engines[0]!.depth, 'standard');
   assert.equal('running' in body, false);
   const state = (await (await fetch(`${base}/api/state`, { headers: { 'x-shakedown-token': ui.token } })).json()) as { profiles: { id: string }[] };
-  assert.equal(state.profiles.length, 3);
+  assert.equal(state.profiles.length, 4);
   assert.equal((await fetch(`${base}/api/state?t=${ui.token}`)).status, 200);
 });
 

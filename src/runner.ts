@@ -118,6 +118,7 @@ export async function run(target: Target, opts: RunOptions): Promise<RunResult> 
     try {
       found = await job.engine.run({
         target: job.target,
+        ...(opts.profile ? { profile: opts.profile } : {}),
         note: (message) => emit({ type: 'engine:note', engine: job.engine.id, ...(unit ? { unit } : {}), message }),
         ...(opts.signal ? { signal: opts.signal } : {}),
       });
@@ -126,6 +127,7 @@ export async function run(target: Target, opts: RunOptions): Promise<RunResult> 
       else status = 'failed';
       reason = err instanceof Error ? err.message : String(err);
     }
+    const variant = job.engine.variant?.(opts.profile);
     const er: EngineRun = {
       engine: job.engine.id,
       ...(unit ? { unit } : {}),
@@ -133,6 +135,7 @@ export async function run(target: Target, opts: RunOptions): Promise<RunResult> 
       durationMs: Math.round(performance.now() - t0),
       findings: found.length,
       ...(reason !== undefined ? { reason } : {}),
+      ...(variant !== undefined ? { variant } : {}),
     };
     engineRuns.push(er);
     for (const f of found) {

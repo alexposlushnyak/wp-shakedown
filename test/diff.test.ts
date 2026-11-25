@@ -39,3 +39,12 @@ test('leaves out an engine that was skipped this time', () => {
   const d = diffRuns(prev, cur);
   assert.equal(d.fixed.length + d.added.length + d.open.length, 0);
 });
+
+test('leaves out an engine that ran another variant of its tool', () => {
+  const prev = result([finding({ id: 'a' })]);
+  const cur = result([finding({ id: 'b' })], { engines: [{ engine: 'fake', status: 'ok', durationMs: 1, findings: 1, variant: 'envato' }] });
+  const d = diffRuns(prev, cur);
+  assert.equal(d.fixed.length + d.added.length + d.open.length, 0);
+  const again = diffRuns(cur, result([finding({ id: 'b' })], { engines: [{ engine: 'fake', status: 'ok', durationMs: 1, findings: 1, variant: 'envato' }] }));
+  assert.deepEqual(again.open.map((f) => f.id), ['b']);
+});

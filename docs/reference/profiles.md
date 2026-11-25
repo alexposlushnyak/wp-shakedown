@@ -9,6 +9,7 @@ wp-shakedown run ./my-theme --profile wporg-theme
 | Profile | For | Engines |
 |---|---|---|
 | `wporg-theme` | A theme on its way to the wordpress.org theme directory | `php-lint`, `theme-check`, `wpcs`, `php-compat`, `wp-json`, and `theme-review` with `--experimental` |
+| `envato` | A theme on its way to ThemeForest | `php-lint`, `theme-check` with Envato's rules, `wpcs`, `php-compat`, `wp-json` |
 | `wporg-plugin` | A plugin on its way to the wordpress.org plugin directory | `php-lint`, `wpcs`, `php-compat` |
 | `site` | A WordPress folder | `integrity`, `updates`, `vulnerabilities`, `config`, plus `php-lint` and `php-compat` on every theme and plugin |
 
@@ -35,6 +36,16 @@ wp-shakedown run ./my-theme --profile wporg-theme --experimental
 ```
 
 It leaves out `phpstan`, `eslint` and `stylelint`. They report code quality, which is outside the rules of the directory.
+
+## envato
+
+Envato keeps its own version of Theme Check for ThemeForest, and its reviewers run it on every theme. Under this profile the [`theme-check`](engines.md#theme-check) engine runs that version in place of the wordpress.org one.
+
+Most checks are the same in both. Envato adds a list of things it rejects: `mkdir()` and mail functions, empty attributes, empty CSS classes written to get past a check, removed core filters, and code that looks like known malware. Those findings have the rule `themeforest`.
+
+The comparison with the last run leaves `theme-check` out when one run used this profile and the other did not, because the two versions differ.
+
+Envato reviewers also judge design and code quality by hand. The profile covers what their tool reports.
 
 ## wporg-plugin
 

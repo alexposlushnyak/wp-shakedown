@@ -39,7 +39,7 @@ Each external tool sits behind an adapter that knows how to run it and how to re
 | Area | Engines | State |
 |---|---|---|
 | PHP code | `php -l`, PHP_CodeSniffer with WordPress Coding Standards and the Plugin Check review rules, PHPCompatibilityWP, PHPStan with the WordPress extension | Built. See [Engines](../reference/engines.md) |
-| Theme rules | Theme Check, run with plain PHP | Built. See [ADR 0017](../adr/0017-theme-check-without-wordpress.md) |
+| Theme rules | Theme Check, run with plain PHP. Under the `envato` profile, the fork Envato keeps for ThemeForest | Built. See [ADR 0017](../adr/0017-theme-check-without-wordpress.md) and [ADR 0023](../adr/0023-the-envato-profile-swaps-the-theme-check-release.md) |
 | Theme review | Rules from a study of theme reviews. Experimental, off by default | Built. See [ADR 0022](../adr/0022-experimental-engines.md) |
 | JSON | JSON Schema validation of `theme.json` and `block.json` | Built |
 | JS, CSS | ESLint and Stylelint with the WordPress configs | Built |

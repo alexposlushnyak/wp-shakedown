@@ -15,6 +15,7 @@ All notable changes to this project are recorded here. The format follows [Keep 
 - A list of projects: `add`, `list` and `remove` keep it, and `run --all` or `run` with several paths checks projects in parallel.
 - The author and jkdevstudio are credited in the README, in `package.json` and at the foot of the web page.
 - `theme-review`, an experimental engine for themes: sixteen rules for what reviewers of the wordpress.org theme directory ask for most, taken from a study of 878 reviews. It runs with `--experimental`, and the `wporg-theme` profile includes it then.
+- The `envato` profile, for a theme on its way to ThemeForest. Under it `theme-check` runs the version of Theme Check that Envato keeps.
 
 ### Changed
 

@@ -9,6 +9,13 @@ export const profiles: Profile[] = [
     engines: ['php-lint', 'theme-check', 'theme-review', 'wpcs', 'php-compat', 'wp-json'],
   },
   {
+    id: 'envato',
+    title: 'ThemeForest',
+    summary: 'What Envato checks on a theme for ThemeForest: its own version of Theme Check, PHP that parses, the WordPress standards and theme.json.',
+    kinds: ['theme'],
+    engines: ['php-lint', 'theme-check', 'wpcs', 'php-compat', 'wp-json'],
+  },
+  {
     id: 'wporg-plugin',
     title: 'WordPress.org plugin directory',
     summary: 'What the plugin directory of wordpress.org checks in code: PHP that parses, the Plugin Check review rules and PHP versions.',

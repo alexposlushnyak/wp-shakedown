@@ -51,7 +51,7 @@ The ID is a hash of the engine, the rule, the unit, the file or URL, the selecto
 | `depth` | `quick`, `standard` or `deep`. See [Depth](cli.md#depth) |
 | `experimental` | `true` when the run had experimental checks on. Absent otherwise |
 | `startedAt`, `finishedAt` | ISO 8601 timestamps |
-| `engines` | One entry per engine run: status `ok`, `skipped` or `failed`, duration, number of findings, and the reason when it did not run |
+| `engines` | One entry per engine run: status `ok`, `skipped` or `failed`, duration, number of findings, the reason when it did not run, and the `variant` when the engine ran another version of its tool |
 | `findings` | Every finding, sorted by file, then line |
 | `summary` | Counts of unsuppressed findings per severity, and the number suppressed |
 | `staleBaseline` | IDs of baseline entries that matched nothing |

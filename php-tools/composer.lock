@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "f2431abe5fbf723ceb950d9d1839c3f5",
+    "content-hash": "ee49e41d72b6875f16f9804e079d9a0f",
     "packages": [
         {
             "name": "dealerdirect/phpcodesniffer-composer-installer",
@@ -102,6 +102,16 @@
             ],
             "time": "2026-05-06T08:26:05+00:00",
             "published-time": "2026-05-06T12:56:03+00:00"
+        },
+        {
+            "name": "envato/envato-theme-check",
+            "version": "dev-master",
+            "dist": {
+                "type": "zip",
+                "url": "https://github.com/envato/envato-theme-check/archive/915562cc78065a69e65f27bc30993dcae4cacef6.zip",
+                "reference": "915562cc78065a69e65f27bc30993dcae4cacef6"
+            },
+            "type": "library"
         },
         {
             "name": "php-stubs/wordpress-stubs",
@@ -868,6 +878,7 @@
     "aliases": [],
     "minimum-stability": "alpha",
     "stability-flags": {
+        "envato/envato-theme-check": 20,
         "phpcompatibility/phpcompatibility-wp": 15
     },
     "prefer-stable": true,

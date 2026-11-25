@@ -28,7 +28,7 @@ const text = (html: string): string => {
   return s.replace(/\s+/g, ' ').trim();
 };
 
-const SECURITY = ['bad-things', 'worms', 'escaping', 'iframe', 'non-printable', 'included-zip', 'envato'];
+const SECURITY = ['bad-things', 'worms', 'escaping', 'iframe', 'non-printable', 'included-zip'];
 const I18N = ['i18n', 'textdomain'];
 const COMPAT = ['deprecated', 'deprecated-param', 'version-php', 'version-tested', 'php-short-tags'];
 
@@ -81,12 +81,13 @@ export const themeCheck: Engine = {
   title: 'Theme Check',
   kinds: ['theme'],
   depth: 'quick',
-  async run({ target, signal, note }) {
+  variant: (profile) => (profile === 'envato' ? 'envato' : undefined),
+  async run({ target, signal, note, profile }) {
     await phpVersion();
     const tools = await phpTools(note);
     const r = await exec(
       phpBinary(),
-      ['-d', 'memory_limit=-1', runner, path.join(tools, 'vendor', 'theme-check', 'theme-check'), target.path],
+      ['-d', 'memory_limit=-1', runner, path.join(tools, 'vendor', ...(profile === 'envato' ? ['envato', 'envato-theme-check'] : ['theme-check', 'theme-check'])), target.path],
       signal ? { signal } : {},
     );
     if (r.code !== 0) {

@@ -144,4 +144,22 @@ describe('php engines', opts, () => {
     await themeCheck.run({ target: detectTarget(child), note: (m) => notes.push(m) });
     assert.ok(notes.some((n) => n.includes('nowhere')), JSON.stringify(notes));
   });
+
+  test('under the envato profile theme check runs the Envato fork', opts, async (t) => {
+    const dir = tmp(t);
+    write(path.join(dir, 'style.css'), '/*\nTheme Name: Bad\nVersion: 1.0\n*/\n');
+    write(path.join(dir, 'index.php'), '<?php\n');
+    write(path.join(dir, 'functions.php'), '<?php\nmkdir( "x" );\n');
+    const target = detectTarget(dir);
+    const envato = await run(target, { engines: [themeCheck], only: ['theme-check'], profile: 'envato' });
+    assert.equal(envato.engines[0]!.status, 'ok', envato.engines[0]!.reason);
+    assert.equal(envato.engines[0]!.variant, 'envato');
+    const own = envato.findings.find((f) => f.rule === 'themeforest');
+    assert.ok(own, 'no finding of the Envato check');
+    assert.deepEqual([own.severity, own.location.file, own.location.line], ['error', 'functions.php', 2]);
+    assert.match(own.message, /mkdir\(\) is not allowed/);
+    const plain = await run(target, { engines: [themeCheck] });
+    assert.ok(!('variant' in plain.engines[0]!));
+    assert.ok(!plain.findings.some((f) => f.rule === 'themeforest'));
+  });
 });
