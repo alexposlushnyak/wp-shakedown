@@ -26,7 +26,7 @@ Testing WordPress work means running PHPCS, PHPStan, WP-CLI checks, Site Health 
 | Target | Checks |
 |---|---|
 | Theme or plugin folder | Coding standards, static analysis at the deep level, PHP compatibility, `theme.json` and `block.json`, JavaScript and CSS. For a theme, the Theme Check rules of wordpress.org |
-| WordPress folder | The same code checks across every theme and plugin in it, plus file integrity, known vulnerabilities, outdated or abandoned software, and risky settings and files |
+| WordPress folder | The same code checks across every theme and plugin in it, plus file integrity, known vulnerabilities, outdated or abandoned software, risky settings and files, and the tests of Site Health when WP-CLI can reach the database |
 
 A profile runs only what one gate checks: `--profile wporg-theme`, `envato`, `wporg-plugin` or `site`. `--depth quick`, `standard` or `deep` sets how thorough the run is. You can add [checks of your own](docs/reference/checks.md).
 

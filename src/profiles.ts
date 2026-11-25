@@ -27,7 +27,7 @@ export const profiles: Profile[] = [
     title: 'WordPress site',
     summary: 'Whether a WordPress folder is intact, current and safe to run. Leaves out code style in themes and plugins.',
     kinds: ['install'],
-    engines: ['integrity', 'updates', 'vulnerabilities', 'config', 'php-lint', 'php-compat'],
+    engines: ['integrity', 'updates', 'vulnerabilities', 'config', 'site-health', 'php-lint', 'php-compat'],
   },
 ];
 

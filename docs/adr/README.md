@@ -27,6 +27,7 @@ Each record states one decision, the options that were considered, and the reaso
 | [0021](0021-the-hub-keeps-projects-in-a-file.md) | The hub keeps its projects in a file | Accepted |
 | [0022](0022-experimental-engines.md) | Experimental engines are off until the user turns them on | Accepted |
 | [0023](0023-the-envato-profile-swaps-the-theme-check-release.md) | The envato profile runs Envato's fork inside the theme-check engine | Accepted |
+| [0024](0024-site-health-through-wp-cli.md) | Site Health runs through WP-CLI and leaves the database as it was | Accepted |
 
 ## Adding a record
 

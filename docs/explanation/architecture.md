@@ -1,6 +1,6 @@
 # Architecture
 
-This document describes the design. The core, the report writers, thirteen engines, the profiles and all three ways in exist: the `run` command, the local web page and the MCP server. The engines for a running site and for a site URL are not built. The version is below 1.0, so the command line and the report format may still change between minor versions.
+This document describes the design. The core, the report writers, fourteen engines, the profiles and all three ways in exist: the `run` command, the local web page and the MCP server. The engines for a site URL are not built. The version is below 1.0, so the command line and the report format may still change between minor versions.
 
 ## Principles
 
@@ -45,7 +45,7 @@ Each external tool sits behind an adapter that knows how to run it and how to re
 | JS, CSS | ESLint and Stylelint with the WordPress configs | Built |
 | Install health | Official checksums for core and plugins, current versions from wordpress.org, `wp-config.php` and risky files | Built. See [ADR 0015](../adr/0015-install-health-without-a-running-site.md) |
 | Vulnerabilities | WPVulnerability.net by plugin, theme and core version, and Wordfence Intelligence with a key | Built |
-| Running site | Site Health, autoloaded options and cron through WP-CLI | Planned |
+| Running site | The tests of Site Health, run through WP-CLI | Built. See [ADR 0024](../adr/0024-site-health-through-wp-cli.md) |
 | Site from outside | Playwright with axe-core, Lighthouse, a link checker | Planned, separate module |
 
 The tools disagree on severity as well as on format. Each adapter maps its tool's levels to `error`, `warning` and `info`, and style findings never rank as errors. See [ADR 0011](../adr/0011-style-findings-do-not-fail-a-run.md).
