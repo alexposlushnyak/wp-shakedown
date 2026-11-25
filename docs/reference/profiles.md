@@ -11,7 +11,7 @@ wp-shakedown run ./my-theme --profile wporg-theme
 | `wporg-theme` | A theme on its way to the wordpress.org theme directory | `php-lint`, `theme-check`, `wpcs`, `php-compat`, `wp-json`, and `theme-review` with `--experimental` |
 | `envato` | A theme on its way to ThemeForest | `php-lint`, `theme-check` with Envato's rules, `wpcs`, `php-compat`, `wp-json` |
 | `wporg-plugin` | A plugin on its way to the wordpress.org plugin directory | `php-lint`, `wpcs`, `php-compat` |
-| `site` | A WordPress folder | `integrity`, `updates`, `vulnerabilities`, `config`, plus `php-lint` and `php-compat` on every theme and plugin |
+| `site` | A WordPress folder | `integrity`, `updates`, `vulnerabilities`, `config`, `site-health`, plus `php-lint` and `php-compat` on every theme and plugin |
 
 A profile fits one kind of target. `wporg-theme` on a plugin folder stops with a message and exit code 2.
 

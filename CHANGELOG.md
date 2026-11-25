@@ -4,6 +4,10 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+### Added
+
+- `site-health`, an engine for a WordPress folder: it runs the tests of the Site Health screen through WP-CLI and leaves the database as it was. The `site` profile includes it.
+
 ## [0.2.0] - 2026-11-25
 
 ### Added

@@ -36,6 +36,7 @@ export { integrity } from './engines/integrity.ts';
 export { updates } from './engines/updates.ts';
 export { vulnerabilities } from './engines/vulnerabilities.ts';
 export { config } from './engines/config.ts';
+export { siteHealth } from './engines/site-health.ts';
 export { compareVersions } from './versions.ts';
 export { getJson } from './net.ts';
 export { progressLine } from './progress.ts';

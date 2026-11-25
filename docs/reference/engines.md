@@ -1,6 +1,6 @@
 # Engines
 
-An engine runs one check and turns the result into findings. Thirteen engines exist, in two groups. You can add [checks of your own](checks.md).
+An engine runs one check and turns the result into findings. Fourteen engines exist, in two groups. You can add [checks of your own](checks.md).
 
 Nine check code. They run on a theme or a plugin, and on every theme and plugin inside a WordPress folder. `theme-check` and `theme-review` run on themes only.
 
@@ -16,7 +16,7 @@ Nine check code. They run on a theme or a plugin, and on every theme and plugin 
 | `eslint` | ESLint with the WordPress config | Undefined variables, React hook mistakes, accessibility and translation problems in JavaScript |
 | `stylelint` | Stylelint with the WordPress config | Unknown properties, invalid values and duplicate selectors in CSS and SCSS |
 
-Four check a WordPress folder as a whole. They read files and ask public services. WordPress does not have to run, and they need no database and no WP-CLI. See [Install health](#install-health).
+Five check a WordPress folder as a whole. Four of them read files and ask public services: WordPress does not have to run. `site-health` starts WordPress through WP-CLI and needs the database of the site. See [Install health](#install-health).
 
 | ID | Finds |
 |---|---|
@@ -24,6 +24,7 @@ Four check a WordPress folder as a whole. They read files and ask public service
 | `updates` | WordPress, plugins and themes that are behind, abandoned or closed |
 | `vulnerabilities` | Known vulnerabilities in the installed versions |
 | `config` | Risky settings in `wp-config.php` and files that should not be in a web folder |
+| `site-health` | What the Site Health screen of WordPress reports: autoloaded options, missed cron events, inactive plugins and themes, PHP extensions, the database server |
 
 A run at the default [depth](cli.md#depth) leaves out `phpstan`, which runs with `--depth deep`. Run one engine with `--engine <id>`. Run the engines for one gate with a [profile](profiles.md).
 
@@ -48,6 +49,7 @@ When PHP, Composer or npm is missing, the engine is skipped and the report says 
 | `WP_SHAKEDOWN_COMPOSER` | Path to Composer |
 | `WP_SHAKEDOWN_NPM` | Path to npm |
 | `WP_SHAKEDOWN_WORDFENCE_KEY` | API key for Wordfence Intelligence, used by the `vulnerabilities` engine |
+| `WP_SHAKEDOWN_WP` | Path to WP-CLI, used by the `site-health` engine |
 | `WP_SHAKEDOWN_HOME` | Folder for tools and reports, in place of `~/.wp-shakedown` |
 
 ## php-lint
@@ -276,9 +278,24 @@ Reads `wp-config.php` and looks for files that do not belong in a web folder. It
 | `leftover.debug-log` | `warning` | `wp-content/debug.log` |
 | `uploads.php` | `error` | A PHP file in `wp-content/uploads` |
 
-### What they do not check
+### site-health
 
-Site Health, autoloaded options, cron and the list of active plugins need WordPress to run. An engine for that is planned.
+Starts WordPress with WP-CLI and runs tests of Site Health, the screen under Tools in the WordPress admin. The report shows what that screen would show.
+
+| Test | Looks at |
+|---|---|
+| `autoloaded_options` | The size of the options WordPress loads on every request |
+| `scheduled_events` | Cron events that are late or failed |
+| `plugin_version`, `theme_version` | Inactive plugins and themes |
+| `php_extensions`, `php_default_timezone`, `php_sessions` | The PHP setup WordPress needs |
+| `sql_server` | The version of the database server |
+| `ssl_support`, `file_uploads`, `debug_enabled`, `persistent_object_cache` | Settings of PHP and WordPress |
+
+A critical result of Site Health is a `warning` here and a recommendation is an `info`, in the `health` category. The rule is the name of the test.
+
+The engine needs WP-CLI on your `PATH`, or in `WP_SHAKEDOWN_WP`, and a database that answers. Without them it is skipped and the report says why.
+
+WordPress starts without plugins, themes and cron, and the tests run inside a database transaction that is rolled back. The database stays as it was. Tests that call other servers are left out. See [ADR 0024](../adr/0024-site-health-through-wp-cli.md).
 
 ## What is skipped
 
