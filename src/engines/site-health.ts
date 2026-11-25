@@ -80,6 +80,7 @@ export const siteHealth: Engine = {
         throw new EngineSkipped('WordPress could not reach its database. The Site Health tests need the database of the site to run.');
       }
       if (/wp-config\.php'? not found/i.test(all)) throw new EngineSkipped('The folder has no wp-config.php, so WordPress cannot start.');
+      if (/does not seem to be a WordPress install/i.test(all)) throw new EngineSkipped('WP-CLI does not find a WordPress it can start in this folder.');
       throw new Error(`WP-CLI stopped: ${lastLine(r.stderr).replace(/^Error: /, '') || `it exited with code ${r.code}.`}`);
     }
     // A plugin or a notice can print before the JSON, so read from where it starts.

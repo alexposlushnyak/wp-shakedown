@@ -57,6 +57,8 @@ test('site-health is skipped when the database does not answer or WordPress has 
   assert.match(nodb.engines[0]!.reason!, /could not reach its database/);
   fakeWp(t, '', "Error: 'wp-config.php' not found.", 1);
   assert.match((await run(target, { engines: [siteHealth] })).engines[0]!.reason!, /no wp-config\.php/);
+  fakeWp(t, '', 'Error: This does not seem to be a WordPress installation.', 1);
+  assert.equal((await run(target, { engines: [siteHealth] })).engines[0]!.status, 'skipped');
   fakeWp(t, '', 'Error: Something else broke.', 1);
   const broken = await run(target, { engines: [siteHealth] });
   assert.equal(broken.engines[0]!.status, 'failed');
