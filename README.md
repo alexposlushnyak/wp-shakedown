@@ -43,7 +43,7 @@ All three use the same core.
 ## What you need
 
 - Node.js 22.18 or newer.
-- PHP and Composer for the PHP checks. Without them those checks are skipped and the rest still runs.
+- PHP and Composer for the PHP checks. Without them those checks are skipped and the rest still runs, or set `WP_SHAKEDOWN_PHP=bundled` to run them on a PHP that wp-shakedown downloads.
 
 You do not install PHPCS, PHPStan, ESLint or Stylelint. The first run fetches pinned versions into `~/.wp-shakedown`.
 

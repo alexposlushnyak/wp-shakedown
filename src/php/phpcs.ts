@@ -1,8 +1,7 @@
 import { statSync } from 'node:fs';
 import path from 'node:path';
-import { exec } from '../exec.ts';
 import type { Target } from '../types.ts';
-import { phpBinary, phpVersion } from './php.ts';
+import { phpPath, phpVersion, runPhp, usesBundledPhp } from './php.ts';
 import { phpTools } from './tools.ts';
 
 export interface PhpcsMessage {
@@ -53,10 +52,11 @@ export async function runPhpcs(opts: {
   signal?: AbortSignal;
   note: (m: string) => void;
 }): Promise<PhpcsMessage[]> {
-  await phpVersion();
+  await phpVersion(opts.note);
   const tools = await phpTools(opts.note);
-  const isFile = statSync(opts.target.path).isFile();
-  const base = isFile ? path.dirname(opts.target.path) : opts.target.path;
+  const targetPath = phpPath(opts.target.path);
+  const isFile = statSync(targetPath).isFile();
+  const base = isFile ? path.dirname(targetPath) : targetPath;
   const args = [
     '-d', 'memory_limit=1G',
     path.join(tools, 'vendor', 'bin', 'phpcs'),
@@ -64,10 +64,12 @@ export async function runPhpcs(opts: {
     ...(isFile ? [] : [`--ignore=${ignorePattern(base)}`]),
     `--basepath=${base}`,
     `--standard=${typeof opts.standard === 'function' ? opts.standard(tools) : opts.standard}`,
+    // Generic.PHP.Syntax starts one PHP per file, which is far slower in the bundled PHP. php-lint reports syntax errors.
+    ...(usesBundledPhp() ? ['--exclude=Generic.PHP.Syntax'] : []),
     ...(opts.extra ?? []),
-    opts.target.path,
+    targetPath,
   ];
-  const r = await exec(phpBinary(), args, { cwd: base, ...(opts.signal ? { signal: opts.signal } : {}) });
+  const r = await runPhp(args, { cwd: base, note: opts.note, ...(opts.signal ? { signal: opts.signal } : {}) });
   if (r.code > 2) throw new Error(`PHPCS stopped: ${firstLine(r.stdout) || firstLine(r.stderr)}`);
   return parsePhpcs(r.stdout);
 }
