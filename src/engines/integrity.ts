@@ -82,6 +82,8 @@ export const integrity: Engine = {
           continue;
         }
         for (const [rel, info] of Object.entries(files)) {
+          // wordpress.org lets authors change the readme without a release, so its checksum often differs. WP-CLI skips it too.
+          if (/^readme\.(txt|md)$/i.test(rel)) continue;
           const abs = path.join(pkg.path, rel);
           const file = path.relative(root, abs).split(path.sep).join('/');
           if (!existsSync(abs)) {

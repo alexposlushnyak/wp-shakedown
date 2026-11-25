@@ -5,7 +5,8 @@ const params = new URLSearchParams(location.search);
 export const token = params.get('t') ?? sessionStorage.getItem('token') ?? '';
 if (params.has('t')) {
 	sessionStorage.setItem('token', token);
-	history.replaceState(null, '', location.pathname);
+	// Keep the hash: a link to one project carries it.
+	history.replaceState(null, '', location.pathname + location.hash);
 }
 
 export interface EngineInfo {

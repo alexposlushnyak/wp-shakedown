@@ -62,6 +62,23 @@ function pluginName(dir: string): string | undefined {
   return undefined;
 }
 
+const DOMAIN_RE = /^[ \t/*#@]*Text Domain:(.*)$/im;
+
+/** The Text Domain header of a theme or a plugin, or undefined. */
+export function textDomain(target: Target): string | undefined {
+  if (target.kind === 'theme') {
+    const css = path.join(target.path, 'style.css');
+    return isFile(css) ? headerValue(DOMAIN_RE, css) : undefined;
+  }
+  if (target.kind !== 'plugin') return undefined;
+  if (isFile(target.path)) return headerValue(DOMAIN_RE, target.path);
+  for (const n of visible(target.path)) {
+    const f = path.join(target.path, n);
+    if (n.endsWith('.php') && isFile(f) && headerValue(PLUGIN_RE, f)) return headerValue(DOMAIN_RE, f);
+  }
+  return undefined;
+}
+
 function discoverUnits(root: string): Target[] {
   const units: Target[] = [];
   // shortcut: reads wp-content at the install root and skips mu-plugins. Read WP_CONTENT_DIR from wp-config.php when someone has a relocated content folder.
