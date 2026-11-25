@@ -4,6 +4,8 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-25
+
 ### Added
 
 - `site-health`, an engine for a WordPress folder: it runs the tests of the Site Health screen through WP-CLI and leaves the database as it was. The `site` profile includes it.
@@ -15,6 +17,7 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 - `integrity` no longer reports the `readme.txt` of a plugin as modified. wordpress.org changes it without a release.
 - A link to one project of the web page that carries the token opens that project, not the list.
+- The wordmark in the README follows the theme of GitHub. It used to follow the theme of the system, and a light GitHub page in a dark system showed a white wordmark on white.
 
 ## [0.2.0] - 2026-11-25
 
@@ -77,6 +80,7 @@ A WordPress folder gets the engines above for every theme and plugin in it, and 
 
 - The PHP tools install themselves with Composer on the first run, and the JavaScript and CSS tools with npm. Versions are pinned.
 
-[Unreleased]: https://github.com/alexposlushnyak/wp-shakedown/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/alexposlushnyak/wp-shakedown/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/alexposlushnyak/wp-shakedown/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/alexposlushnyak/wp-shakedown/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/alexposlushnyak/wp-shakedown/releases/tag/v0.1.0
