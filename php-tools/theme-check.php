@@ -31,6 +31,10 @@ function _x( $text ) {
 	return $text;
 }
 
+function esc_html__( $text ) {
+	return esc_html( $text );
+}
+
 function apply_filters( $hook, $value ) {
 	return $value;
 }

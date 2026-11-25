@@ -61,6 +61,8 @@ export interface Finding extends RawFinding {
 
 export interface EngineContext {
   target: Target;
+  /** ID of the profile the run uses, when it uses one. */
+  profile?: string;
   signal?: AbortSignal;
   /** Tells the user something while the engine runs, for example that tools are being installed. */
   note(message: string): void;
@@ -74,6 +76,8 @@ export interface Engine {
   depth?: Depth;
   /** Runs only when the user turns experimental checks on, or names the engine. */
   experimental?: true;
+  /** Names the variant of its tool the engine runs under a profile. Two runs are compared only when the variants match. */
+  variant?(profile: string | undefined): string | undefined;
   run(ctx: EngineContext): Promise<RawFinding[]>;
 }
 
@@ -102,6 +106,8 @@ export interface EngineRun {
   findings: number;
   /** Why the engine was skipped or how it failed. */
   reason?: string;
+  /** Set when the engine ran a variant of its tool, for example the Envato fork of Theme Check. */
+  variant?: string;
 }
 
 export interface Summary {

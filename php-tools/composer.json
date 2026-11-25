@@ -10,7 +10,8 @@
     "phpstan/phpstan": "^2.1",
     "szepeviktor/phpstan-wordpress": "^2.0",
     "php-stubs/wordpress-stubs": "^7.0",
-    "theme-check/theme-check": "20260901"
+    "theme-check/theme-check": "20260901",
+    "envato/envato-theme-check": "dev-master"
   },
   "config": {
     "allow-plugins": {
@@ -47,6 +48,19 @@
           "url": "https://downloads.wordpress.org/plugin/theme-check.20260901.zip",
           "type": "zip",
           "shasum": "85c13a0c70078367d2d6f3dd68e435212df5881a"
+        }
+      }
+    },
+    {
+      "type": "package",
+      "package": {
+        "name": "envato/envato-theme-check",
+        "version": "dev-master",
+        "type": "library",
+        "dist": {
+          "url": "https://github.com/envato/envato-theme-check/archive/915562cc78065a69e65f27bc30993dcae4cacef6.zip",
+          "type": "zip",
+          "reference": "915562cc78065a69e65f27bc30993dcae4cacef6"
         }
       }
     }

@@ -10,6 +10,16 @@ import { fakeEngine, finding, makeInstall, makeTheme, raw, result, tmp } from '.
 const ok = (id: string, kinds: ('theme' | 'plugin' | 'install')[], findings = [raw()]) =>
   fakeEngine(id, kinds, async () => findings);
 
+test('an engine sees the profile, and its variant goes into the run', async (t) => {
+  const target = detectTarget(makeTheme(tmp(t)));
+  const seen: (string | undefined)[] = [];
+  const engine = { ...fakeEngine('e', ['theme'], async (ctx) => (seen.push(ctx.profile), [])), variant: (p: string | undefined) => (p === 'x' ? 'other' : undefined) };
+  const withProfile = await run(target, { engines: [engine], only: ['e'], profile: 'x' });
+  assert.equal(withProfile.engines[0]!.variant, 'other');
+  assert.ok(!('variant' in (await run(target, { engines: [engine] })).engines[0]!));
+  assert.deepEqual(seen, ['x', undefined]);
+});
+
 test('the profile goes into the result only when given', async (t) => {
   const target = detectTarget(makeTheme(tmp(t)));
   const engines = [fakeEngine('e', ['theme'], async () => [])];

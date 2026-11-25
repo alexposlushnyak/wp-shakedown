@@ -78,6 +78,8 @@ A check that searches the code gives a file and a line. A check that looks for s
 
 For a block theme, Theme Check leaves out the checks for classic templates. For a child theme it also reads the parent theme when the parent folder sits next to the theme. When it does not, the engine says so, and checks that look for template code may report it missing.
 
+Under the [`envato`](profiles.md#envato) profile the engine runs the fork of Theme Check that Envato keeps for ThemeForest. See [ADR 0023](../adr/0023-the-envato-profile-swaps-the-theme-check-release.md).
+
 Theme Check wants the folder name to match the theme name, as it does on wordpress.org. A theme in a folder with another name gets a warning about its text domain.
 
 ## theme-review

@@ -119,7 +119,7 @@ test('--profile checks its input', (t) => {
   const both = cli('run', theme, '--profile', 'wporg-theme', '--engine', 'php-lint');
   assert.equal(both.status, 2);
   assert.match(both.stderr, /Use a profile or a list of engines, not both\./);
-  assert.match(cli('--help').stdout, /--profile <id> .*wporg-theme, wporg-plugin or site/);
+  assert.match(cli('--help').stdout, /--profile <id> .*wporg-theme, envato, wporg-plugin or site/);
 });
 
 // A real run: the profile picks the engines, so no fake engine is needed. It needs PHP for php-lint and the tools for the rest.

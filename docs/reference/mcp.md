@@ -46,7 +46,7 @@ To use Wordfence Intelligence, add the key to the `env` of that entry as `WP_SHA
 |---|---|---|
 | `path` | string, required | Absolute path of the folder to test |
 | `engines` | array of strings | Engine IDs to run. Without it, every engine that fits the target runs |
-| `profile` | `wporg-theme`, `wporg-plugin` or `site` | Runs only the engines for one gate. See [Profiles](profiles.md). It does not combine with `engines` |
+| `profile` | `wporg-theme`, `envato`, `wporg-plugin` or `site` | Runs only the engines for one gate. See [Profiles](profiles.md). It does not combine with `engines` |
 | `depth` | `quick`, `standard` or `deep` | How thorough the run is. The default is `standard`. See [Depth](cli.md#depth) |
 | `experimental` | boolean | Also runs the experimental engines, such as `theme-review` |
 | `type` | `theme`, `plugin` or `install` | Use it only when detection is wrong |
