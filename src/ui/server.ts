@@ -6,11 +6,13 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { customEngines } from '../engines/custom.ts';
 import { profiles } from '../profiles.ts';
-import { addProject, listProjects, removeProject } from '../projects.ts';
+import { addProject, listProjects, projectId, removeProject } from '../projects.ts';
 import { readPreviousRun } from '../report/write.ts';
 import { runSession } from '../session.ts';
 import type { SessionResult } from '../session.ts';
 import { detectTarget } from '../target.ts';
+import { importZip } from '../uploads.ts';
+import { pickerCommand, pickFolder } from './picker.ts';
 import { DEPTHS } from '../types.ts';
 import type { Depth, Engine, RunEvent } from '../types.ts';
 import { VERSION } from '../version.ts';
@@ -53,6 +55,7 @@ const HEADERS = {
     "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; connect-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'",
 };
 const MAX_BODY = 65536;
+const MAX_UPLOAD = 256 * 1024 ** 2;
 const MAX_RUNNING = 3;
 const REPORT_CSP = "default-src 'none'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'";
 const REPORT_FILES = ['report.md', 'report.json', 'report.sarif', 'report.html'];
@@ -72,11 +75,21 @@ function same(a: string, b: string): boolean {
   return x.length === y.length && timingSafeEqual(x, y);
 }
 
-export function startUi(opts: { engines: Engine[]; port?: number; startDir?: string; token?: string }): Promise<UiServer> {
+export function startUi(opts: {
+  engines: Engine[];
+  port?: number;
+  startDir?: string;
+  token?: string;
+  /** Opens the folder dialog. Tests replace it. Null means the system has none. */
+  pick?: ((start: string, signal: AbortSignal) => Promise<string | null>) | null;
+}): Promise<UiServer> {
   const token = opts.token ?? randomBytes(24).toString('base64url');
   const startDir = path.resolve(opts.startDir ?? process.cwd());
   let port = 0;
   const clients = new Set<http.ServerResponse>();
+  const pick = opts.pick === undefined ? (pickerCommand(startDir) ? pickFolder : null) : opts.pick;
+  const closing = new AbortController();
+  let picking = false;
 
   interface Active {
     path: string;
@@ -107,22 +120,23 @@ export function startUi(opts: { engines: Engine[]; port?: number; startDir?: str
     broadcast('run', { id, event });
   };
 
-  function readBody(req: http.IncomingMessage): Promise<string | undefined> {
+  function readRaw(req: http.IncomingMessage, limit: number): Promise<Buffer | undefined> {
     return new Promise((resolve) => {
       const chunks: Buffer[] = [];
       let size = 0;
       req.on('data', (c: Buffer) => {
         size += c.length;
-        if (size > MAX_BODY) {
+        if (size > limit) {
           resolve(undefined);
           req.removeAllListeners('data');
           req.resume();
         } else chunks.push(c);
       });
-      req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+      req.on('end', () => resolve(Buffer.concat(chunks)));
       req.on('error', () => resolve(undefined));
     });
   }
+  const readBody = async (req: http.IncomingMessage): Promise<string | undefined> => (await readRaw(req, MAX_BODY))?.toString('utf8');
 
   function begin(id: string, a: Active): void {
     const ctl = a.controller;
@@ -240,6 +254,8 @@ export function startUi(opts: { engines: Engine[]; port?: number; startDir?: str
     const methods: Record<string, string> = {
       '/api/state': 'GET',
       '/api/dirs': 'GET',
+      '/api/pick': 'POST',
+      '/api/upload': 'POST',
       '/api/detect': 'GET',
       '/api/projects': 'GET, POST',
       '/api/projects/remove': 'POST',
@@ -259,6 +275,7 @@ export function startUi(opts: { engines: Engine[]; port?: number; startDir?: str
           version: VERSION,
           home: os.homedir(),
           startDir,
+          picker: pick !== null,
           engines: [...opts.engines, ...customEngines()].map(({ id, title, kinds, depth, experimental }) => ({ id, title, kinds, depth: depth ?? 'standard', ...(experimental ? { experimental } : {}) })),
           profiles: profiles.map(({ id, title, summary, kinds }) => ({ id, title, summary, kinds })),
         });
@@ -281,6 +298,47 @@ export function startUi(opts: { engines: Engine[]; port?: number; startDir?: str
           .map((name) => ({ name, path: path.join(p, name) }));
         const parent = path.dirname(p);
         return send(res, 200, { path: p, parent: parent === p ? null : parent, dirs });
+      }
+
+      case '/api/pick': {
+        if (!pick) return send(res, 501, { error: 'This system has no folder dialog the tool can open. Type the path instead.' });
+        if (picking) return send(res, 409, { error: 'The folder dialog is already open.' });
+        picking = true;
+        try {
+          const chosen = await pick(startDir, closing.signal);
+          return send(res, 200, chosen === null ? { cancelled: true } : { path: chosen });
+        } catch (err) {
+          return send(res, 500, { error: err instanceof Error ? err.message : String(err) });
+        } finally {
+          picking = false;
+        }
+      }
+
+      case '/api/upload': {
+        const type = req.headers['content-type'] ?? '';
+        if (type !== 'application/zip' && type !== 'application/x-zip-compressed' && type !== 'application/octet-stream') {
+          return send(res, 415, { error: 'Send a ZIP file.' });
+        }
+        let name = 'upload.zip';
+        try {
+          name = decodeURIComponent(String(req.headers['x-file-name'] ?? name));
+        } catch {
+          // A header that is not valid percent-encoding keeps the default name.
+        }
+        const buf = await readRaw(req, MAX_UPLOAD);
+        if (!buf) {
+          res.setHeader('Connection', 'close');
+          return send(res, 413, { error: `The file is larger than ${MAX_UPLOAD / 1024 ** 2} MB.` });
+        }
+        try {
+          const dir = importZip(buf, name, (d) => active.has(projectId(d)));
+          finished.delete(projectId(dir));
+          const added = addProject(dir);
+          broadcast('projects', {});
+          return send(res, 200, added);
+        } catch (err) {
+          return send(res, 400, { error: `${name}: ${err instanceof Error ? err.message : String(err)}` });
+        }
       }
 
       case '/api/detect': {
@@ -450,6 +508,7 @@ export function startUi(opts: { engines: Engine[]; port?: number; startDir?: str
         close: () =>
           new Promise<void>((done) => {
             queue.length = 0;
+            closing.abort();
             for (const a of active.values()) a.controller.abort();
             for (const c of clients) c.end();
             clients.clear();

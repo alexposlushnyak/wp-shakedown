@@ -174,6 +174,33 @@ export function lastRunText(last: Last | undefined): string {
 	return parts.length > 0 ? parts.join(', ') : 'Clean';
 }
 
+/** The groups of the hub, in the order the command line lists them. Projects that cannot be tested come last. */
+export function groupProjects<T extends { kind?: string }>(projects: T[]): { title: string; projects: T[] }[] {
+	const groups: [string | undefined, string][] = [
+		['theme', 'Themes'],
+		['plugin', 'Plugins'],
+		['install', 'WordPress folders'],
+		[undefined, 'Cannot be tested'],
+	];
+	const known = groups.map(([kind]) => kind).filter(Boolean);
+	// Any other kind goes to the last group, so no project drops out of the list.
+	const fits = (p: T, kind: string | undefined) => (kind === undefined ? !known.includes(p.kind) : p.kind === kind);
+	return groups.map(([kind, title]) => ({ title, projects: projects.filter((p) => fits(p, kind)) })).filter((g) => g.projects.length > 0);
+}
+
+/** The status line of the dock: what runs and what waits. */
+export function queueText(projects: { run?: 'queued' | 'running' }[]): string {
+	const running = projects.filter((p) => p.run === 'running').length;
+	const queued = projects.filter((p) => p.run === 'queued').length;
+	if (running === 0 && queued === 0) return 'Idle';
+	return [running > 0 ? `${running} running` : '', queued > 0 ? `${queued} queued` : ''].filter(Boolean).join(', ');
+}
+
+/** A path with the home folder written as ~, the way a terminal shows it. */
+export function shortPath(p: string, home: string): string {
+	return home && (p === home || p.startsWith(home + '/')) ? '~' + p.slice(home.length) : p;
+}
+
 export function timeAgo(iso: string, now: number): string {
 	const minutes = Math.floor((now - Date.parse(iso)) / 60000);
 	if (!(minutes >= 1)) return 'just now';

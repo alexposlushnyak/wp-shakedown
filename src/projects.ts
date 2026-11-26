@@ -4,6 +4,7 @@ import path from 'node:path';
 import { home } from './home.ts';
 import { defaultReportDir, readPreviousRun } from './report/write.ts';
 import { detectTarget } from './target.ts';
+import { removeUpload } from './uploads.ts';
 import type { Depth, Summary, Target, TargetKind } from './types.ts';
 
 /** A folder the user keeps in the hub, with what the last run found. */
@@ -122,5 +123,7 @@ export function removeProject(key: string): boolean {
   if (!found) return false;
   const data = read();
   write({ schema: 1, projects: data.projects.filter((p) => p.path !== found.path) });
+  // An unpacked ZIP exists only for the list, so it goes with the project. Reports stay.
+  removeUpload(found.path);
   return true;
 }

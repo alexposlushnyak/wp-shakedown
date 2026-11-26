@@ -52,6 +52,9 @@ To add an engine: write the adapter in `src/engines/`, add it to `src/engines/in
 | `src/cli.ts` | The `wp-shakedown` command |
 | `src/session.ts` | The steps from a path to a written report, shared by the command and the web page |
 | `src/ui/server.ts` | The local server and its API |
+| `src/ui/picker.ts` | Opens the folder dialog of the system for the web page |
+| `src/zip.ts` | Unpacks a ZIP archive with `node:zlib`, within limits |
+| `src/uploads.ts` | Turns an uploaded or given ZIP file into a project folder under `~/.wp-shakedown/uploads` |
 | `src/mcp/` | The MCP server and its tools |
 | `ui/` | The web page: React, Tailwind and shadcn/ui, built with Vite |
 | `test/` | Tests, one file per source file |

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { spawn } from 'node:child_process';
-import { statSync } from 'node:fs';
+import { readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
 import { engines } from './engines/index.ts';
@@ -14,6 +14,7 @@ import { exitCode } from './runner.ts';
 import { runSession } from './session.ts';
 import { startMcp } from './mcp/server.ts';
 import { startUi } from './ui/server.ts';
+import { importZip } from './uploads.ts';
 import { VERSION } from './version.ts';
 import type { Severity } from './types.ts';
 
@@ -22,7 +23,7 @@ const profileList = `${profiles.slice(0, -1).map((p) => p.id).join(', ')} or ${p
 const HELP = `wp-shakedown ${VERSION}
 
 Usage:
-  wp-shakedown run <path>... [options]
+  wp-shakedown run <path>... [options]   A path can be a folder or a ZIP file
   wp-shakedown run --all [options]
   wp-shakedown add <path>...
   wp-shakedown remove <project>...
@@ -49,6 +50,11 @@ Options:
 Exit codes: 0 clean, 1 findings at or above --fail-on, 2 the run itself failed.
 `;
 
+/** A ZIP file becomes the folder it unpacks to under ~/.wp-shakedown/uploads. Anything else stays as given. */
+function folderOf(p: string): string {
+  return /\.zip$/i.test(p) && statSync(p, { throwIfNoEntry: false })?.isFile() ? importZip(readFileSync(p), path.basename(p)) : p;
+}
+
 function add(paths: string[]): number {
   if (paths.length === 0) {
     console.error('wp-shakedown: Give a folder to add, for example: wp-shakedown add ./my-theme');
@@ -58,7 +64,7 @@ function add(paths: string[]): number {
   let code = 0;
   for (const p of paths) {
     try {
-      const { project, added } = addProject(p);
+      const { project, added } = addProject(folderOf(p));
       console.log(added ? `Added the ${labels[project.kind!]} "${project.name}".` : `"${project.name}" is already on the list.`);
     } catch (err) {
       console.error(`wp-shakedown: ${err instanceof Error ? err.message : String(err)}`);
@@ -225,7 +231,7 @@ async function main(argv: string[]): Promise<number> {
     }
     if (command === 'ui') return await ui(input, values.port, values['no-open'] ?? false);
     if (command !== 'run') throw new Error(`Unknown command "${command}". Run wp-shakedown --help.`);
-    const paths = positionals.slice(1);
+    const paths = positionals.slice(1).map(folderOf);
     const all = values.all ?? false;
     if (all && paths.length > 0) throw new Error('Use --all or paths, not both.');
     if (!all && paths.length === 0) throw new Error('Give a folder to test, for example: wp-shakedown run ./my-theme');
@@ -265,7 +271,7 @@ async function main(argv: string[]): Promise<number> {
     }
 
     const { result, diff, files } = await runSession({
-      input: input!,
+      input: paths[0]!,
       ...(type ? { type } : {}),
       ...(values.engine ? { only: values.engine } : {}),
       ...(values.profile ? { profile: values.profile } : {}),

@@ -87,10 +87,23 @@ test('hubExitCode', () => {
   assert.equal(hubExitCode([row(bad), row()], 'error'), 2);
 });
 
-test('projectTable pads columns', () => {
+test('projectTable groups themes, plugins and folders and pads columns', () => {
   const p = { id: 'aaaaaaaa', path: '/x/alpha', name: 'Alpha', kind: 'theme' as const, units: 0 };
-  const lines = projectTable([p, { ...p, id: 'bbbbbbbb', name: 'B', kind: undefined, problem: 'gone' }]).split('\n');
-  assert.equal(lines[0], 'ID        Name   Kind   Last run  Errors  Warnings  Notes  Path');
-  assert.equal(lines[1], 'aaaaaaaa  Alpha  theme  never     -       -         -      /x/alpha');
-  assert.equal(lines[2], 'bbbbbbbb  B      -      gone      -       -         -      /x/alpha');
+  const lines = projectTable([
+    { ...p, id: 'bbbbbbbb', name: 'B', kind: undefined, problem: 'gone' },
+    { ...p, id: 'cccccccc', name: 'Cart', kind: 'plugin', path: '/x/cart' },
+    p,
+  ]).split('\n');
+  assert.deepEqual(lines, [
+    'ID        Name   Last run  Errors  Warnings  Notes  Path',
+    '',
+    'Themes',
+    'aaaaaaaa  Alpha  never     -       -         -      /x/alpha',
+    '',
+    'Plugins',
+    'cccccccc  Cart   never     -       -         -      /x/cart',
+    '',
+    'Cannot be tested',
+    'bbbbbbbb  B      gone      -       -         -      /x/alpha',
+  ]);
 });
