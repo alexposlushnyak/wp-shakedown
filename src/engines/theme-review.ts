@@ -395,6 +395,7 @@ export const themeReview: Engine = {
   id: 'theme-review',
   title: 'Theme review feedback',
   kinds: ['theme'],
+  level: 7,
   experimental: true,
   async run(ctx) {
     const theme = loadTheme(ctx);

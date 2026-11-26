@@ -81,6 +81,7 @@ export const eslint: Engine = {
   id: 'eslint',
   title: 'JavaScript',
   kinds: ['theme', 'plugin'],
+  level: 6,
   async run({ target, signal, note }) {
     const files = sourceFiles(target.path, ['.js', '.jsx', '.mjs', '.cjs']).filter((f) => !isGenerated(f));
     if (files.length === 0) return [];

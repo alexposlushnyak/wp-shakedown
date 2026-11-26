@@ -78,12 +78,13 @@ test('the token guards /api', async (t) => {
   assert.equal((await fetch(`${base}/api/state`, { headers: { 'x-shakedown-token': 'wrong' } })).status, 401);
   const ok = await fetch(`${base}/api/state`, { headers: { 'x-shakedown-token': ui.token } });
   assert.equal(ok.status, 200);
-  const body = (await ok.json()) as { engines: { id: string; depth: string }[]; running?: boolean };
+  const body = (await ok.json()) as { engines: { id: string; level: number }[]; running?: boolean };
   assert.deepEqual(body.engines.map((e) => e.id), ['found']);
-  assert.equal(body.engines[0]!.depth, 'standard');
+  assert.equal(body.engines[0]!.level, 6);
   assert.equal('running' in body, false);
-  const state = (await (await fetch(`${base}/api/state`, { headers: { 'x-shakedown-token': ui.token } })).json()) as { profiles: { id: string }[] };
-  assert.equal(state.profiles.length, 4);
+  const state = (await (await fetch(`${base}/api/state`, { headers: { 'x-shakedown-token': ui.token } })).json()) as { presets: { id: string; builtIn?: true }[] };
+  assert.equal(state.presets.length, 5);
+  assert.ok(state.presets.every((p) => p.builtIn === true));
   assert.equal((await fetch(`${base}/api/state?t=${ui.token}`)).status, 200);
 });
 
@@ -197,15 +198,20 @@ test('POST /api/run checks its input', async (t) => {
   const unknown = await post('/api/run', { ids: ['nope'] });
   assert.equal(unknown.status, 400);
   assert.deepEqual(await unknown.json(), { error: 'No such project.' });
-  const depth = await post('/api/run', { ids: [id], depth: 'nope' });
-  assert.equal(depth.status, 400);
-  assert.deepEqual(await depth.json(), { error: 'Unknown depth "nope".' });
-  const profile = await post('/api/run', { ids: [id], profile: 'nope' });
-  assert.equal(profile.status, 400);
-  assert.deepEqual(await profile.json(), { error: 'Unknown profile "nope".' });
-  const two = await post('/api/run', { ids: [id, other], profile: 'wporg-theme' });
+  const levelError = { error: 'Level must be a number from 0 to 10, or quick, standard or deep.' };
+  for (const bad of [{ level: 'nope' }, { level: 11 }, { level: -1 }, { level: 2.5 }, { depth: 'nope' }]) {
+    const res = await post('/api/run', { ids: [id], ...bad });
+    assert.equal(res.status, 400);
+    assert.deepEqual(await res.json(), levelError);
+  }
+  for (const key of ['preset', 'profile']) {
+    const res = await post('/api/run', { ids: [id], [key]: 'nope' });
+    assert.equal(res.status, 400);
+    assert.deepEqual(await res.json(), { error: 'Unknown preset "nope".' });
+  }
+  const two = await post('/api/run', { ids: [id, other], preset: 'wporg-theme' });
   assert.equal(two.status, 400);
-  assert.deepEqual(await two.json(), { error: 'A profile works with one project.' });
+  assert.deepEqual(await two.json(), { error: 'A preset works with one project.' });
   const big = await post('/api/run', { ids: ['x'.repeat(70000)] });
   assert.equal(big.status, 413);
 });
@@ -467,4 +473,81 @@ test('/api/upload rejects other content types and bad archives', async (t) => {
   const bad = await api('/api/upload', { method: 'POST', headers: { 'content-type': 'application/zip', 'x-file-name': encodeURIComponent('my theme.zip') }, body: 'not a zip at all, only text' });
   assert.equal(bad.status, 400);
   assert.match(((await bad.json()) as { error: string }).error, /^my theme\.zip: /);
+});
+
+const mine = { id: 'mine', title: 'Mine', summary: 'My gate.', kinds: ['theme'], engines: ['found', 'nothing-here'], level: 6, failOn: 'warning' };
+
+test('preset routes create, list, replace and remove a user preset', async (t) => {
+  const { api, post } = await boot(t);
+  const first = await post('/api/presets', mine);
+  assert.equal(first.status, 200);
+  const { builtIn: _b, ...saved } = ((await first.json()) as { preset: Record<string, unknown> }).preset;
+  assert.deepEqual(saved, mine);
+
+  const listed = (await (await api('/api/presets')).json()) as { presets: { id: string; builtIn?: true }[]; problems: unknown[] };
+  assert.deepEqual(listed.presets.map((p) => p.id), ['wporg-theme', 'envato', 'wporg-plugin', 'client', 'site', 'mine']);
+  assert.deepEqual(listed.problems, []);
+  assert.equal(listed.presets.find((p) => p.id === 'mine')!.builtIn, undefined);
+  const state = (await (await api('/api/state')).json()) as { presets: { id: string }[] };
+  assert.equal(state.presets.length, 6);
+
+  await post('/api/presets', { ...mine, title: 'Mine again' });
+  const again = (await (await api('/api/presets')).json()) as { presets: { id: string; title: string }[] };
+  assert.equal(again.presets.filter((p) => p.id === 'mine').length, 1);
+  assert.equal(again.presets.find((p) => p.id === 'mine')!.title, 'Mine again');
+
+  // A copy of the ThemeForest preset keeps Envato's Theme Check when the page saves it.
+  const copy = await post('/api/presets', { ...mine, id: 'my-envato', themeCheck: 'envato' });
+  assert.equal(((await copy.json()) as { preset: { themeCheck?: string } }).preset.themeCheck, 'envato');
+  assert.equal((await post('/api/presets/remove', { id: 'my-envato' })).status, 200);
+
+  assert.equal((await post('/api/presets/remove', { id: 'mine' })).status, 200);
+  assert.equal(((await (await api('/api/presets')).json()) as { presets: unknown[] }).presets.length, 5);
+});
+
+test('preset routes refuse bad input with a message', async (t) => {
+  const { post } = await boot(t);
+  const error = async (p: string, body: unknown, status: number) => {
+    const res = await post(p, body);
+    assert.equal(res.status, status);
+    return ((await res.json()) as { error: string }).error;
+  };
+  assert.match(await error('/api/presets', { ...mine, id: 'envato' }, 400), /built-in preset/);
+  assert.match(await error('/api/presets', { ...mine, id: 'Bad Id' }, 400), /lowercase letters/);
+  assert.match(await error('/api/presets', { ...mine, level: 11 }, 400), /level/);
+  assert.match(await error('/api/presets', { ...mine, engines: [] }, 400), /engines/);
+  assert.equal(await error('/api/presets', { title: 'No id' }, 400), 'Send the ID of the preset.');
+  assert.match(await error('/api/presets/remove', { id: 'site' }, 400), /built-in preset and cannot be removed/);
+  assert.equal(await error('/api/presets/remove', { id: 'nope' }, 404), 'No such preset.');
+  assert.equal(await error('/api/presets/remove', {}, 404), 'No such preset.');
+});
+
+test('a change to the presets is broadcast', async (t) => {
+  const { api, post } = await boot(t);
+  const next = frames(await api('/api/events'));
+  assert.equal((await next()).event, 'snapshot');
+  await post('/api/presets', mine);
+  assert.equal((await next()).event, 'presets');
+  await post('/api/presets/remove', { id: 'mine' });
+  assert.equal((await next()).event, 'presets');
+});
+
+test('a run takes a preset and a level, by name or by number, and the report shows them', async (t) => {
+  const { api, post } = await boot(t);
+  await post('/api/presets', mine);
+  const id = await addTheme(t, post, 'Alpha');
+  const report = async () => {
+    await until(async () => ((await (await api('/api/projects')).json()) as { projects: Project[] }).projects[0]!.run === undefined);
+    return (await (await api(`/api/report?id=${id}`)).json()) as { preset?: string; level: number; engines: unknown[] };
+  };
+  assert.equal((await post('/api/run', { ids: [id], preset: 'mine' })).status, 202);
+  const withPreset = await report();
+  assert.deepEqual([withPreset.preset, withPreset.level, withPreset.engines.length], ['mine', 6, 1]);
+  assert.equal((await post('/api/run', { ids: [id], level: 'quick' })).status, 202);
+  assert.deepEqual([(await report()).level, (await report()).engines.length], [3, 0]);
+  assert.equal((await post('/api/run', { ids: [id], depth: 'deep' })).status, 202);
+  assert.equal((await report()).level, 8);
+  assert.equal((await post('/api/run', { ids: [id], profile: 'mine', level: 9 })).status, 202);
+  const old = await report();
+  assert.deepEqual([old.preset, old.level], ['mine', 9]);
 });

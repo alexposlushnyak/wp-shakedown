@@ -1,17 +1,17 @@
 import { PlayIcon, SquareIcon } from 'lucide-react';
-import { DepthControl } from '@/components/depth-control';
+import { LevelControl } from '@/components/level-control';
 import { Button } from '@/components/ui/button';
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty';
 import { Item, ItemActions, ItemContent, ItemDescription, ItemGroup, ItemTitle } from '@/components/ui/item';
 import { Progress } from '@/components/ui/progress';
-import type { Depth, Project } from '@/lib/api';
+import type { Project } from '@/lib/api';
 import { groupProjects, lastRunText, plural, progress, projectTone, runModel, shortPath, timeAgo } from '@/lib/run';
 import { cn } from '@/lib/utils';
 import type { Tone, WireEvent } from '@/lib/run';
 
 const DOT: Record<Tone, { color: string; label: string }> = {
-	error: { color: 'bg-destructive', label: 'The last run found errors.' },
-	warning: { color: 'bg-warning', label: 'The last run found warnings.' },
+	error: { color: 'bg-destructive', label: 'The last run found critical findings.' },
+	warning: { color: 'bg-warning', label: 'The last run found important findings.' },
 	clean: { color: 'bg-success', label: 'The last run was clean.' },
 	none: { color: 'bg-muted-foreground/40', label: 'Not run yet.' },
 };
@@ -83,21 +83,21 @@ function Row({ project, home, events, onRun, onStop }: { project: Project; home:
 interface Props {
 	projects: Project[];
 	runs: Record<string, WireEvent[]>;
-	depth: Depth;
-	onDepth: (depth: Depth) => void;
+	level: number;
+	onLevel: (level: number) => void;
 	onRun: (ids: string[]) => void;
 	onStop: (id: string) => void;
 	home: string;
 }
 
-export function HubView({ projects, runs, depth, onDepth, onRun, onStop, home }: Props) {
+export function HubView({ projects, runs, level, onLevel, onRun, onStop, home }: Props) {
 	const runnable = projects.filter((p) => p.kind && !p.run).map((p) => p.id);
 	return (
 		<section className="flex flex-col gap-10">
 			<div className="flex flex-wrap items-end justify-between gap-4">
 				<h1 className="text-3xl font-semibold tracking-[-0.02em]">Projects</h1>
 				<div className="flex flex-wrap items-center gap-2">
-					<DepthControl value={depth} onChange={onDepth} />
+					<LevelControl value={level} onChange={onLevel} />
 					<Button disabled={runnable.length === 0} onClick={() => onRun(runnable)}>
 						<PlayIcon />
 						Run all

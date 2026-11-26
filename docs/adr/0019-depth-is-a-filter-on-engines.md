@@ -1,6 +1,6 @@
 # 0019. Depth is a filter on engines
 
-- Status: Accepted
+- Status: Superseded by [0027](0027-levels-0-to-10.md)
 - Date: 2026-11-24
 
 ## Context and problem statement

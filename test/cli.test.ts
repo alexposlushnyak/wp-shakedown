@@ -6,7 +6,7 @@ import { test } from 'node:test';
 import { exec } from '../src/exec.ts';
 import { VERSION } from '../src/version.ts';
 import { root, testHome } from './env.ts';
-import { makeSample, makeTheme, tmp, zipOf } from './helpers.ts';
+import { makeSample, makeTheme, tmp, write, zipOf } from './helpers.ts';
 
 const cli = (...args: string[]) =>
   spawnSync(process.execPath, ['src/cli.ts', ...args], { cwd: root, encoding: 'utf8', env: { ...process.env, WP_SHAKEDOWN_HOME: testHome } });
@@ -83,7 +83,7 @@ test('run writes the four reports and shows the diff on the second run', (t) => 
   const out = path.join(tmp(t), 'out');
   const first = cli('run', theme, '--type', 'install', '--out', out);
   assert.equal(first.status, 0, first.stderr);
-  assert.match(first.stdout, /0 errors, 0 warnings, 0 notes\./);
+  assert.match(first.stdout, /0 critical, 0 important, 0 recommended\./);
   assert.match(first.stdout, /Report: /);
   for (const f of ['md', 'json', 'sarif', 'html']) assert.ok(existsSync(path.join(out, `report.${f}`)));
   assert.doesNotMatch(first.stdout, /still open/);
@@ -120,34 +120,87 @@ test('run on a plugin shows progress on stderr', { timeout: 180000, ...(hasPhp ?
   assert.match(r.stdout, /Report:/);
 });
 
-test('--profile checks its input', (t) => {
+test('--preset checks its input, and --profile is the old name', (t) => {
   const theme = makeTheme(tmp(t));
-  const unknown = cli('run', theme, '--profile', 'nope');
+  const unknown = cli('run', theme, '--preset', 'nope');
   assert.equal(unknown.status, 2);
-  assert.match(unknown.stderr, /Unknown profile "nope"/);
-  const both = cli('run', theme, '--profile', 'wporg-theme', '--engine', 'php-lint');
+  assert.match(unknown.stderr, /Unknown preset "nope"/);
+  assert.match(cli('run', theme, '--profile', 'nope').stderr, /Unknown preset "nope"/);
+  const both = cli('run', theme, '--preset', 'wporg-theme', '--engine', 'php-lint');
   assert.equal(both.status, 2);
-  assert.match(both.stderr, /Use a profile or a list of engines, not both\./);
-  assert.match(cli('--help').stdout, /--profile <id> .*wporg-theme, envato, wporg-plugin or site/);
+  assert.match(both.stderr, /Use a preset or a list of engines, not both\./);
+  const help = cli('--help').stdout;
+  assert.match(help, /--preset <id> .*wporg-theme, envato, wporg-plugin, client or site/);
+  assert.doesNotMatch(help, /--profile|--depth/);
+  assert.match(help, /wp-shakedown presets/);
 });
 
-// A real run: the profile picks the engines, so no fake engine is needed. It needs PHP for php-lint and the tools for the rest.
-test('--profile runs only the engines of that profile', { timeout: 180000, ...(hasPhp ? {} : { skip: 'PHP and Composer are needed' }) }, (t) => {
+// A real run: the preset picks the engines, so no fake engine is needed. It needs PHP for php-lint and the tools for the rest.
+test('--preset runs only the engines of that preset', { timeout: 180000, ...(hasPhp ? {} : { skip: 'PHP and Composer are needed' }) }, (t) => {
   const theme = makeTheme(tmp(t));
   const out = path.join(tmp(t), 'out');
-  const r = cli('run', theme, '--profile', 'wporg-theme', '--out', out, '--fail-on', 'never');
+  const r = cli('run', theme, '--preset', 'wporg-theme', '--out', out, '--fail-on', 'never');
   assert.equal(r.status, 0, r.stderr);
-  const report = JSON.parse(readFileSync(path.join(out, 'report.json'), 'utf8')) as { profile: string; engines: { engine: string }[] };
-  assert.equal(report.profile, 'wporg-theme');
-  const allowed = ['php-lint', 'theme-check', 'wpcs', 'php-compat', 'wp-json'];
+  const report = JSON.parse(readFileSync(path.join(out, 'report.json'), 'utf8')) as { preset: string; level: number; engines: { engine: string }[] };
+  assert.equal(report.preset, 'wporg-theme');
+  assert.equal(report.level, 7);
+  const allowed = ['php-lint', 'theme-check', 'theme-review', 'wpcs', 'php-compat', 'wp-json', 'activation-lock'];
   assert.ok(report.engines.length > 0 && report.engines.every((e) => allowed.includes(e.engine)));
 });
 
-test('--depth checks its input', () => {
-  const bad = cli('run', '.', '--depth', 'nope');
+test('--level checks its input, and --depth is the old name', () => {
+  for (const flag of ['--level', '--depth']) {
+    for (const bad of ['nope', '11', '-1', '2.5']) {
+      // A value that starts with a dash only parses in the form --level=-1.
+      const r = bad.startsWith('-') ? cli('run', '.', `${flag}=${bad}`) : cli('run', '.', flag, bad);
+      assert.equal(r.status, 2, `${flag} ${bad}`);
+      assert.match(r.stderr, /Level must be a number from 0 to 10, or quick, standard or deep\./);
+    }
+  }
+  assert.match(cli('--help').stdout, /--level <n> {9}How thorough the run is, from 0 to 10\. The default is 6\. quick, standard and deep work as 3, 6 and 8/);
+});
+
+test('--fail-on takes the severity names and the old ones', (t) => {
+  const theme = makeTheme(tmp(t));
+  for (const v of ['critical', 'important', 'recommended', 'never', 'error', 'warning', 'info']) {
+    const r = cli('run', theme, '--type', 'install', '--engine', 'config', '--out', path.join(tmp(t), 'out'), '--fail-on', v);
+    assert.equal(r.status, 0, `${v}: ${r.stderr}`);
+  }
+  const bad = cli('run', theme, '--fail-on', 'fatal');
   assert.equal(bad.status, 2);
-  assert.match(bad.stderr, /--depth must be quick, standard or deep\./);
-  assert.match(cli('--help').stdout, /--depth <level> {5}How thorough the run is: quick, standard or deep\. The default is standard/);
+  assert.match(bad.stderr, /--fail-on must be critical, important, recommended or never\./);
+  assert.match(cli('--help').stdout, /--fail-on <name> .*critical, important, recommended or never/);
+});
+
+test('the presets command lists the built-in presets and the user presets, with problems after them', (t) => {
+  const home = tmp(t);
+  write(path.join(home, 'presets', 'mine.json'), JSON.stringify({ schema: 1, title: 'Mine', summary: 'S', kinds: ['plugin'], engines: ['php-lint'], level: 4 }));
+  write(path.join(home, 'presets', 'broken.json'), '{');
+  const r = cliHome(home, 'presets');
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /^ID +Title +Kinds +Level +Engines +Source$/m);
+  assert.match(r.stdout, /^client +Client or commercial project .* built-in$/m);
+  assert.match(r.stdout, /^mine +Mine +plugin +4 +1 +.*mine\.json$/m);
+  assert.match(r.stdout, /broken\.json is not a valid preset: it is not JSON\./);
+});
+
+// The exit code and the level come from the preset unless a flag says otherwise.
+test('a preset sets the level and the exit threshold unless the flags are given', (t) => {
+  const home = tmp(t);
+  const theme = makeTheme(tmp(t));
+  // style.css has no Template header and no screenshot. The config engine does not fit a theme, so use a custom check that always finds one thing.
+  write(path.join(home, 'checks', 'always.json'), JSON.stringify({ type: 'files', require: ['no-such-file.txt'], message: 'Missing file.', severity: 'warning', level: 2 }));
+  write(path.join(home, 'presets', 'strict.json'), JSON.stringify({ schema: 1, title: 'Strict', summary: 'S', kinds: ['theme'], engines: ['custom:always'], level: 9, failOn: 'warning' }));
+  const run = (...flags: string[]) => {
+    const out = path.join(tmp(t), 'out');
+    const r = cliHome(home, 'run', theme, '--preset', 'strict', '--out', out, ...flags);
+    return { status: r.status, level: (JSON.parse(readFileSync(path.join(out, 'report.json'), 'utf8')) as { level: number }).level };
+  };
+  assert.deepEqual(run(), { status: 1, level: 9 });
+  assert.deepEqual(run('--fail-on', 'critical'), { status: 0, level: 9 });
+  assert.deepEqual(run('--fail-on', 'recommended'), { status: 1, level: 9 });
+  assert.deepEqual(run('--level', '4'), { status: 1, level: 4 });
+  assert.deepEqual(run('--depth', 'quick'), { status: 1, level: 3 });
 });
 
 test('--help lists --experimental', () => {

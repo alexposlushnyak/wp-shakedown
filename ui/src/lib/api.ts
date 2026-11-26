@@ -13,13 +13,23 @@ export interface EngineInfo {
 	id: string;
 	title: string;
 	kinds: string[];
+	/** The lowest level, 0 to 10, that runs the engine. */
+	level: number;
+	experimental?: boolean;
 }
 
-export interface ProfileInfo {
+export type FailOn = 'error' | 'warning' | 'info' | 'never';
+
+export interface PresetInfo {
 	id: string;
 	title: string;
 	summary: string;
 	kinds: string[];
+	engines: string[];
+	level?: number;
+	failOn?: FailOn;
+	/** Built-in presets come with the tool and cannot be changed. */
+	builtIn?: boolean;
 }
 
 export interface ServerState {
@@ -29,7 +39,7 @@ export interface ServerState {
 	/** Whether the server can open the system folder dialog. */
 	picker: boolean;
 	engines: EngineInfo[];
-	profiles: ProfileInfo[];
+	presets: PresetInfo[];
 }
 
 export interface Detected {
@@ -45,8 +55,6 @@ export interface Dirs {
 	dirs: { name: string; path: string }[];
 }
 
-export type Depth = 'quick' | 'standard' | 'deep';
-
 export interface Project {
 	id: string;
 	path: string;
@@ -54,7 +62,7 @@ export interface Project {
 	kind?: 'theme' | 'plugin' | 'install';
 	units: number;
 	problem?: string;
-	last?: { finishedAt: string; summary: Summary; failed: number; profile?: string; depth?: Depth; dir: string };
+	last?: { finishedAt: string; summary: Summary; failed: number; preset?: string; level?: number; dir: string };
 	run?: 'queued' | 'running';
 }
 
@@ -62,8 +70,8 @@ export interface ProjectReport {
 	summary: Summary;
 	engines: { engine: string; unit?: string; status: Exclude<JobStatus, 'waiting' | 'running'>; durationMs: number; findings: number; reason?: string }[];
 	finishedAt: string;
-	profile?: string;
-	depth?: Depth;
+	preset?: string;
+	level?: number;
 	experimental?: boolean;
 	diff?: { fixed: number; added: number; open: number };
 	files: string[];
@@ -106,6 +114,7 @@ export function listen(on: {
 	snapshot: (runs: RunSnapshot[]) => void;
 	run: (id: string, event: WireEvent) => void;
 	projects: () => void;
+	presets?: () => void;
 }): () => void {
 	const source = new EventSource(`/api/events?t=${q(token)}`);
 	const data = <T>(e: Event) => JSON.parse((e as MessageEvent<string>).data) as T;
@@ -115,5 +124,6 @@ export function listen(on: {
 		on.run(id, event);
 	});
 	source.addEventListener('projects', () => on.projects());
+	source.addEventListener('presets', () => on.presets?.());
 	return () => source.close();
 }

@@ -1,4 +1,4 @@
-import { EllipsisIcon, FileArchiveIcon, FolderPlusIcon, FolderTreeIcon } from 'lucide-react';
+import { EllipsisIcon, FileArchiveIcon, FolderPlusIcon, FolderTreeIcon, SlidersHorizontalIcon } from 'lucide-react';
 import { Mark } from '@/components/mark';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -14,10 +14,11 @@ interface Props {
 	onPick: () => void;
 	onUpload: () => void;
 	onBrowse: () => void;
+	onPresets: () => void;
 }
 
 /** The dock at the bottom of every screen: home, what runs now, and the ways to add a project. */
-export function AppDock({ status, busy, picker, onPick, onUpload, onBrowse }: Props) {
+export function AppDock({ status, busy, picker, onPick, onUpload, onBrowse, onPresets }: Props) {
 	return (
 		<nav aria-label="Main" className="pointer-events-none fixed inset-x-0 bottom-5 z-40 flex justify-center px-4">
 			<div className="bg-panel/85 pointer-events-auto flex h-14 items-center gap-1 rounded-2xl border p-2 shadow-[0_16px_48px_-16px_rgb(0_0_0/0.9)] backdrop-blur-xl">
@@ -28,6 +29,14 @@ export function AppDock({ status, busy, picker, onPick, onUpload, onBrowse }: Pr
 						</a>
 					</TooltipTrigger>
 					<TooltipContent side="top">Projects</TooltipContent>
+				</Tooltip>
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<Button variant="ghost" size="icon" className="size-10 rounded-xl" aria-label="Presets" onClick={onPresets}>
+							<SlidersHorizontalIcon />
+						</Button>
+					</TooltipTrigger>
+					<TooltipContent side="top">Presets</TooltipContent>
 				</Tooltip>
 				<Separator orientation="vertical" className="mx-1 !h-6" />
 				<span role="status" aria-live="polite" className="text-muted-foreground flex items-center gap-2 px-2 text-sm whitespace-nowrap tabular-nums">

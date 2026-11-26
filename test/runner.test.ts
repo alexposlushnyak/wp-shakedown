@@ -3,28 +3,33 @@ import path from 'node:path';
 import { test } from 'node:test';
 import { exitCode, run } from '../src/runner.ts';
 import { detectTarget } from '../src/target.ts';
-import { EngineSkipped } from '../src/types.ts';
+import { EngineSkipped, parseLevel } from '../src/types.ts';
 import type { RunEvent } from '../src/types.ts';
 import { fakeEngine, finding, makeInstall, makeTheme, raw, result, tmp } from './helpers.ts';
 
 const ok = (id: string, kinds: ('theme' | 'plugin' | 'install')[], findings = [raw()]) =>
   fakeEngine(id, kinds, async () => findings);
 
-test('an engine sees the profile, and its variant goes into the run', async (t) => {
+test('an engine sees the preset, and its variant goes into the run', async (t) => {
   const target = detectTarget(makeTheme(tmp(t)));
   const seen: (string | undefined)[] = [];
-  const engine = { ...fakeEngine('e', ['theme'], async (ctx) => (seen.push(ctx.profile), [])), variant: (p: string | undefined) => (p === 'x' ? 'other' : undefined) };
-  const withProfile = await run(target, { engines: [engine], only: ['e'], profile: 'x' });
-  assert.equal(withProfile.engines[0]!.variant, 'other');
+  const themeChecks: (string | undefined)[] = [];
+  const engine = {
+    ...fakeEngine('e', ['theme'], async (ctx) => (seen.push(ctx.preset), themeChecks.push(ctx.themeCheck), [])),
+    variant: ({ themeCheck }: { themeCheck?: 'envato' }) => themeCheck,
+  };
+  const withPreset = await run(target, { engines: [engine], only: ['e'], preset: 'envato-copy', themeCheck: 'envato' });
+  assert.equal(withPreset.engines[0]!.variant, 'envato');
   assert.ok(!('variant' in (await run(target, { engines: [engine] })).engines[0]!));
-  assert.deepEqual(seen, ['x', undefined]);
+  assert.deepEqual(seen, ['envato-copy', undefined]);
+  assert.deepEqual(themeChecks, ['envato', undefined]);
 });
 
-test('the profile goes into the result only when given', async (t) => {
+test('the preset goes into the result only when given', async (t) => {
   const target = detectTarget(makeTheme(tmp(t)));
   const engines = [fakeEngine('e', ['theme'], async () => [])];
-  assert.equal((await run(target, { engines, profile: 'site' })).profile, 'site');
-  assert.ok(!('profile' in (await run(target, { engines }))));
+  assert.equal((await run(target, { engines, preset: 'site' })).preset, 'site');
+  assert.ok(!('preset' in (await run(target, { engines }))));
 });
 
 test('records ok, skipped and failed with reasons', async (t) => {
@@ -160,42 +165,73 @@ test('reports stale baseline entries only after a complete run', async (t) => {
   assert.deepEqual((await run(target, { engines: [a, skipped], baseline })).staleBaseline, []);
 });
 
-const withDepth = (id: string, depth?: 'quick' | 'standard' | 'deep') => ({ ...ok(id, ['theme'], []), ...(depth ? { depth } : {}) });
+const withLevel = (id: string, level = 6) => ({ ...ok(id, ['theme'], []), level });
 
-test('depth filters engines and goes into the result', async (t) => {
+test('the level filters engines and goes into the result', async (t) => {
   const target = detectTarget(makeTheme(tmp(t)));
-  const engines = [withDepth('q', 'quick'), withDepth('s'), withDepth('d', 'deep')];
+  const engines = [withLevel('q', 3), withLevel('s'), withLevel('d', 8)];
   const ids = async (o: Omit<Parameters<typeof run>[1], 'engines'>) => (await run(target, { engines, ...o })).engines.map((e) => e.engine);
-  assert.deepEqual(await ids({ depth: 'quick' }), ['q']);
+  assert.deepEqual(await ids({ level: 3 }), ['q']);
   assert.deepEqual(await ids({}), ['q', 's']);
-  assert.deepEqual(await ids({ depth: 'deep' }), ['q', 's', 'd']);
-  assert.deepEqual(await ids({ depth: 'quick', only: ['d'] }), ['d']);
-  assert.deepEqual(await ids({ depth: 'quick', only: ['s', 'd'], profile: 'site' }), []);
-  assert.equal((await run(target, { engines })).depth, 'standard');
-  assert.equal((await run(target, { engines, depth: 'quick' })).depth, 'quick');
+  assert.deepEqual(await ids({ level: 8 }), ['q', 's', 'd']);
+  assert.deepEqual(await ids({ level: 3, only: ['d'] }), ['d']);
+  assert.deepEqual(await ids({ level: 3, only: ['s', 'd'], preset: 'site' }), []);
+  assert.equal((await run(target, { engines })).level, 6);
+  assert.equal((await run(target, { engines, level: 3 })).level, 3);
 });
 
-test('a depth that left out a fitting engine keeps stale baseline entries quiet', async (t) => {
+test('an engine runs at its own level and not below it', async (t) => {
+  const target = detectTarget(makeTheme(tmp(t)));
+  const engines = [withLevel('seven', 7)];
+  const ids = async (level: number) => (await run(target, { engines, level })).engines.map((e) => e.engine);
+  assert.deepEqual(await ids(6), []);
+  assert.deepEqual(await ids(7), ['seven']);
+  assert.deepEqual(await ids(10), ['seven']);
+  assert.deepEqual(await ids(0), []);
+});
+
+test('an engine sees the level of the run', async (t) => {
+  const target = detectTarget(makeTheme(tmp(t)));
+  const seen: number[] = [];
+  const engine = fakeEngine('e', ['theme'], async (ctx) => (seen.push(ctx.level), []), 0);
+  await run(target, { engines: [engine] });
+  await run(target, { engines: [engine], level: 9 });
+  assert.deepEqual(seen, [6, 9]);
+});
+
+test('parseLevel takes 0 to 10 and the three names', () => {
+  assert.equal(parseLevel(0), 0);
+  assert.equal(parseLevel(10), 10);
+  assert.equal(parseLevel('7'), 7);
+  assert.equal(parseLevel('quick'), 3);
+  assert.equal(parseLevel('standard'), 6);
+  assert.equal(parseLevel('deep'), 8);
+  for (const bad of [-1, 11, 2.5, 'x', '', '11', '-1', '1.5', 'toString', NaN]) {
+    assert.throws(() => parseLevel(bad), /Level must be a number from 0 to 10, or quick, standard or deep\./, String(bad));
+  }
+});
+
+test('a level that left out a fitting engine keeps stale baseline entries quiet', async (t) => {
   const target = detectTarget(makeTheme(tmp(t)));
   const baseline = { schema: 1 as const, entries: [{ id: 'gone', reason: 'accepted' }] };
-  const a = withDepth('a');
-  assert.deepEqual((await run(target, { engines: [a, withDepth('d', 'deep')], baseline })).staleBaseline, []);
-  assert.deepEqual((await run(target, { engines: [a, withDepth('d', 'deep')], baseline, depth: 'deep' })).staleBaseline, ['gone']);
-  const other = { ...withDepth('p', 'deep'), kinds: ['plugin' as const] };
+  const a = withLevel('a');
+  assert.deepEqual((await run(target, { engines: [a, withLevel('d', 8)], baseline })).staleBaseline, []);
+  assert.deepEqual((await run(target, { engines: [a, withLevel('d', 8)], baseline, level: 8 })).staleBaseline, ['gone']);
+  const other = { ...withLevel('p', 8), kinds: ['plugin' as const] };
   assert.deepEqual((await run(target, { engines: [a, other], baseline })).staleBaseline, ['gone']);
 });
 
-const experimental = (id: string) => ({ ...withDepth(id), experimental: true as const });
+const experimental = (id: string, level = 6) => ({ ...withLevel(id, level), experimental: true as const });
 
 test('experimental engines run only on request or by name', async (t) => {
   const target = detectTarget(makeTheme(tmp(t)));
-  const engines = [withDepth('s'), experimental('x')];
+  const engines = [withLevel('s'), experimental('x', 7)];
   const ids = async (o: Omit<Parameters<typeof run>[1], 'engines'>) => (await run(target, { engines, ...o })).engines.map((e) => e.engine);
   assert.deepEqual(await ids({}), ['s']);
   assert.deepEqual(await ids({ experimental: true }), ['s', 'x']);
   assert.deepEqual(await ids({ only: ['x'] }), ['x']);
-  assert.deepEqual(await ids({ only: ['x'], profile: 'wporg-theme' }), []);
-  assert.deepEqual(await ids({ only: ['x'], profile: 'wporg-theme', experimental: true }), ['x']);
+  assert.deepEqual(await ids({ only: ['x'], preset: 'wporg-theme' }), []);
+  assert.deepEqual(await ids({ only: ['x'], preset: 'wporg-theme', experimental: true }), ['x']);
   assert.equal((await run(target, { engines, experimental: true })).experimental, true);
   assert.ok(!('experimental' in (await run(target, { engines }))));
 });
@@ -203,7 +239,7 @@ test('experimental engines run only on request or by name', async (t) => {
 test('an experimental engine that was left out keeps stale baseline entries quiet', async (t) => {
   const target = detectTarget(makeTheme(tmp(t)));
   const baseline = { schema: 1 as const, entries: [{ id: 'gone', reason: 'accepted' }] };
-  const a = withDepth('a');
-  assert.deepEqual((await run(target, { engines: [a, experimental('x')], baseline })).staleBaseline, []);
-  assert.deepEqual((await run(target, { engines: [a, experimental('x')], baseline, experimental: true })).staleBaseline, ['gone']);
+  const a = withLevel('a');
+  assert.deepEqual((await run(target, { engines: [a, experimental('x', 7)], baseline })).staleBaseline, []);
+  assert.deepEqual((await run(target, { engines: [a, experimental('x', 7)], baseline, experimental: true })).staleBaseline, ['gone']);
 });

@@ -43,7 +43,7 @@ test('the bundled PHP runs the PHP engines', { skip: enabled ? false : 'Set WP_S
   resetPhpCache();
   resetToolsCache();
   resetPhpWasmCache();
-  const bundled = await run(detectTarget(dir), { engines, depth: 'deep' });
+  const bundled = await run(detectTarget(dir), { engines, level: 8 });
   assert.deepEqual(bundled.engines.map((e) => e.status), ['ok', 'ok', 'ok', 'ok', 'ok'], JSON.stringify(bundled.engines));
 
   const lint = bundled.findings.filter((f) => f.engine === 'php-lint');
@@ -64,7 +64,7 @@ test('the bundled PHP runs the PHP engines', { skip: enabled ? false : 'Set WP_S
   delete process.env.WP_SHAKEDOWN_PHP;
   resetPhpCache();
   resetToolsCache();
-  const native = await run(detectTarget(dir), { engines, depth: 'deep' });
+  const native = await run(detectTarget(dir), { engines, level: 8 });
   assert.deepEqual(native.engines.map((e) => e.status), ['ok', 'ok', 'ok', 'ok', 'ok'], JSON.stringify(native.engines));
   // The bundled run leaves out Generic.PHP.Syntax, which php-lint covers.
   const keys = (r: { findings: Finding[] }): string[] => r.findings.filter((f) => f.rule !== 'Generic.PHP.Syntax.PHPSyntax').map(key).sort();

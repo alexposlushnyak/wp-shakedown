@@ -1,5 +1,5 @@
 export type * from './types.ts';
-export { SEVERITIES, DEPTHS, EngineSkipped } from './types.ts';
+export { SEVERITIES, SEVERITY_NAMES, MAX_LEVEL, LEVEL_NAMES, DEFAULT_LEVEL, parseLevel, parseFailOn, EngineSkipped } from './types.ts';
 export { detectTarget, unitLabel } from './target.ts';
 export { run, exitCode } from './runner.ts';
 export type { RunOptions } from './runner.ts';
@@ -21,7 +21,7 @@ export { toHtml } from './report/html.ts';
 export { assertReportDir, defaultReportDir, readPreviousRun, writeReports } from './report/write.ts';
 export { engines } from './engines/index.ts';
 export { customEngines, globToRegExp } from './engines/custom.ts';
-export { profiles, profileEngines } from './profiles.ts';
+export { builtInPresets, builtInPresets as profiles, listPresets, findPreset, presetEngines, savePreset, removePreset } from './presets.ts';
 export { home } from './home.ts';
 export { phpLint } from './engines/php-lint.ts';
 export { themeCheck } from './engines/theme-check.ts';

@@ -5,25 +5,26 @@ import { toast } from 'sonner';
 import { AddDialog } from '@/components/add-dialog';
 import { AppDock } from '@/components/app-dock';
 import { HubView } from '@/components/hub-view';
+import { PresetsView } from '@/components/presets-view';
 import { ProjectView } from '@/components/project-view';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { api, listen, token, upload } from '@/lib/api';
-import type { Depth, Project, ServerState } from '@/lib/api';
-import { fromSnapshot, parseRoute, queueText, withEvent } from '@/lib/run';
+import type { PresetInfo, Project, ServerState } from '@/lib/api';
+import { fromSnapshot, parseView, queueText, readLevel, withEvent } from '@/lib/run';
 import type { RunEvents } from '@/lib/run';
 
 const STOPPED = 'The run was stopped.';
 
-function savedDepth(): Depth {
+function savedLevel(): number {
 	try {
-		const value = localStorage.getItem('depth');
-		if (value === 'quick' || value === 'standard' || value === 'deep') return value;
+		// An older page saved a depth name. readLevel turns it into its level.
+		return readLevel(localStorage.getItem('level') ?? localStorage.getItem('depth'));
 	} catch {
-		// Storage can be blocked. The default depth is fine then.
+		// Storage can be blocked. The default level is fine then.
+		return readLevel(null);
 	}
-	return 'standard';
 }
 
 function Footer({ version }: { version?: string }) {
@@ -47,7 +48,7 @@ export default function App() {
 	const [info, setInfo] = useState<ServerState | null>(null);
 	const [projects, setProjects] = useState<Project[]>([]);
 	const [runs, setRuns] = useState<RunEvents>({});
-	const [depth, setDepthState] = useState<Depth>(savedDepth);
+	const [level, setLevelState] = useState<number>(savedLevel);
 	const [hash, setHash] = useState(location.hash);
 	const [adding, setAdding] = useState(false);
 	const [error, setError] = useState(token ? '' : 'Open the link that wp-shakedown printed in the terminal. It carries the access token.');
@@ -82,21 +83,48 @@ export default function App() {
 				if (event.type === 'run:error' && event.message !== STOPPED) setError(event.message);
 			},
 			projects: loadProjects,
+			presets: () => api<ServerState>('/api/state').then(setInfo, fail),
 		});
 	}, [loadProjects]);
 
-	function setDepth(next: Depth) {
-		setDepthState(next);
+	function setLevel(next: number) {
+		setLevelState(next);
 		try {
-			localStorage.setItem('depth', next);
+			localStorage.setItem('level', String(next));
 		} catch {
 			// The choice then lasts until the page closes.
 		}
 	}
 
-	function run(ids: string[], profile?: string, experimental?: boolean) {
+	function run(ids: string[], preset?: string, experimental?: boolean) {
 		setError('');
-		api('/api/run', { ids, depth, ...(profile ? { profile } : {}), ...(experimental ? { experimental: true } : {}) }).then(loadProjects, fail);
+		api('/api/run', { ids, level, ...(preset ? { preset } : {}), ...(experimental ? { experimental: true } : {}) }).then(loadProjects, fail);
+	}
+
+	const loadState = () => api<ServerState>('/api/state').then(setInfo, fail);
+
+	async function savePreset(preset: PresetInfo) {
+		setError('');
+		try {
+			const { builtIn: _, ...body } = preset;
+			await api('/api/presets', body);
+			await loadState();
+			toast.success(`Saved ${preset.title}.`);
+			location.hash = `#/presets/${encodeURIComponent(preset.id)}`;
+		} catch (err) {
+			fail(err as Error);
+		}
+	}
+
+	async function removePreset(id: string) {
+		setError('');
+		try {
+			await api('/api/presets/remove', { id });
+			await loadState();
+			location.hash = '#/presets';
+		} catch (err) {
+			fail(err as Error);
+		}
 	}
 
 	const stop = (id?: string) => api('/api/cancel', id ? { id } : {}).catch(fail);
@@ -162,8 +190,8 @@ export default function App() {
 			removeEventListener('drop', drop);
 		};
 	});
-	const openId = parseRoute(hash, projects.map((p) => p.id));
-	const open = projects.find((p) => p.id === openId);
+	const view = parseView(hash, projects.map((p) => p.id));
+	const open = view.view === 'project' ? projects.find((p) => p.id === view.id) : undefined;
 
 	return (
 		<TooltipProvider delayDuration={300}>
@@ -178,14 +206,16 @@ export default function App() {
 			)}
 
 			{token &&
-				(open ? (
+				(view.view === 'presets' ? (
+					<PresetsView id={view.id} presets={info?.presets ?? []} engines={info?.engines ?? []} onSave={savePreset} onRemove={removePreset} />
+				) : open ? (
 					<ProjectView
 						project={open}
 						events={runs[open.id] ?? []}
-						profiles={info?.profiles ?? []}
-						depth={depth}
-						onDepth={setDepth}
-						onRun={(profile, experimental) => run([open.id], profile, experimental)}
+						presets={info?.presets ?? []}
+						level={level}
+						onLevel={setLevel}
+						onRun={(preset, experimental) => run([open.id], preset, experimental)}
 						onStop={() => stop(open.id)}
 						onRemove={() => {
 							api('/api/projects/remove', { id: open.id }).then(() => {
@@ -195,7 +225,7 @@ export default function App() {
 						}}
 					/>
 				) : (
-					<HubView projects={projects} runs={runs} depth={depth} onDepth={setDepth} onRun={run} onStop={stop} home={info?.home ?? ''} />
+					<HubView projects={projects} runs={runs} level={level} onLevel={setLevel} onRun={run} onStop={stop} home={info?.home ?? ''} />
 				))}
 
 			{info && (
@@ -228,6 +258,7 @@ export default function App() {
 					onPick={pick}
 					onUpload={() => fileInput.current?.click()}
 					onBrowse={() => setAdding(true)}
+					onPresets={() => (location.hash = '#/presets')}
 				/>
 			)}
 			{dragging && (

@@ -43,7 +43,7 @@ test('config run finds risky files', async (t) => {
   for (const f of ['wp-config.php.bak', 'dump.sql', 'phpinfo.php', '.env', 'wp-content/debug.log', 'wp-content/uploads/2026/x.php']) write(path.join(dir, f), 'x');
   write(path.join(dir, 'wp-content/uploads/index.php'), '<?php // Silence is golden.\n');
   const notes: string[] = [];
-  const f = await config.run({ target: detectTarget(dir), note: (m) => notes.push(m) });
+  const f = await config.run({ target: detectTarget(dir), level: 6, note: (m) => notes.push(m) });
   const got = f.map((x) => `${x.rule}:${x.location.file}`).sort();
   assert.deepEqual(got, [
     'config.writable:wp-config.php', 'leftover.config-copy:wp-config.php.bak', 'leftover.debug-log:wp-content/debug.log',
@@ -56,6 +56,6 @@ test('config run notes a missing wp-config.php', async (t) => {
   const dir = tmp(t);
   write(path.join(dir, 'wp-includes/version.php'), "<?php $wp_version = '6.8';\n");
   const notes: string[] = [];
-  await config.run({ target: detectTarget(dir), note: (m) => notes.push(m) });
+  await config.run({ target: detectTarget(dir), level: 6, note: (m) => notes.push(m) });
   assert.deepEqual(notes, ['No wp-config.php in this folder. Its settings were not checked.']);
 });

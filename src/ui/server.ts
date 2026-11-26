@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { customEngines } from '../engines/custom.ts';
-import { profiles } from '../profiles.ts';
+import { findPreset, listPresets, removePreset, savePreset } from '../presets.ts';
 import { addProject, listProjects, projectId, removeProject } from '../projects.ts';
 import { readPreviousRun } from '../report/write.ts';
 import { runSession } from '../session.ts';
@@ -13,8 +13,8 @@ import type { SessionResult } from '../session.ts';
 import { detectTarget } from '../target.ts';
 import { importZip } from '../uploads.ts';
 import { pickerCommand, pickFolder } from './picker.ts';
-import { DEPTHS } from '../types.ts';
-import type { Depth, Engine, RunEvent } from '../types.ts';
+import { parseLevel } from '../types.ts';
+import type { Engine, Preset, RunEvent } from '../types.ts';
 import { VERSION } from '../version.ts';
 
 export interface UiServer {
@@ -96,8 +96,8 @@ export function startUi(opts: {
     state: 'queued' | 'running';
     controller: AbortController;
     events: WireEvent[];
-    depth?: Depth;
-    profile?: string;
+    level?: number;
+    preset?: string;
     experimental?: boolean;
   }
   const active = new Map<string, Active>();
@@ -147,8 +147,8 @@ export function startUi(opts: {
     broadcast('projects', {});
     runSession({
       input: a.path,
-      ...(a.profile ? { profile: a.profile } : {}),
-      ...(a.depth ? { depth: a.depth } : {}),
+      ...(a.preset ? { preset: a.preset } : {}),
+      ...(a.level !== undefined ? { level: a.level } : {}),
       ...(a.experimental ? { experimental: true } : {}),
       engines: opts.engines,
       signal: ctl.signal,
@@ -259,6 +259,8 @@ export function startUi(opts: {
       '/api/detect': 'GET',
       '/api/projects': 'GET, POST',
       '/api/projects/remove': 'POST',
+      '/api/presets': 'GET, POST',
+      '/api/presets/remove': 'POST',
       '/api/run': 'POST',
       '/api/cancel': 'POST',
       '/api/report': 'GET',
@@ -276,9 +278,45 @@ export function startUi(opts: {
           home: os.homedir(),
           startDir,
           picker: pick !== null,
-          engines: [...opts.engines, ...customEngines()].map(({ id, title, kinds, depth, experimental }) => ({ id, title, kinds, depth: depth ?? 'standard', ...(experimental ? { experimental } : {}) })),
-          profiles: profiles.map(({ id, title, summary, kinds }) => ({ id, title, summary, kinds })),
+          engines: [...opts.engines, ...customEngines()].map(({ id, title, kinds, level, experimental }) => ({ id, title, kinds, level, ...(experimental ? { experimental } : {}) })),
+          presets: listPresets().presets,
         });
+
+      case '/api/presets': {
+        if (method === 'GET') return send(res, 200, listPresets());
+        const body = await jsonBody(req, res);
+        if (!body) return;
+        if (typeof body.id !== 'string') return send(res, 400, { error: 'Send the ID of the preset.' });
+        try {
+          const { id, title, summary, kinds, engines, level, failOn, themeCheck } = body as unknown as Preset;
+          savePreset({
+            id,
+            title,
+            summary,
+            kinds,
+            engines,
+            ...(level !== undefined ? { level } : {}),
+            ...(failOn !== undefined ? { failOn } : {}),
+            ...(themeCheck !== undefined ? { themeCheck } : {}),
+          });
+        } catch (err) {
+          return send(res, 400, { error: err instanceof Error ? err.message : String(err) });
+        }
+        broadcast('presets', {});
+        return send(res, 200, { preset: findPreset(body.id) });
+      }
+
+      case '/api/presets/remove': {
+        const body = await jsonBody(req, res);
+        if (!body) return;
+        try {
+          if (typeof body.id !== 'string' || !removePreset(body.id)) return send(res, 404, { error: 'No such preset.' });
+        } catch (err) {
+          return send(res, 400, { error: err instanceof Error ? err.message : String(err) });
+        }
+        broadcast('presets', {});
+        return send(res, 200, { ok: true });
+      }
 
       case '/api/dirs': {
         const given = url.searchParams.get('path');
@@ -391,14 +429,21 @@ export function startUi(opts: {
         const all = listProjects();
         const chosen = (ids as string[]).map((id) => all.find((p) => p.id === id));
         if (chosen.some((p) => !p?.kind)) return send(res, 400, { error: 'No such project.' });
-        const depth = body.depth;
-        if (depth !== undefined && !DEPTHS.some((d) => d === depth)) return send(res, 400, { error: `Unknown depth "${String(depth)}".` });
-        const profile = body.profile;
-        if (profile !== undefined) {
-          const found = typeof profile === 'string' ? profiles.find((p) => p.id === profile) : undefined;
-          if (!found) return send(res, 400, { error: `Unknown profile "${String(profile)}".` });
-          if (chosen.length > 1) return send(res, 400, { error: 'A profile works with one project.' });
-          if (!found.kinds.includes(chosen[0]!.kind!)) return send(res, 400, { error: `The ${found.id} profile does not fit "${chosen[0]!.name}".` });
+        const levelInput = body.level ?? body.depth;
+        let level: number | undefined;
+        if (levelInput !== undefined) {
+          try {
+            level = parseLevel(levelInput as string | number);
+          } catch (err) {
+            return send(res, 400, { error: err instanceof Error ? err.message : String(err) });
+          }
+        }
+        const preset = body.preset ?? body.profile;
+        if (preset !== undefined) {
+          const found = typeof preset === 'string' ? findPreset(preset) : undefined;
+          if (!found) return send(res, 400, { error: `Unknown preset "${String(preset)}".` });
+          if (chosen.length > 1) return send(res, 400, { error: 'A preset works with one project.' });
+          if (!found.kinds.includes(chosen[0]!.kind!)) return send(res, 400, { error: `The ${found.id} preset does not fit "${chosen[0]!.name}".` });
         }
         const started: string[] = [];
         for (const p of chosen as NonNullable<(typeof chosen)[number]>[]) {
@@ -408,8 +453,8 @@ export function startUi(opts: {
             state: 'queued',
             controller: new AbortController(),
             events: [],
-            ...(depth ? { depth: depth as Depth } : {}),
-            ...(profile ? { profile: profile as string } : {}),
+            ...(level !== undefined ? { level } : {}),
+            ...(preset ? { preset: preset as string } : {}),
             ...(body.experimental === true ? { experimental: true } : {}),
           });
           queue.push(p.id);
@@ -448,8 +493,8 @@ export function startUi(opts: {
           summary: result.summary,
           engines: result.engines,
           finishedAt: result.finishedAt,
-          ...(result.profile ? { profile: result.profile } : {}),
-          ...(result.depth ? { depth: result.depth } : {}),
+          ...(result.preset ? { preset: result.preset } : {}),
+          ...(result.level !== undefined ? { level: result.level } : {}),
           ...(result.experimental ? { experimental: true } : {}),
           ...(diff ? { diff: { fixed: diff.fixed.length, added: diff.added.length, open: diff.open.length } } : {}),
           files: found.session?.files ?? REPORT_FILES.map((f) => path.join(found.dir, f)),

@@ -57,7 +57,7 @@ Runs a command in the folder under test. The check fails when the exit code is n
   "paths": ["/Users/you/work/my-plugin"],
   "run": "composer test",
   "timeoutSeconds": 300,
-  "depth": "deep",
+  "level": 8,
   "onError": "skip"
 }
 ```
@@ -72,7 +72,8 @@ The finding carries the last lines of the output as its hint. The command gets t
 | `title` | the file name | Name shown in the progress output |
 | `kinds` | `["theme", "plugin"]` | What the check runs on: `theme`, `plugin`, `install`. In a WordPress folder a `theme` check runs on every theme |
 | `paths` | every path | Glob patterns for the absolute path of the folder you run the tool on. The check runs only where one matches |
-| `depth` | `standard` | The lightest [depth](cli.md#depth) that runs the check |
+| `level` | `6` | The lowest [level](cli.md#levels) that runs the check, an integer from 0 to 10 |
+| `depth` | none | The old name of `level`: `quick`, `standard` or `deep`, which are 3, 6 and 8. `level` wins when a file has both |
 | `severity` | `error` | `error`, `warning` or `info` |
 | `category` | `other` | A [category](report.md#finding) |
 | `message` | depends on the type | Text of the finding. Required for `pattern` |

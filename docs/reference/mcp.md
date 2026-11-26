@@ -36,7 +36,7 @@ To use Wordfence Intelligence, add the key to the `env` of that entry as `WP_SHA
 | Tool | What it does | Changes anything |
 |---|---|---|
 | `detect_target` | Says what a folder is: a theme, a plugin or a WordPress site, and which themes and plugins a site holds | No |
-| `list_engines` | Lists the engines with their IDs and depths, your own checks included | No |
+| `list_engines` | Lists the engines with their IDs and levels, your own checks included | No |
 | `run_checks` | Runs the engines on a folder and returns the report as Markdown | Writes report files. Never changes the target |
 | `list_findings` | Returns findings of the last run on a folder, filtered and paged, as JSON | No |
 
@@ -46,8 +46,8 @@ To use Wordfence Intelligence, add the key to the `env` of that entry as `WP_SHA
 |---|---|---|
 | `path` | string, required | Absolute path of the folder to test |
 | `engines` | array of strings | Engine IDs to run. Without it, every engine that fits the target runs |
-| `profile` | `wporg-theme`, `envato`, `wporg-plugin` or `site` | Runs only the engines for one gate. See [Profiles](profiles.md). It does not combine with `engines` |
-| `depth` | `quick`, `standard` or `deep` | How thorough the run is. The default is `standard`. See [Depth](cli.md#depth) |
+| `preset` | The ID of a [preset](presets.md) | Runs only the engines of one preset, at its level. The list of IDs is read when the client asks for the tools, so it includes your own presets. It does not combine with `engines`. `profile` is the old name |
+| `level` | integer, 0 to 10 | How thorough the run is. The default is 6. A preset can set its own. See [Levels](cli.md#levels). `depth` (`quick`, `standard` or `deep`) is the old name |
 | `experimental` | boolean | Also runs the experimental engines, such as `theme-review` |
 | `type` | `theme`, `plugin` or `install` | Use it only when detection is wrong |
 
@@ -62,7 +62,7 @@ While it runs, the tool sends progress to a client that asked for it: one messag
 | Argument | Type | Meaning |
 |---|---|---|
 | `path` | string, required | Absolute path of the folder that was tested |
-| `severity` | `error`, `warning` or `info` | |
+| `severity` | `error`, `warning` or `info` | `error` is Critical, `warning` is Important and `info` is Recommended |
 | `engine` | string | An engine ID |
 | `category` | string | Such as `security` or `compatibility` |
 | `file` | string | Part of a file path |

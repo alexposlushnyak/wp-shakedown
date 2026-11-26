@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ArrowLeftIcon, ChevronsUpDownIcon, ClipboardIcon, ExternalLinkIcon, PlayIcon, SparklesIcon, SquareIcon } from 'lucide-react';
 import { toast } from 'sonner';
-import { DepthControl } from '@/components/depth-control';
+import { LevelControl } from '@/components/level-control';
 import { EngineList } from '@/components/engine-line';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -10,8 +10,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { api, q, token } from '@/lib/api';
-import type { Depth, ProfileInfo, Project, ProjectReport } from '@/lib/api';
-import { aiPrompt, plural, profilesFor, progress, runModel, timeAgo } from '@/lib/run';
+import type { PresetInfo, Project, ProjectReport } from '@/lib/api';
+import { aiPrompt, levelLabel, plural, presetsFor, progress, runModel, timeAgo } from '@/lib/run';
 import type { Job, WireEvent } from '@/lib/run';
 
 async function copy(text: string, done: string) {
@@ -38,17 +38,17 @@ function Report({ report, id }: { report: ProjectReport; id: string }) {
 	const jobs: Job[] = report.engines.map((e) => ({ ...e, reason: e.reason ?? '', notes: [] }));
 	const line = [
 		`Ran ${timeAgo(report.finishedAt, Date.now())}`,
-		report.depth && report.depth !== 'standard' ? `${report.depth} run` : '',
+		report.level !== undefined ? levelLabel(report.level).toLowerCase() : '',
 		report.experimental ? 'experimental checks on' : '',
-		report.profile ?? '',
+		report.preset ? `preset ${report.preset}` : '',
 	].filter(Boolean);
 	const reportFile = report.files[0] ?? '';
 	return (
 		<div className="flex flex-col gap-4">
 			<div className="grid grid-cols-3 gap-6">
-				<Tile label="Errors" value={summary.error} tone="text-destructive" />
-				<Tile label="Warnings" value={summary.warning} tone="text-warning" />
-				<Tile label="Notes" value={summary.info} />
+				<Tile label="Critical" value={summary.error} tone="text-destructive" />
+				<Tile label="Important" value={summary.warning} tone="text-warning" />
+				<Tile label="Recommended" value={summary.info} />
 			</div>
 			<p className="text-muted-foreground text-sm">
 				{line.join(', ')}
@@ -94,22 +94,22 @@ function Report({ report, id }: { report: ProjectReport; id: string }) {
 interface Props {
 	project: Project;
 	events: WireEvent[];
-	profiles: ProfileInfo[];
-	depth: Depth;
-	onDepth: (depth: Depth) => void;
-	onRun: (profile: string | undefined, experimental: boolean) => void;
+	presets: PresetInfo[];
+	level: number;
+	onLevel: (level: number) => void;
+	onRun: (preset: string | undefined, experimental: boolean) => void;
 	onStop: () => void;
 	onRemove: () => void;
 }
 
-export function ProjectView({ project, events, profiles, depth, onDepth, onRun, onStop, onRemove }: Props) {
-	const [profile, setProfile] = useState('all');
+export function ProjectView({ project, events, presets, level, onLevel, onRun, onStop, onRemove }: Props) {
+	const [preset, setPreset] = useState('all');
 	const [experimental, setExperimental] = useState(false);
 	const [report, setReport] = useState<ProjectReport | null>(null);
 	const active = project.run !== undefined;
 	const model = runModel(events);
-	const fitting = profilesFor(profiles, project.kind);
-	const picked = fitting.find((p) => p.id === profile);
+	const fitting = presetsFor(presets, project.kind);
+	const picked = fitting.find((p) => p.id === preset);
 	const finishedAt = project.last?.finishedAt;
 
 	useEffect(() => {
@@ -120,7 +120,7 @@ export function ProjectView({ project, events, profiles, depth, onDepth, onRun, 
 		api<ProjectReport>(`/api/report?id=${project.id}`).then(setReport, () => setReport(null));
 	}, [project.id, active, finishedAt]);
 
-	useEffect(() => setProfile('all'), [project.id]);
+	useEffect(() => setPreset('all'), [project.id]);
 
 	return (
 		<section className="flex flex-col gap-8">
@@ -144,12 +144,20 @@ export function ProjectView({ project, events, profiles, depth, onDepth, onRun, 
 			<div className="flex flex-col gap-2">
 				<div className="flex flex-wrap items-center gap-2">
 					{fitting.length > 0 && (
-						<Select value={picked ? profile : 'all'} onValueChange={setProfile}>
-							<SelectTrigger className="w-56" aria-label="Profile">
+						<Select
+							value={picked ? preset : 'all'}
+							onValueChange={(id) => {
+								setPreset(id);
+								// A preset brings its level. The slider still lets you change it before the run.
+								const level = fitting.find((p) => p.id === id)?.level;
+								if (level !== undefined) onLevel(level);
+							}}
+						>
+							<SelectTrigger className="w-56" aria-label="Preset">
 								<SelectValue />
 							</SelectTrigger>
 							<SelectContent>
-								<SelectItem value="all">All checks</SelectItem>
+								<SelectItem value="all">Every engine at this level</SelectItem>
 								{fitting.map((p) => (
 									<SelectItem key={p.id} value={p.id}>
 										{p.title}
@@ -158,7 +166,7 @@ export function ProjectView({ project, events, profiles, depth, onDepth, onRun, 
 							</SelectContent>
 						</Select>
 					)}
-					<DepthControl value={depth} onChange={onDepth} />
+					<LevelControl value={level} onChange={onLevel} />
 					{active ? (
 						<Button variant="outline" className="ml-auto" onClick={onStop}>
 							<SquareIcon />

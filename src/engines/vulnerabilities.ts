@@ -87,6 +87,7 @@ export const vulnerabilities: Engine = {
   id: 'vulnerabilities',
   title: 'Known vulnerabilities',
   kinds: ['install'],
+  level: 4,
   run({ target, signal, note }) {
     return skipOnNetwork(async () => {
       const o = { ttlMs: HALF_DAY, ...(signal ? { signal } : {}) };

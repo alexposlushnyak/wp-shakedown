@@ -39,6 +39,7 @@ export const stylelint: Engine = {
   id: 'stylelint',
   title: 'CSS',
   kinds: ['theme', 'plugin'],
+  level: 6,
   async run({ target, signal, note }) {
     const files = sourceFiles(target.path, ['.css', '.scss']).filter((f) => !isGenerated(f));
     if (files.length === 0) return [];

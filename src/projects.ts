@@ -5,7 +5,7 @@ import { home } from './home.ts';
 import { defaultReportDir, readPreviousRun } from './report/write.ts';
 import { detectTarget } from './target.ts';
 import { removeUpload } from './uploads.ts';
-import type { Depth, Summary, Target, TargetKind } from './types.ts';
+import type { Summary, Target, TargetKind } from './types.ts';
 
 /** A folder the user keeps in the hub, with what the last run found. */
 export interface Project {
@@ -24,8 +24,8 @@ export interface Project {
     summary: Summary;
     /** Engines that failed, so the report is incomplete. */
     failed: number;
-    profile?: string;
-    depth?: Depth;
+    preset?: string;
+    level?: number;
     /** The folder that holds the report files. */
     dir: string;
   };
@@ -81,8 +81,8 @@ function describe(p: string): Project {
             finishedAt: run.finishedAt,
             summary: run.summary,
             failed: run.engines.filter((e) => e.status === 'failed').length,
-            ...(run.profile ? { profile: run.profile } : {}),
-            ...(run.depth ? { depth: run.depth } : {}),
+            ...(run.preset ? { preset: run.preset } : {}),
+            ...(run.level !== undefined ? { level: run.level } : {}),
             dir,
           },
         }

@@ -4,10 +4,9 @@ import { applyBaseline } from './baseline.ts';
 import { assignIds } from './fingerprint.ts';
 import { unitLabel } from './target.ts';
 import { VERSION } from './version.ts';
-import { EngineSkipped } from './types.ts';
+import { DEFAULT_LEVEL, EngineSkipped } from './types.ts';
 import type {
   Baseline,
-  Depth,
   Engine,
   EngineRun,
   Finding,
@@ -22,8 +21,10 @@ import type {
 export interface RunOptions {
   engines: Engine[];
   only?: string[];
-  profile?: string;
-  depth?: Depth;
+  preset?: string;
+  /** Envato's fork of Theme Check, when the preset asks for it. */
+  themeCheck?: 'envato';
+  level?: number;
   experimental?: boolean;
   baseline?: Baseline;
   signal?: AbortSignal;
@@ -36,8 +37,6 @@ interface Job {
   target: Target;
   unit?: Target;
 }
-
-const DEPTH_RANK: Record<Depth, number> = { quick: 1, standard: 2, deep: 3 };
 
 const posix = (p: string): string => p.split('\\').join('/');
 
@@ -79,11 +78,11 @@ export async function run(target: Target, opts: RunOptions): Promise<RunResult> 
   for (const id of opts.only ?? []) {
     if (!known.includes(id)) throw new Error(`Unknown engine "${id}". Known engines: ${known.join(', ') || 'none'}.`);
   }
-  const depth = opts.depth ?? 'standard';
+  const level = opts.level ?? DEFAULT_LEVEL;
   const named = opts.only ? opts.engines.filter((e) => opts.only!.includes(e.id)) : opts.engines;
-  // Engines named by hand skip the depth filter. A profile names engines too, but it keeps the filter.
-  const byHand = opts.only !== undefined && opts.profile === undefined;
-  const passes = (e: Engine): boolean => byHand || (DEPTH_RANK[e.depth ?? 'standard'] <= DEPTH_RANK[depth] && (!e.experimental || opts.experimental === true));
+  // Engines named by hand skip the level filter. A preset names engines too, but it keeps the filter.
+  const byHand = opts.only !== undefined && opts.preset === undefined;
+  const passes = (e: Engine): boolean => byHand || e.level <= level || (e.experimental === true && opts.experimental === true);
   const active = named.filter(passes);
   const kindsHere = new Set<string>([target.kind, ...target.units.map((u) => u.kind)]);
   const leftOut = named.some((e) => !passes(e) && e.kinds.some((k) => kindsHere.has(k)));
@@ -118,7 +117,9 @@ export async function run(target: Target, opts: RunOptions): Promise<RunResult> 
     try {
       found = await job.engine.run({
         target: job.target,
-        ...(opts.profile ? { profile: opts.profile } : {}),
+        ...(opts.preset ? { preset: opts.preset } : {}),
+        ...(opts.themeCheck ? { themeCheck: opts.themeCheck } : {}),
+        level,
         note: (message) => emit({ type: 'engine:note', engine: job.engine.id, ...(unit ? { unit } : {}), message }),
         ...(opts.signal ? { signal: opts.signal } : {}),
       });
@@ -127,7 +128,7 @@ export async function run(target: Target, opts: RunOptions): Promise<RunResult> 
       else status = 'failed';
       reason = err instanceof Error ? err.message : String(err);
     }
-    const variant = job.engine.variant?.(opts.profile);
+    const variant = job.engine.variant?.({ ...(opts.preset ? { preset: opts.preset } : {}), ...(opts.themeCheck ? { themeCheck: opts.themeCheck } : {}) });
     const er: EngineRun = {
       engine: job.engine.id,
       ...(unit ? { unit } : {}),
@@ -177,8 +178,8 @@ export async function run(target: Target, opts: RunOptions): Promise<RunResult> 
       name: target.name,
       units: target.units.map((u) => ({ kind: u.kind, name: u.name, path: posix(path.relative(target.path, u.path)) })),
     },
-    ...(opts.profile ? { profile: opts.profile } : {}),
-    depth,
+    ...(opts.preset ? { preset: opts.preset } : {}),
+    level,
     ...(opts.experimental ? { experimental: true as const } : {}),
     startedAt,
     finishedAt: now().toISOString(),

@@ -1,6 +1,6 @@
 # Architecture
 
-This document describes the design. The core, the report writers, fourteen engines, the profiles and all three ways in exist: the `run` command, the local web page and the MCP server. The engines for a site URL are not built. The version is below 1.0, so the command line and the report format may still change between minor versions.
+This document describes the design. The core, the report writers, fourteen engines, the presets and all three ways in exist: the `run` command, the local web page and the MCP server. The engines for a site URL are not built. The version is below 1.0, so the command line and the report format may still change between minor versions.
 
 ## Principles
 
@@ -39,7 +39,7 @@ Each external tool sits behind an adapter that knows how to run it and how to re
 | Area | Engines | State |
 |---|---|---|
 | PHP code | `php -l`, PHP_CodeSniffer with WordPress Coding Standards and the Plugin Check review rules, PHPCompatibilityWP, PHPStan with the WordPress extension | Built. See [Engines](../reference/engines.md) |
-| Theme rules | Theme Check, run with plain PHP. Under the `envato` profile, the fork Envato keeps for ThemeForest | Built. See [ADR 0017](../adr/0017-theme-check-without-wordpress.md) and [ADR 0023](../adr/0023-the-envato-profile-swaps-the-theme-check-release.md) |
+| Theme rules | Theme Check, run with plain PHP. Under the `envato` preset, the fork Envato keeps for ThemeForest | Built. See [ADR 0017](../adr/0017-theme-check-without-wordpress.md) and [ADR 0023](../adr/0023-the-envato-profile-swaps-the-theme-check-release.md) |
 | Theme review | Rules from a study of theme reviews. Experimental, off by default | Built. See [ADR 0022](../adr/0022-experimental-engines.md) |
 | JSON | JSON Schema validation of `theme.json` and `block.json` | Built |
 | JS, CSS | ESLint and Stylelint with the WordPress configs | Built |
@@ -52,11 +52,11 @@ The tools disagree on severity as well as on format. Each adapter maps its tool'
 
 Plugin Check and Theme Check are WordPress plugins. Theme Check reads a theme as text, so the `theme-check` engine runs all of it with plain PHP ([ADR 0017](../adr/0017-theme-check-without-wordpress.md)). The code-reading part of Plugin Check runs inside the `wpcs` engine ([ADR 0012](../adr/0012-plugin-check-rules-inside-wpcs.md)). The rest of Plugin Check needs a running WordPress and waits for the sandbox ([ADR 0007](../adr/0007-defer-sandbox-wordpress.md)).
 
-A depth sets how thorough a run is. `quick` runs the engines that take seconds, `standard` is the default, and `deep` adds static analysis ([ADR 0019](../adr/0019-depth-is-a-filter-on-engines.md)).
+A level from 0 to 10 sets how thorough a run is. Each engine names the lowest level that runs it. `quick`, `standard` and `deep` are names for 3, 6 and 8, and 6 is the default ([ADR 0027](../adr/0027-levels-0-to-10.md)).
 
 The user adds checks as JSON files in `~/.wp-shakedown/checks/`: a pattern, a list of files or a command. Each file is its own engine, and the tool never reads one from the folder it tests ([ADR 0020](../adr/0020-user-checks-live-in-the-home-folder.md)).
 
-A profile is a named list of engines for one gate, such as the theme directory of wordpress.org. It selects engines and changes nothing else: severities, finding IDs and the exit code stay the same. See [Profiles](../reference/profiles.md) and [ADR 0018](../adr/0018-a-profile-is-a-list-of-engines.md).
+A preset is a named list of engines with a level and an exit threshold, for one purpose such as the Theme Check of wordpress.org or a project for a client. It selects engines and changes nothing about how they work: severities and finding IDs stay the same. Built-in presets are code. Your own are JSON files in `~/.wp-shakedown/presets/`. See [Presets](../reference/presets.md) and [ADR 0028](../adr/0028-presets-are-files.md).
 
 ## Findings
 

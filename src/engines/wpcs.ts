@@ -56,6 +56,7 @@ export const wpcs: Engine = {
   id: 'wpcs',
   title: 'WordPress Coding Standards',
   kinds: ['theme', 'plugin'],
+  level: 5,
   async run({ target, signal, note }) {
     let standard: string | ((tools: string) => string) = target.kind === 'plugin' ? pluginRuleset : 'WordPress-Extra';
     let own = false;

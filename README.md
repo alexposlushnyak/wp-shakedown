@@ -26,7 +26,7 @@ Testing WordPress work means running PHPCS, PHPStan, WP-CLI checks, Site Health 
 | Theme or plugin folder | Coding standards, static analysis at the deep level, PHP compatibility, `theme.json` and `block.json`, JavaScript and CSS. For a theme, the Theme Check rules of wordpress.org |
 | WordPress folder | The same code checks across every theme and plugin in it, plus file integrity, known vulnerabilities, outdated or abandoned software, risky settings and files, and the tests of Site Health when WP-CLI can reach the database |
 
-A profile runs only what one gate checks: `--profile wporg-theme`, `envato`, `wporg-plugin` or `site`. `--depth quick`, `standard` or `deep` sets how thorough the run is. You can add [checks of your own](docs/reference/checks.md).
+A preset picks the engines for one purpose: `--preset wporg-theme`, `envato`, `wporg-plugin`, `client` or `site`. `--level` from 0 to 10 sets how thorough the run is: 0 only checks that the PHP parses, 6 is the default, and `quick`, `standard` and `deep` work as 3, 6 and 8. You can add [checks of your own](docs/reference/checks.md).
 
 ## How you run it
 
@@ -54,7 +54,7 @@ Version 0.3 is tested on macOS and Linux. Windows is not tested yet.
 - [Local web page](docs/reference/ui.md)
 - [MCP server](docs/reference/mcp.md)
 - [Engines](docs/reference/engines.md)
-- [Profiles](docs/reference/profiles.md)
+- [Presets](docs/reference/presets.md)
 - [Report format](docs/reference/report.md)
 - [Architecture](docs/explanation/architecture.md)
 - [Decision records](docs/adr/README.md)

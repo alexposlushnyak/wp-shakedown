@@ -4,7 +4,7 @@ import { readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
 import { engines } from './engines/index.ts';
-import { profiles } from './profiles.ts';
+import { findPreset, listPresets, presetTable } from './presets.ts';
 import { hubExitCode, hubLines, projectTable, runMany } from './hub.ts';
 import type { HubRow } from './hub.ts';
 import { addProject, listProjects, removeProject } from './projects.ts';
@@ -16,11 +16,13 @@ import { startMcp } from './mcp/server.ts';
 import { startUi } from './ui/server.ts';
 import { importZip } from './uploads.ts';
 import { VERSION } from './version.ts';
+import { parseFailOn, parseLevel } from './types.ts';
 import type { Severity } from './types.ts';
 
-const profileList = `${profiles.slice(0, -1).map((p) => p.id).join(', ')} or ${profiles[profiles.length - 1]!.id}`;
-
-const HELP = `wp-shakedown ${VERSION}
+const help = (): string => {
+  const ids = listPresets().presets.map((p) => p.id);
+  const presetList = `${ids.slice(0, -1).join(', ')} or ${ids[ids.length - 1]}`;
+  return `wp-shakedown ${VERSION}
 
 Usage:
   wp-shakedown run <path>... [options]   A path can be a folder or a ZIP file
@@ -28,18 +30,19 @@ Usage:
   wp-shakedown add <path>...
   wp-shakedown remove <project>...
   wp-shakedown list
+  wp-shakedown presets
   wp-shakedown ui [path] [options]
   wp-shakedown mcp
 
 Options:
   --type <kind>       Treat the path as a theme, plugin or install
   --engine <id>       Run only this engine. Repeat for more than one
-  --profile <id>      Run the engines for one gate: ${profileList}
-  --depth <level>     How thorough the run is: quick, standard or deep. The default is standard
+  --preset <id>       Run the engines of one preset: ${presetList}
+  --level <n>         How thorough the run is, from 0 to 10. The default is 6. quick, standard and deep work as 3, 6 and 8
   --experimental      Also run the experimental engines
   --out <dir>         Write the report here
   --baseline <file>   Use this baseline file
-  --fail-on <level>   Exit 1 at this severity: error, warning, info or never
+  --fail-on <name>    Exit 1 at this severity or above: critical, important, recommended or never. A preset can set it
   --all               Run every project on the list
   --jobs <n>          How many projects run at once. The default is 3
   --port <n>          Port for the ui command. The default is a free port
@@ -49,6 +52,7 @@ Options:
 
 Exit codes: 0 clean, 1 findings at or above --fail-on, 2 the run itself failed.
 `;
+};
 
 /** A ZIP file becomes the folder it unpacks to under ~/.wp-shakedown/uploads. Anything else stays as given. */
 function folderOf(p: string): string {
@@ -96,11 +100,21 @@ function list(): number {
   return 0;
 }
 
+function presets(): number {
+  const { presets: all, problems } = listPresets();
+  console.log(presetTable(all));
+  if (problems.length > 0) {
+    console.log('');
+    for (const p of problems) console.log(`${p.file} is not a valid preset: ${p.error}.`);
+  }
+  return 0;
+}
+
 interface RunFlags {
   type?: 'theme' | 'plugin' | 'install';
   only?: string[];
-  profile?: string;
-  depth?: 'quick' | 'standard' | 'deep';
+  preset?: string;
+  level?: number;
   experimental?: boolean;
   failOn: Severity | 'never';
 }
@@ -126,9 +140,9 @@ async function runHub(inputs: string[], jobs: number, f: RunFlags): Promise<numb
       signal: ac.signal,
       ...(f.type ? { type: f.type } : {}),
       ...(f.only ? { only: f.only } : {}),
-      ...(f.profile ? { profile: f.profile } : {}),
+      ...(f.preset ? { preset: f.preset } : {}),
       ...(f.experimental ? { experimental: true } : {}),
-      ...(f.depth ? { depth: f.depth } : {}),
+      ...(f.level !== undefined ? { level: f.level } : {}),
     },
     onChange: (all, row, event) => {
       latest = all;
@@ -199,7 +213,9 @@ async function main(argv: string[]): Promise<number> {
       options: {
         type: { type: 'string' },
         engine: { type: 'string', multiple: true },
+        preset: { type: 'string' },
         profile: { type: 'string' },
+        level: { type: 'string' },
         depth: { type: 'string' },
         experimental: { type: 'boolean' },
         out: { type: 'string' },
@@ -218,13 +234,14 @@ async function main(argv: string[]): Promise<number> {
       return 0;
     }
     if (values.help || positionals.length === 0) {
-      process.stdout.write(HELP);
+      process.stdout.write(help());
       return 0;
     }
     const [command, input] = positionals;
     if (command === 'add') return add(positionals.slice(1));
     if (command === 'remove') return remove(positionals.slice(1));
     if (command === 'list') return list();
+    if (command === 'presets') return presets();
     if (command === 'mcp') {
       await startMcp({ engines, input: process.stdin, output: process.stdout }).closed;
       return 0;
@@ -247,14 +264,11 @@ async function main(argv: string[]): Promise<number> {
     if (type !== undefined && type !== 'theme' && type !== 'plugin' && type !== 'install') {
       throw new Error('--type must be theme, plugin or install.');
     }
-    const depth = values.depth;
-    if (depth !== undefined && depth !== 'quick' && depth !== 'standard' && depth !== 'deep') {
-      throw new Error('--depth must be quick, standard or deep.');
-    }
-    const failOn = values['fail-on'] ?? 'error';
-    if (failOn !== 'error' && failOn !== 'warning' && failOn !== 'info' && failOn !== 'never') {
-      throw new Error('--fail-on must be error, warning, info or never.');
-    }
+    const levelText = values.level ?? values.depth;
+    const level = levelText !== undefined ? parseLevel(levelText) : undefined;
+    const preset = values.preset ?? values.profile;
+    // A preset sets the exit threshold unless --fail-on is given.
+    const failOn: Severity | 'never' = values['fail-on'] !== undefined ? parseFailOn(values['fail-on']) : (preset ? findPreset(preset)?.failOn : undefined) ?? 'error';
 
     if (many) {
       // The same folder twice would write one report folder from two runs.
@@ -263,10 +277,10 @@ async function main(argv: string[]): Promise<number> {
       return await runHub(targets, jobs, {
         ...(type ? { type } : {}),
         ...(values.engine ? { only: values.engine } : {}),
-        ...(values.profile ? { profile: values.profile } : {}),
-        ...(depth ? { depth } : {}),
+        ...(preset ? { preset } : {}),
+        ...(level !== undefined ? { level } : {}),
         ...(values.experimental ? { experimental: true } : {}),
-        failOn: failOn as Severity | 'never',
+        failOn,
       });
     }
 
@@ -274,8 +288,8 @@ async function main(argv: string[]): Promise<number> {
       input: paths[0]!,
       ...(type ? { type } : {}),
       ...(values.engine ? { only: values.engine } : {}),
-      ...(values.profile ? { profile: values.profile } : {}),
-      ...(depth ? { depth } : {}),
+      ...(preset ? { preset } : {}),
+      ...(level !== undefined ? { level } : {}),
       ...(values.experimental ? { experimental: true } : {}),
       ...(values.out ? { out: values.out } : {}),
       ...(values.baseline ? { baselineFile: values.baseline } : {}),
@@ -290,7 +304,7 @@ async function main(argv: string[]): Promise<number> {
     if (result.engines.length === 0) console.log(noEngineLine(result));
     if (diff) console.log(`${diff.fixed.length} fixed, ${diff.added.length} new, ${diff.open.length} still open.`);
     console.log(`Report: ${files[0]}`);
-    return exitCode(result, failOn as Severity | 'never');
+    return exitCode(result, failOn);
   } catch (err) {
     console.error(`wp-shakedown: ${err instanceof Error ? err.message : String(err)}`);
     return 2;

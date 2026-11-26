@@ -66,9 +66,44 @@ export function detectedText(d: { kind: string; name: string; units: { kind: str
 	return `Site ${d.name}`;
 }
 
-/** The profiles that fit a kind of target. */
-export function profilesFor<T extends { kinds: string[] }>(profiles: T[], kind: string | undefined): T[] {
-	return kind === undefined ? [] : profiles.filter((p) => p.kinds.includes(kind));
+/** The presets that fit a kind of target. */
+export function presetsFor<T extends { kinds: string[] }>(presets: T[], kind: string | undefined): T[] {
+	return kind === undefined ? [] : presets.filter((p) => p.kinds.includes(kind));
+}
+
+export const LEVEL_NAMES: Record<number, string> = { 3: 'quick', 6: 'standard', 8: 'deep' };
+export const DEFAULT_LEVEL = 6;
+
+/** "Level 6, standard" where a level has a name, "Level 7" where it has none. */
+export function levelLabel(level: number): string {
+	return LEVEL_NAMES[level] ? `Level ${level}, ${LEVEL_NAMES[level]}` : `Level ${level}`;
+}
+
+/** A stored level: a number from 0 to 10, or a depth name saved by an older page. Anything else is the default. */
+export function readLevel(value: string | null): number {
+	const named = Object.entries(LEVEL_NAMES).find(([, name]) => name === value);
+	if (named) return Number(named[0]);
+	const n = Number(value);
+	return value !== null && value !== '' && Number.isInteger(n) && n >= 0 && n <= 10 ? n : DEFAULT_LEVEL;
+}
+
+/** A preset ID made from a title: lowercase letters, digits and dashes. */
+export function presetId(title: string): string {
+	return title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
+}
+
+/** `base`, or `base-2`, `base-3` and so on: the first that is not in `taken`. */
+export function freeId(base: string, taken: string[]): string {
+	if (!taken.includes(base)) return base;
+	for (let n = 2; ; n++) if (!taken.includes(`${base}-${n}`)) return `${base}-${n}`;
+}
+
+/** The view for an address hash. */
+export function parseView(hash: string, ids: string[]): { view: 'hub' } | { view: 'project'; id: string } | { view: 'presets'; id?: string } {
+	const preset = /^#\/presets(?:\/([^/]+))?$/.exec(hash);
+	if (preset) return preset[1] ? { view: 'presets', id: decodeURIComponent(preset[1]) } : { view: 'presets' };
+	const id = parseRoute(hash, ids);
+	return id ? { view: 'project', id } : { view: 'hub' };
 }
 
 /** The jobs of the folder itself first, then one group per theme or plugin, in the order the run lists them. */
@@ -132,7 +167,7 @@ export function progress(jobs: Job[]): number {
 }
 
 export function aiPrompt(reportFile: string): string {
-	return `Read the wp-shakedown report at ${reportFile} and fix the findings, starting with the errors. Run wp-shakedown again when you are done and check that the findings are gone.`;
+	return `Read the wp-shakedown report at ${reportFile} and fix the findings, starting with the critical ones. Run wp-shakedown again when you are done and check that the findings are gone.`;
 }
 
 /** Splits an absolute path into the parts of a breadcrumb. */
@@ -170,7 +205,7 @@ export function projectTone(last: Last | undefined): Tone {
 export function lastRunText(last: Last | undefined): string {
 	if (!last) return 'Not run yet';
 	const { error, warning } = last.summary;
-	const parts = [error > 0 ? plural(error, 'error', 'errors') : '', warning > 0 ? plural(warning, 'warning', 'warnings') : ''].filter(Boolean);
+	const parts = [error > 0 ? `${error} critical` : '', warning > 0 ? `${warning} important` : ''].filter(Boolean);
 	return parts.length > 0 ? parts.join(', ') : 'Clean';
 }
 

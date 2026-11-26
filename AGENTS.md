@@ -6,7 +6,7 @@ Instructions for AI coding agents working in this repository. Humans should star
 
 wp-shakedown is a local test runner for WordPress themes, plugins and installs. It orchestrates existing tools, runs outside WordPress, and produces one report. Stack: Node.js and TypeScript, one npm package.
 
-The core, the report writers, the `run`, `ui` and `mcp` commands and fourteen engines exist. Profiles select the engines for one gate.
+The core, the report writers, the `run`, `ui` and `mcp` commands and fourteen engines exist. Presets select the engines for one purpose, and a level from 0 to 10 sets how thorough a run is.
 
 ## Commands
 
@@ -45,7 +45,7 @@ To add an engine: write the adapter in `src/engines/`, add it to `src/engines/in
 | `src/engines/custom.ts` | Turns the check files in `~/.wp-shakedown/checks` into engines |
 | `src/projects.ts` | The list of projects in `~/.wp-shakedown/projects.json` |
 | `src/hub.ts` | Runs several projects at once |
-| `src/profiles.ts` | The profiles: which engines run for which gate |
+| `src/presets.ts` | The presets: the built-in ones, and the user presets in `~/.wp-shakedown/presets` |
 | `src/js/` | What the JavaScript and CSS engines share: installing the tools, finding source files |
 | `js-tools/` | The npm manifest, lock file and configs for ESLint and Stylelint |
 | `src/report/` | The four report writers |

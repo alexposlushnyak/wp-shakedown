@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import path from 'node:path';
 import { PassThrough } from 'node:stream';
 import { test } from 'node:test';
 import type { TestContext } from 'node:test';
@@ -7,7 +8,7 @@ import { selectFindings } from '../src/mcp/tools.ts';
 import type { Engine } from '../src/types.ts';
 import { VERSION } from '../src/version.ts';
 import './env.ts';
-import { fakeEngine, finding, makeTheme, raw, tmp } from './helpers.ts';
+import { fakeEngine, finding, makeTheme, raw, tmp, write } from './helpers.ts';
 
 type Msg = Record<string, any>;
 
@@ -93,8 +94,8 @@ test('list_engines returns the engines as JSON', async (t) => {
   const s = boot(t, [one, two]);
   const r = await s.callTool(1, 'list_engines');
   assert.deepEqual(JSON.parse(r.result.content[0].text), [
-    { id: 'one', title: 'one', kinds: ['theme'], depth: 'standard' },
-    { id: 'two', title: 'two', kinds: ['plugin'], depth: 'standard' },
+    { id: 'one', title: 'one', kinds: ['theme'], level: 6 },
+    { id: 'two', title: 'two', kinds: ['plugin'], level: 6 },
   ]);
 });
 
@@ -216,25 +217,51 @@ test('ending the input resolves closed', async (t) => {
   await s.closed;
 });
 
-test('run_checks lists the profiles and refuses an unknown one', async (t) => {
+test('run_checks lists the presets and refuses an unknown one', async (t) => {
   const s = boot(t, [one]);
   const { tools } = (await s.request(1, 'tools/list')).result;
   const schema = tools.find((x: Msg) => x.name === 'run_checks').inputSchema;
-  assert.deepEqual(schema.properties.profile.enum, ['wporg-theme', 'envato', 'wporg-plugin', 'site']);
+  assert.deepEqual(schema.properties.preset.enum, ['wporg-theme', 'envato', 'wporg-plugin', 'client', 'site']);
   const dir = makeTheme(tmp(t));
-  const bad = await s.callTool(2, 'run_checks', { path: dir, profile: 'nope' });
+  const bad = await s.callTool(2, 'run_checks', { path: dir, preset: 'nope' });
   assert.equal(bad.result.isError, true);
-  assert.match(bad.result.content[0].text, /^Invalid arguments: .*profile/);
+  assert.match(bad.result.content[0].text, /^Invalid arguments: .*preset/);
+  const old = await s.callTool(3, 'run_checks', { path: dir, profile: 'nope' });
+  assert.match(old.result.content[0].text, /Unknown preset "nope"/);
 });
 
-test('run_checks offers the depths and refuses an unknown one', async (t) => {
+test('run_checks takes a level from 0 to 10, and still takes the depth names', async (t) => {
   const s = boot(t, [one]);
   const { tools } = (await s.request(1, 'tools/list')).result;
   const schema = tools.find((x: Msg) => x.name === 'run_checks').inputSchema;
+  assert.equal(schema.properties.level.type, 'integer');
+  assert.equal(schema.properties.level.maximum, 10);
   assert.deepEqual(schema.properties.depth.enum, ['quick', 'standard', 'deep']);
-  const bad = await s.callTool(2, 'run_checks', { path: makeTheme(tmp(t)), depth: 'nope' });
-  assert.equal(bad.result.isError, true);
-  assert.match(bad.result.content[0].text, /^Invalid arguments: .*depth/);
+  const dir = makeTheme(tmp(t));
+  for (const args of [{ level: 11 }, { level: -1 }, { level: 2.5 }, { depth: 'nope' }]) {
+    const bad = await s.callTool(2, 'run_checks', { path: dir, ...args });
+    assert.equal(bad.result.isError, true);
+    assert.match(bad.result.content[0].text, /^Invalid arguments: /);
+  }
+  const seven = await s.callTool(3, 'run_checks', { path: dir, level: 7 });
+  assert.match(seven.result.content[0].text, /- Level: 7\n/);
+  const quick = await s.callTool(4, 'run_checks', { path: dir, depth: 'quick' });
+  assert.match(quick.result.content[0].text, /- Level: 3 \(quick\)\n/);
+});
+
+test('run_checks lists a preset that was saved after the server started', async (t) => {
+  const s = boot(t, [one]);
+  const home = tmp(t);
+  const old = process.env.WP_SHAKEDOWN_HOME;
+  process.env.WP_SHAKEDOWN_HOME = home;
+  t.after(() => (old === undefined ? delete process.env.WP_SHAKEDOWN_HOME : (process.env.WP_SHAKEDOWN_HOME = old)));
+  write(path.join(home, 'presets', 'late.json'), JSON.stringify({ schema: 1, title: 'Late', summary: 'S', kinds: ['theme'], engines: ['one'] }));
+  const { tools } = (await s.request(1, 'tools/list')).result;
+  const enumerated = tools.find((x: Msg) => x.name === 'run_checks').inputSchema.properties.preset.enum;
+  assert.ok(enumerated.includes('late'));
+  const r = await s.callTool(2, 'run_checks', { path: makeTheme(tmp(t)), preset: 'late' });
+  assert.notEqual(r.result.isError, true, r.result.content[0].text);
+  assert.match(r.result.content[0].text, /- Preset: late\n/);
 });
 
 test('run_checks offers experimental and list_engines marks the engines that need it', async (t) => {

@@ -68,7 +68,7 @@ export const phpstan: Engine = {
   id: 'phpstan',
   title: 'PHPStan',
   kinds: ['theme', 'plugin'],
-  depth: 'deep',
+  level: 8,
   async run({ target, signal, note }) {
     await phpVersion(note);
     const tools = await phpTools(note);

@@ -12,9 +12,25 @@ export type Category =
   | 'health'
   | 'other';
 
-/** How thorough a run is. Each depth runs everything the one before it runs. */
-export const DEPTHS = ['quick', 'standard', 'deep'] as const;
-export type Depth = (typeof DEPTHS)[number];
+/** What human-facing text calls each severity. JSON and SARIF keep the internal names. */
+export const SEVERITY_NAMES = { error: 'Critical', warning: 'Important', info: 'Recommended' } as const;
+
+/** The highest level. A run at a level runs every engine whose own level is that or lower. */
+export const MAX_LEVEL = 10;
+/** Names that stand for a level. */
+export const LEVEL_NAMES = { quick: 3, standard: 6, deep: 8 } as const;
+/** The level of a run that sets none. */
+export const DEFAULT_LEVEL = LEVEL_NAMES.standard;
+/** The old depth names. Only reports written before levels still carry them. */
+export type Depth = keyof typeof LEVEL_NAMES;
+
+/** An integer from 0 to 10 or a level name becomes the level. Throws on anything else. */
+export function parseLevel(v: string | number): number {
+  const n = typeof v === 'number' ? v : /^\d+$/.test(v.trim()) ? Number(v) : NaN;
+  if (Number.isInteger(n) && n >= 0 && n <= MAX_LEVEL) return n;
+  if (typeof v === 'string' && Object.hasOwn(LEVEL_NAMES, v)) return LEVEL_NAMES[v as Depth];
+  throw new Error('Level must be a number from 0 to 10, or quick, standard or deep.');
+}
 
 export type TargetKind = 'theme' | 'plugin' | 'install' | 'url';
 
@@ -61,8 +77,12 @@ export interface Finding extends RawFinding {
 
 export interface EngineContext {
   target: Target;
-  /** ID of the profile the run uses, when it uses one. */
-  profile?: string;
+  /** ID of the preset the run uses, when it uses one. */
+  preset?: string;
+  /** The level of the run. An engine can skip its own rules that sit above it. */
+  level: number;
+  /** Set by a preset that runs Envato's fork of Theme Check, such as envato and its copies. */
+  themeCheck?: 'envato';
   signal?: AbortSignal;
   /** Tells the user something while the engine runs, for example that tools are being installed. */
   note(message: string): void;
@@ -72,25 +92,34 @@ export interface Engine {
   id: string;
   title: string;
   kinds: readonly TargetKind[];
-  /** The lightest depth that runs the engine. Absent means standard. */
-  depth?: Depth;
+  /** The lowest level that runs the engine. */
+  level: number;
   /** Runs only when the user turns experimental checks on, or names the engine. */
   experimental?: true;
-  /** Names the variant of its tool the engine runs under a profile. Two runs are compared only when the variants match. */
-  variant?(profile: string | undefined): string | undefined;
+  /** Names the variant of its tool the engine runs with these settings. Two runs are compared only when the variants match. */
+  variant?(settings: { preset?: string; themeCheck?: 'envato' }): string | undefined;
   run(ctx: EngineContext): Promise<RawFinding[]>;
 }
 
-/** The engines that matter for one gate, for example the theme directory of wordpress.org. */
-export interface Profile {
+/** A named set of engines with a level and a fail threshold, for one kind of project. */
+export interface Preset {
+  /** Lowercase letters, digits and hyphens. A user preset is the file of this name in the presets folder. */
   id: string;
   title: string;
-  /** One sentence that says what the profile is for. */
+  /** One sentence that says what the preset is for. */
   summary: string;
-  /** The kinds of target the profile fits. */
+  /** The kinds of target the preset fits. */
   kinds: readonly TargetKind[];
-  /** IDs of the engines the profile runs. */
-  engines: readonly string[];
+  /** IDs of the engines the preset runs. An ID no engine has is ignored. */
+  engines: string[];
+  /** The level of a run with this preset, unless the run sets one. */
+  level?: number;
+  /** The exit threshold of a run with this preset, unless the run sets one. */
+  failOn?: Severity | 'never';
+  /** Set on the presets that ship with wp-shakedown. */
+  builtIn?: true;
+  /** Runs Envato's fork of Theme Check in place of the wordpress.org one. A copy of the preset keeps it. */
+  themeCheck?: 'envato';
 }
 
 /** An engine throws this when it cannot run here, for example when PHP is missing. The run continues. */
@@ -127,10 +156,10 @@ export interface RunResult {
     /** `path` here is relative to the root target. */
     units: { kind: TargetKind; name: string; path: string }[];
   };
-  /** ID of the profile the run used. Absent when the run used none. */
-  profile?: string;
-  /** Absent in a report written before depth existed. Read that as standard. */
-  depth?: Depth;
+  /** ID of the preset the run used. Absent when the run used none. */
+  preset?: string;
+  /** The level of the run. A report written before levels has `depth` and `profile` instead, and readPreviousRun maps them. */
+  level?: number;
   /** True when the run had experimental checks on. */
   experimental?: true;
   startedAt: string;
@@ -163,4 +192,21 @@ export interface RunDiff {
   fixed: Finding[];
   added: Finding[];
   open: Finding[];
+}
+
+const FAIL_ON: Record<string, Severity | 'never'> = {
+  critical: 'error',
+  important: 'warning',
+  recommended: 'info',
+  error: 'error',
+  warning: 'warning',
+  info: 'info',
+  never: 'never',
+};
+
+/** A severity name, old or new, or `never`, becomes the internal value. Throws on anything else. */
+export function parseFailOn(v: string): Severity | 'never' {
+  const found = Object.hasOwn(FAIL_ON, v) ? FAIL_ON[v] : undefined;
+  if (!found) throw new Error('--fail-on must be critical, important, recommended or never.');
+  return found;
 }

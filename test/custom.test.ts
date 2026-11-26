@@ -21,7 +21,7 @@ function setup(t: TestContext, checks: Record<string, unknown>, theme = makeThem
     else process.env.WP_SHAKEDOWN_HOME = old;
   });
   const target = detectTarget(theme);
-  return { theme, target, go: (depth?: 'quick' | 'standard' | 'deep') => run(target, { engines: customEngines(target), ...(depth ? { depth } : {}) }) };
+  return { theme, target, go: (level?: number) => run(target, { engines: customEngines(target), ...(level !== undefined ? { level } : {}) }) };
 }
 
 test('globs match POSIX paths', () => {
@@ -107,17 +107,19 @@ test('a check file that is not valid shows as a failed engine', async (t) => {
   assert.match(reason('custom:extra')!, /^The check file extra\.json is not valid: it has a field the format does not know, "nope"\.$/);
 });
 
-test('paths, depth and kinds decide whether a check runs', async (t) => {
+test('paths, level and kinds decide whether a check runs', async (t) => {
   const s = setup(t, {
     here: { type: 'files', forbid: ['x'], paths: ['**/wps-*'] },
     away: { type: 'files', forbid: ['x'], paths: ['/nowhere/**'] },
     deep: { type: 'files', forbid: ['x'], depth: 'deep' },
+    seven: { type: 'files', forbid: ['x'], level: 7 },
     install: { type: 'files', forbid: ['x'], kinds: ['install'] },
   });
-  assert.deepEqual(customEngines(s.target).map((e) => e.id), ['custom:deep', 'custom:here', 'custom:install']);
-  assert.equal(customEngines().length, 4);
+  assert.deepEqual(customEngines(s.target).map((e) => e.id), ['custom:deep', 'custom:here', 'custom:install', 'custom:seven']);
+  assert.equal(customEngines().length, 5);
   assert.deepEqual((await s.go()).engines.map((e) => e.engine), ['custom:here']);
-  assert.deepEqual((await s.go('deep')).engines.map((e) => e.engine), ['custom:deep', 'custom:here']);
+  assert.deepEqual((await s.go(7)).engines.map((e) => e.engine), ['custom:here', 'custom:seven']);
+  assert.deepEqual((await s.go(8)).engines.map((e) => e.engine), ['custom:deep', 'custom:here', 'custom:seven']);
 });
 
 // The shell starts sleep as its own process. A stop that reaches only the shell would leave the run waiting for sleep.
