@@ -12,7 +12,12 @@ import {
   jobStatusText,
   lastRunText,
   parseRoute,
-  profilesFor,
+  freeId,
+  levelLabel,
+  parseView,
+  presetId,
+  presetsFor,
+  readLevel,
   progress,
   projectTone,
   runModel,
@@ -92,11 +97,11 @@ test('aiPrompt names the report file', () => {
   assert.ok(aiPrompt('/r/report.md').includes('/r/report.md'));
 });
 
-test('profilesFor keeps the profiles that fit the kind', () => {
+test('presetsFor keeps the presets that fit the kind', () => {
   const all = [{ id: 'a', kinds: ['theme'] }, { id: 'b', kinds: ['plugin'] }, { id: 'c', kinds: ['theme', 'plugin'] }];
-  assert.deepEqual(profilesFor(all, 'theme').map((p) => p.id), ['a', 'c']);
-  assert.deepEqual(profilesFor(all, 'install'), []);
-  assert.deepEqual(profilesFor(all, undefined), []);
+  assert.deepEqual(presetsFor(all, 'theme').map((p) => p.id), ['a', 'c']);
+  assert.deepEqual(presetsFor(all, 'install'), []);
+  assert.deepEqual(presetsFor(all, undefined), []);
 });
 
 const sum = (error: number, warning: number) => ({ error, warning, info: 4, suppressed: 0 });
@@ -104,9 +109,9 @@ const sum = (error: number, warning: number) => ({ error, warning, info: 4, supp
 test('lastRunText and projectTone describe the last run', () => {
   assert.equal(lastRunText(undefined), 'Not run yet');
   assert.equal(lastRunText({ summary: sum(0, 0), failed: 0 }), 'Clean');
-  assert.equal(lastRunText({ summary: sum(2, 5), failed: 0 }), '2 errors, 5 warnings');
-  assert.equal(lastRunText({ summary: sum(1, 0), failed: 0 }), '1 error');
-  assert.equal(lastRunText({ summary: sum(0, 1), failed: 0 }), '1 warning');
+  assert.equal(lastRunText({ summary: sum(2, 5), failed: 0 }), '2 critical, 5 important');
+  assert.equal(lastRunText({ summary: sum(1, 0), failed: 0 }), '1 critical');
+  assert.equal(lastRunText({ summary: sum(0, 1), failed: 0 }), '1 important');
   assert.equal(projectTone(undefined), 'none');
   assert.equal(projectTone({ summary: sum(0, 0), failed: 0 }), 'clean');
   assert.equal(projectTone({ summary: sum(0, 3), failed: 0 }), 'warning');
@@ -183,4 +188,40 @@ test('shortPath writes the home folder as ~ and leaves other paths alone', () =>
 test('groupProjects puts a kind without a group of its own into the last group', () => {
   const groups = groupProjects([{ name: 'site', kind: 'url' }, { name: 'gone' }]);
   assert.deepEqual(groups.map((g) => [g.title, g.projects.map((x) => x.name)]), [['Cannot be tested', ['site', 'gone']]]);
+});
+
+test('levelLabel names the levels that have a name', () => {
+  assert.equal(levelLabel(6), 'Level 6, standard');
+  assert.equal(levelLabel(3), 'Level 3, quick');
+  assert.equal(levelLabel(7), 'Level 7');
+});
+
+test('readLevel takes a level, an old depth name, or falls back to 6', () => {
+  assert.equal(readLevel('9'), 9);
+  assert.equal(readLevel('0'), 0);
+  assert.equal(readLevel('deep'), 8);
+  assert.equal(readLevel('quick'), 3);
+  assert.equal(readLevel(null), 6);
+  assert.equal(readLevel(''), 6);
+  assert.equal(readLevel('11'), 6);
+  assert.equal(readLevel('2.5'), 6);
+});
+
+test('presetId makes a lowercase slug from a title', () => {
+  assert.equal(presetId('Client site, strict!'), 'client-site-strict');
+  assert.equal(presetId('  --x--  '), 'x');
+});
+
+test('parseView tells the list of presets, one preset, a project and the hub apart', () => {
+  assert.deepEqual(parseView('#/presets', []), { view: 'presets' });
+  assert.deepEqual(parseView('#/presets/client', []), { view: 'presets', id: 'client' });
+  assert.deepEqual(parseView('#/presets/new?from=envato', []), { view: 'presets', id: 'new?from=envato' });
+  assert.deepEqual(parseView('#/p/ab12cd34', ['ab12cd34']), { view: 'project', id: 'ab12cd34' });
+  assert.deepEqual(parseView('#/p/gone', []), { view: 'hub' });
+  assert.deepEqual(parseView('', []), { view: 'hub' });
+});
+
+test('freeId adds a number until the ID is free', () => {
+  assert.equal(freeId('client-copy', ['client']), 'client-copy');
+  assert.equal(freeId('client-copy', ['client-copy', 'client-copy-2']), 'client-copy-3');
 });

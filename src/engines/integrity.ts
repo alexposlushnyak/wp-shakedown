@@ -28,6 +28,7 @@ export const integrity: Engine = {
   id: 'integrity',
   title: 'File integrity',
   kinds: ['install'],
+  level: 4,
   run({ target, signal, note }) {
     return skipOnNetwork(async () => {
       const root = target.path;

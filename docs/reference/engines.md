@@ -1,32 +1,35 @@
 # Engines
 
-An engine runs one check and turns the result into findings. Fourteen engines exist, in two groups. You can add [checks of your own](checks.md).
+An engine runs one check and turns the result into findings. Each engine has a level, the lowest [level](cli.md#levels) of a run that runs it. Fourteen engines exist, in two groups. You can add [checks of your own](checks.md).
 
 Nine check code. They run on a theme or a plugin, and on every theme and plugin inside a WordPress folder. `theme-check` and `theme-review` run on themes only.
 
-| ID | Tool | Finds |
-|---|---|---|
-| `php-lint` | `php -l` | PHP syntax errors |
-| `theme-check` | Theme Check, the checks of the wordpress.org theme directory | Missing files and headers, functions a theme must not call, plugin features inside a theme, missing template tags |
-| `theme-review` | Rules of our own, from a study of theme reviews. Experimental | What reviewers of the theme directory ask for beyond Theme Check: text that cannot be translated, images the readme does not credit, a missing skip link |
-| `wpcs` | PHP_CodeSniffer with the WordPress Coding Standards, plus the Plugin Check review rules for plugins | Unescaped output, missing nonces, unprepared SQL, translation mistakes, discouraged functions, code style |
-| `php-compat` | PHP_CodeSniffer with PHPCompatibilityWP | Code that the declared PHP version cannot run |
-| `phpstan` | PHPStan with the WordPress extension | Calls to functions that do not exist, wrong argument counts and types |
-| `wp-json` | JSON Schema validation | Mistakes in `theme.json`, style variations and `block.json` |
-| `eslint` | ESLint with the WordPress config | Undefined variables, React hook mistakes, accessibility and translation problems in JavaScript |
-| `stylelint` | Stylelint with the WordPress config | Unknown properties, invalid values and duplicate selectors in CSS and SCSS |
+| ID | Level | Tool | Finds |
+|---|---|---|---|
+| `php-lint` | 0 | `php -l` | PHP syntax errors |
+| `theme-check` | 3 | Theme Check, the checks of the wordpress.org theme directory | Missing files and headers, functions a theme must not call, plugin features inside a theme, missing template tags |
+| `theme-review` | 7 | Rules of our own, from a study of theme reviews. Experimental | What reviewers of the theme directory ask for beyond Theme Check: text that cannot be translated, images the readme does not credit, a missing skip link |
+| `activation-lock` | 7 | Rules of our own | Code that keeps theme or plugin features from working until the user enters a purchase code or license key |
+| `wpcs` | 5 | PHP_CodeSniffer with the WordPress Coding Standards, plus the Plugin Check review rules for plugins | Unescaped output, missing nonces, unprepared SQL, translation mistakes, discouraged functions, code style |
+| `php-compat` | 5 | PHP_CodeSniffer with PHPCompatibilityWP | Code that the declared PHP version cannot run |
+| `phpstan` | 8 | PHPStan with the WordPress extension | Calls to functions that do not exist, wrong argument counts and types |
+| `wp-json` | 1 | JSON Schema validation | Mistakes in `theme.json`, style variations and `block.json` |
+| `eslint` | 6 | ESLint with the WordPress config | Undefined variables, React hook mistakes, accessibility and translation problems in JavaScript |
+| `stylelint` | 6 | Stylelint with the WordPress config | Unknown properties, invalid values and duplicate selectors in CSS and SCSS |
 
 Five check a WordPress folder as a whole. Four of them read files and ask public services: WordPress does not have to run. `site-health` starts WordPress through WP-CLI and needs the database of the site. See [Install health](#install-health).
 
-| ID | Finds |
-|---|---|
-| `integrity` | Core and plugin files that differ from the official release |
-| `updates` | WordPress, plugins and themes that are behind, abandoned or closed |
-| `vulnerabilities` | Known vulnerabilities in the installed versions |
-| `config` | Risky settings in `wp-config.php` and files that should not be in a web folder |
-| `site-health` | What the Site Health screen of WordPress reports: autoloaded options, missed cron events, inactive plugins and themes, PHP extensions, the database server |
+| ID | Level | Finds |
+|---|---|---|
+| `integrity` | 4 | Core and plugin files that differ from the official release |
+| `updates` | 4 | WordPress, plugins and themes that are behind, abandoned or closed |
+| `vulnerabilities` | 4 | Known vulnerabilities in the installed versions |
+| `config` | 2 | Risky settings in `wp-config.php` and files that should not be in a web folder |
+| `site-health` | 4 | What the Site Health screen of WordPress reports: autoloaded options, missed cron events, inactive plugins and themes, PHP extensions, the database server |
 
-A run at the default [depth](cli.md#depth) leaves out `phpstan`, which runs with `--depth deep`. Run one engine with `--engine <id>`. Run the engines for one gate with a [profile](profiles.md).
+A run at the default level 6 leaves out `theme-review`, `activation-lock` and `phpstan`. `--level 7` adds `theme-review` and `activation-lock`, and `--level 8` adds `phpstan`. `theme-review` also runs at a lower level with `--experimental`. Run one engine with `--engine <id>`, and it runs at any level. Run the engines for one purpose with a [preset](presets.md).
+
+An engine can also skip its own rules above the level of the run. The engine receives the level in its context as `level`. No engine does that yet.
 
 ## What they need
 
@@ -97,13 +100,13 @@ A check that searches the code gives a file and a line. A check that looks for s
 
 For a block theme, Theme Check leaves out the checks for classic templates. For a child theme it also reads the parent theme when the parent folder sits next to the theme. When it does not, the engine says so, and checks that look for template code may report it missing.
 
-Under the [`envato`](profiles.md#envato) profile the engine runs the fork of Theme Check that Envato keeps for ThemeForest. See [ADR 0023](../adr/0023-the-envato-profile-swaps-the-theme-check-release.md).
+Under the [`envato`](presets.md#envato) preset the engine runs the fork of Theme Check that Envato keeps for ThemeForest. See [ADR 0023](../adr/0023-the-envato-profile-swaps-the-theme-check-release.md).
 
 Theme Check wants the folder name to match the theme name, as it does on wordpress.org. A theme in a folder with another name gets a warning about its text domain.
 
 ## theme-review
 
-This engine is experimental. It runs only with `--experimental`, or when you name it with `--engine theme-review`.
+This engine is experimental. It runs at level 7 and above, below that with `--experimental`, and at any level when you name it with `--engine theme-review`.
 
 Its rules come from a study of 878 reviews on the theme directory's Trac: what reviewers ask authors to change, and how often. [What theme reviewers ask for](../explanation/theme-review-feedback.md) describes the study and its limits. See also [ADR 0022](../adr/0022-experimental-engines.md).
 
@@ -131,6 +134,25 @@ The rules are heuristics, so no finding is an error. The hint of each finding sa
 The engine reads files and needs no PHP. `tested-up-to` asks wordpress.org for the latest version and is left out when that fails.
 
 Reviewers also raise points that files do not show, such as keyboard focus and menus that do not work. Those are not in the engine.
+
+## activation-lock
+
+Finds code that stops theme or plugin features until the user enters a purchase code, license key or activation. A notice about missing activation is fine. Limiting what the product does is not, and both ThemeForest and wordpress.org reject it. The engine runs for themes and plugins at level 7 and needs no PHP.
+
+| Rule | Severity | Meaning |
+|---|---|---|
+| `features-locked` | `warning` | An `if` or `elseif` on a license check whose body returns, exits, removes hooks, loads files or registers features |
+
+The engine strips comments, then reads each `if` and `elseif`. A condition counts as a license check when it contains `purchase_code`, `purchase-code`, `license`, `licence`, `is_activated`, `is_registered`, `activation_status`, `activated`, `envato_api`, `envato_token`, `verify_purchase`, or `item_id` together with `envato`, in any case. Quoted option names count, as in `get_option( 'mytheme_license_key' )`.
+
+The body is the brace block or the next statement. It is a gate when it has `return`, `exit`, `die`, `wp_die(`, `remove_action(`, `remove_filter(`, `deactivate_plugins(` or `switch_theme(`, or when it loads or registers features: `require`, `include`, `add_action(` and `add_filter(`, `register_block_type(`, `register_post_type(`, `register_taxonomy(`, `add_theme_support(` or `add_shortcode(`. A hook on `admin_notices`, `network_admin_notices` or `all_admin_notices` and the code inside functions in the body do not count. A body that only prints a message, sets a variable or enqueues a notice script has no finding.
+
+The engine matches text, so it has limits:
+
+- It checks only the `if` body. It does not read the `else` branch of a negated check, so `if ( ! $license ) { ... } else { require ... }` has no finding.
+- It does not follow a check through a helper, a variable or a ternary.
+- A condition with a license word that has nothing to do with activation can match, for example a check on the license of a library.
+- A file with a line over 500 characters near the top, and `.min.php` files, are skipped as generated.
 
 ## wpcs
 

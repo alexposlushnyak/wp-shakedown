@@ -35,7 +35,7 @@ export const phpLint: Engine = {
   id: 'php-lint',
   title: 'PHP syntax',
   kinds: ['theme', 'plugin'],
-  depth: 'quick',
+  level: 0,
   async run({ target, signal, note }) {
     note(`Checking syntax with PHP ${await phpVersion(note)}.`);
     const targetPath = phpPath(target.path);

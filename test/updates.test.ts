@@ -19,7 +19,7 @@ function setup(t: Parameters<typeof tmp>[0], routes: [string, { status: number; 
   fakeNet(t, new Map([[CORE, { status: 200, body: { offers: [{ version: '6.8' }] } }], ...routes]));
   return detectTarget(dir);
 }
-const go = (target: ReturnType<typeof detectTarget>) => updates.run({ target, note() {} });
+const go = (target: ReturnType<typeof detectTarget>) => updates.run({ target, level: 6, note() {} });
 const rules = (f: { rule: string }[]) => f.map((x) => x.rule);
 
 test('updates: core and plugin outdated', async (t) => {

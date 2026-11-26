@@ -24,6 +24,7 @@ export const updates: Engine = {
   id: 'updates',
   title: 'Updates',
   kinds: ['install'],
+  level: 4,
   run({ target, signal }) {
     return skipOnNetwork(async () => {
       const out: RawFinding[] = [];

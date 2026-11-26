@@ -2,9 +2,10 @@ import path from 'node:path';
 import { defaultReportDir, readPreviousRun } from '../report/write.ts';
 import { toMarkdown } from '../report/markdown.ts';
 import { customEngines } from '../engines/custom.ts';
-import { profiles } from '../profiles.ts';
+import { listPresets } from '../presets.ts';
 import { runSession } from '../session.ts';
 import { detectTarget } from '../target.ts';
+import { parseLevel } from '../types.ts';
 import type { Engine, Finding, Severity } from '../types.ts';
 
 export interface ToolContext {
@@ -75,28 +76,33 @@ export const tools: Tool[] = [
     inputSchema: schema({}, []),
     annotations: { readOnlyHint: true },
     handler: async (_args, ctx) =>
-      JSON.stringify([...ctx.engines, ...customEngines()].map(({ id, title, kinds, depth, experimental }) => ({ id, title, kinds, depth: depth ?? 'standard', ...(experimental ? { experimental: true } : {}) })), null, 2),
+      JSON.stringify([...ctx.engines, ...customEngines()].map(({ id, title, kinds, level, experimental }) => ({ id, title, kinds, level, ...(experimental ? { experimental: true } : {}) })), null, 2),
   },
   {
     name: 'run_checks',
     title: 'Run the checks',
     description:
-      'Runs the checks on a theme, a plugin or a WordPress site folder and returns the report as Markdown. Errors come first in importance. Code style findings are counted per rule and not listed. The run writes report files but never changes the target.',
-    inputSchema: schema(
-      {
-        path: { type: 'string', description: 'Absolute path of the folder to test.' },
-        engines: { type: 'array', items: { type: 'string' }, description: 'Engine IDs to run. Leave out to run all that fit.' },
-        profile: {
-          type: 'string',
-          enum: profiles.map((p) => p.id),
-          description: 'Run only the engines for one gate. ' + profiles.map((p) => `${p.id}: ${p.summary}`).join(' '),
+      'Runs the checks on a theme, a plugin or a WordPress site folder and returns the report as Markdown. Each finding is Critical, Important or Recommended. Fix the Critical ones first. Code style findings are counted per rule and not listed. The run writes report files but never changes the target.',
+    get inputSchema() {
+      const presets = listPresets().presets;
+      return schema(
+        {
+          path: { type: 'string', description: 'Absolute path of the folder to test.' },
+          engines: { type: 'array', items: { type: 'string' }, description: 'Engine IDs to run. Leave out to run all that fit.' },
+          preset: {
+            type: 'string',
+            enum: presets.map((p) => p.id),
+            description: 'Run only the engines of one preset, at its level. ' + presets.map((p) => `${p.id}: ${p.summary}`).join(' '),
+          },
+          profile: { type: 'string', description: 'Old name of preset.' },
+          level: { type: 'integer', minimum: 0, maximum: 10, description: 'How thorough the run is, from 0 to 10. A higher level runs more engines. The default is 6. A preset can set its own level.' },
+          depth: { type: 'string', enum: ['quick', 'standard', 'deep'], description: 'Old name of level. quick, standard and deep are 3, 6 and 8.' },
+          experimental: { type: 'boolean', description: 'Also run the experimental engines, such as theme-review.' },
+          type: { type: 'string', enum: ['theme', 'plugin', 'install'], description: 'Use only when detection is wrong.' },
         },
-        depth: { type: 'string', enum: ['quick', 'standard', 'deep'], description: 'How thorough the run is. quick runs the fast checks, standard is the default, deep adds static analysis.' },
-        experimental: { type: 'boolean', description: 'Also run the experimental engines, such as theme-review.' },
-        type: { type: 'string', enum: ['theme', 'plugin', 'install'], description: 'Use only when detection is wrong.' },
-      },
-      ['path'],
-    ),
+        ['path'],
+      );
+    },
     annotations: { readOnlyHint: false },
     handler: async (args, ctx) => {
       if (running) throw new Error('A run is in progress. Wait for it to finish.');
@@ -110,13 +116,14 @@ export const tools: Tool[] = [
         let total = 0;
         let done = 0;
         const type = args.type as 'theme' | 'plugin' | 'install' | undefined;
-        const depth = args.depth as 'quick' | 'standard' | 'deep' | undefined;
+        const level = args.level !== undefined ? (args.level as number) : args.depth !== undefined ? parseLevel(args.depth as string) : undefined;
+        const preset = (args.preset ?? args.profile) as string | undefined;
         const s = await runSession({
           input: args.path as string,
           ...(type ? { type } : {}),
           ...(only?.length ? { only } : {}),
-          ...(args.profile ? { profile: args.profile as string } : {}),
-          ...(depth ? { depth } : {}),
+          ...(preset ? { preset } : {}),
+          ...(level !== undefined ? { level } : {}),
           ...(args.experimental ? { experimental: true } : {}),
           engines: ctx.engines,
           signal: ctx.signal,
@@ -147,7 +154,7 @@ export const tools: Tool[] = [
     inputSchema: schema(
       {
         path: { type: 'string', description: 'Absolute path of the folder that was tested.' },
-        severity: { type: 'string', enum: ['error', 'warning', 'info'] },
+        severity: { type: 'string', enum: ['error', 'warning', 'info'], description: 'error is Critical, warning is Important, info is Recommended.' },
         engine: { type: 'string' },
         category: { type: 'string' },
         file: { type: 'string', description: 'Part of a file path.' },

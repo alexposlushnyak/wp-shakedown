@@ -36,7 +36,7 @@ You can also drop ZIP files anywhere on the page.
 
 The server unpacks an archive into `~/.wp-shakedown/uploads/themes/<folder>`, `plugins/<folder>` or `sites/<folder>`, named after the one folder the archive holds, or after the archive when it holds loose files. A newer archive of the same theme replaces the old files, so the page compares the new run with the old one. It refuses an archive while that project runs, an archive over 256 MB, one that unpacks to more than 1 GB or 20,000 files, encrypted and ZIP64 archives, and any path that would leave the folder. It skips symbolic links.
 
-Choose Quick, Standard or Deep to set the [depth](cli.md#depth) of the next runs. Run all starts every project. The button on a line starts or stops that one project.
+Set the [level](cli.md#levels) of the next runs, from 0 to 10. Run all starts every project. The button on a line starts or stops that one project.
 
 Up to three projects run at the same time. The others wait their turn. A line that runs shows how far it is and which engine works now.
 
@@ -44,9 +44,9 @@ The list is the file `~/.wp-shakedown/projects.json`, the same one [`wp-shakedow
 
 ## One project
 
-Select a line to open the project. There you choose a [profile](profiles.md) and the depth, and start or stop the run. For a theme, a switch turns on the [experimental checks](engines.md#theme-review) from theme reviews. While it runs, every engine has a line with its state. In a WordPress folder the lines come in one group per theme and plugin, each with how many of its engines are done.
+Select a line to open the project. There you choose a [preset](presets.md) and the level, and start or stop the run. For a theme, a switch turns on the [experimental checks](engines.md#theme-review) from theme reviews. While it runs, every engine has a line with its state. In a WordPress folder the lines come in one group per theme and plugin, each with how many of its engines are done.
 
-After the run the page shows three numbers: errors, warnings and notes. Under them it says when the run happened, how it compares with the run before, and whether an engine failed.
+After the run the page shows three numbers: critical, important and recommended findings. Under them it says when the run happened, how it compares with the run before, and whether an engine failed.
 
 The page does not list the findings. Open the report shows the full HTML report in a new tab. Two buttons copy text for you: the path of `report.md`, and a short prompt that tells an AI assistant to read that report and fix the findings.
 

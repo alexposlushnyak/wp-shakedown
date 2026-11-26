@@ -10,7 +10,7 @@ const ranOk = (r: RunResult): Map<string, string> =>
  * Compares only what the same engine checked in both runs. A run with --engine,
  * or one where an engine was skipped, would otherwise report the findings of
  * every engine that did not run as fixed. The same goes for an engine that ran
- * another variant of its tool, such as Theme Check under the envato profile.
+ * another variant of its tool, such as Theme Check under the envato preset.
  */
 export function diffRuns(previous: RunResult, current: RunResult): RunDiff {
   const before = ranOk(previous);

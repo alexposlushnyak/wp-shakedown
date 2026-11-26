@@ -21,7 +21,7 @@ function theme(t: TestContext, files: Record<string, string> = {}): string {
 
 async function check(dir: string, id: string, notes: string[] = []): Promise<RawFinding[]> {
   const target = detectTarget(dir);
-  return rules[id]!(loadTheme({ target, note: (m) => notes.push(m) }));
+  return rules[id]!(loadTheme({ target, level: 6, note: (m) => notes.push(m) }));
 }
 
 const messages = (f: RawFinding[]): string[] => f.map((x) => x.message);
@@ -253,7 +253,7 @@ test('a rule that throws does not stop the others', async (t) => {
     rules['remote-fonts'] = original;
   });
   const notes: string[] = [];
-  const f = await themeReview.run({ target: detectTarget(dir), note: (m) => notes.push(m) });
+  const f = await themeReview.run({ target: detectTarget(dir), level: 6, note: (m) => notes.push(m) });
   assert.ok(f.some((x) => x.rule === 'untranslated-text'));
   assert.deepEqual(notes, ['The rule remote-fonts could not run: boom']);
 });

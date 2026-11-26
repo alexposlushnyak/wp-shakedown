@@ -1,6 +1,7 @@
 import type { Finding, RunDiff, RunResult } from '../types.ts';
 import { escapeHtml as e } from './escape.ts';
-import { groupName, noEngineLine, summaryLine } from './markdown.ts';
+import { SEVERITY_NAMES } from '../types.ts';
+import { groupName, levelLabel, noEngineLine, summaryLine } from './markdown.ts';
 
 const STYLE = `
 :root { color-scheme: light dark; --bg: #fff; --fg: #1d2327; --muted: #646970; --line: #dcdcde; --accent: #2271b1; }
@@ -23,7 +24,7 @@ function docsLink(docs: string): string {
 function diffList(title: string, items: Finding[]): string {
   if (!items.length) return '';
   const li = items
-    .map((f) => `<li>${e(groupName(f))}: ${e(f.severity)} <code>${e(f.id)}</code>${f.location.line !== undefined ? ` line ${e(String(f.location.line))}` : ''}: ${e(oneLine(f.message))} (${e(f.engine)}: ${e(f.rule)})</li>`)
+    .map((f) => `<li>${e(groupName(f))}: ${SEVERITY_NAMES[f.severity]} <code>${e(f.id)}</code>${f.location.line !== undefined ? ` line ${e(String(f.location.line))}` : ''}: ${e(oneLine(f.message))} (${e(f.engine)}: ${e(f.rule)})</li>`)
     .join('\n');
   return `<h3>${title}</h3>\n<ul>\n${li}\n</ul>\n`;
 }
@@ -32,7 +33,7 @@ export function toHtml(result: RunResult, diff?: RunDiff): string {
   const t = result.target;
   let body = `<h1>wp-shakedown report</h1>
 <p>Target: ${e(t.kind)} "${e(t.name)}" at ${e(t.path)}<br>
-${result.profile ? `Profile: ${e(result.profile)}<br>\n` : ''}${result.depth && result.depth !== 'standard' ? `Depth: ${e(result.depth)}<br>\n` : ''}${result.experimental ? 'Experimental checks: on<br>\n' : ''}Run: ${e(result.finishedAt)}, wp-shakedown ${e(result.tool.version)}</p>
+${result.preset ? `Preset: ${e(result.preset)}<br>\n` : ''}${result.level !== undefined ? `Level: ${e(levelLabel(result.level))}<br>\n` : ''}${result.experimental ? 'Experimental checks: on<br>\n' : ''}Run: ${e(result.finishedAt)}, wp-shakedown ${e(result.tool.version)}</p>
 <h2>Summary</h2>
 <p>${e(summaryLine(result))}</p>
 `;
@@ -65,7 +66,7 @@ ${result.profile ? `Profile: ${e(result.profile)}<br>\n` : ''}${result.depth && 
         let msg = e(oneLine(f.message));
         if (f.hint) msg += `<br><span class="muted">Fix: ${e(oneLine(f.hint))}</span>`;
         if (f.docs) msg += `<br><span class="muted">Docs: ${docsLink(oneLine(f.docs))}</span>`;
-        return `<tr><td>${e(f.severity)}</td><td><code>${e(f.id)}</code></td><td>${e(String(f.location.line ?? ''))}</td><td>${msg}</td><td>${e(f.engine)}: ${e(f.rule)}</td></tr>`;
+        return `<tr><td>${SEVERITY_NAMES[f.severity]}</td><td><code>${e(f.id)}</code></td><td>${e(String(f.location.line ?? ''))}</td><td>${msg}</td><td>${e(f.engine)}: ${e(f.rule)}</td></tr>`;
       })
       .join('\n');
     body += `<h3>${e(name)}</h3>\n<table>\n<thead><tr><th>Severity</th><th>ID</th><th>Line</th><th>Message</th><th>Rule</th></tr></thead>\n<tbody>\n${rows}\n</tbody>\n</table>\n`;

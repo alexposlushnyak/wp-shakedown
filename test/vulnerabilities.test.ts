@@ -68,7 +68,7 @@ function setup(t: Parameters<typeof tmp>[0], extra: [string, { status: number; b
   ]);
   const calls = fakeNet(t, routes);
   const notes: string[] = [];
-  const go = async () => ({ f: await vulnerabilities.run({ target: detectTarget(dir), note: (m) => notes.push(m) }), notes });
+  const go = async () => ({ f: await vulnerabilities.run({ target: detectTarget(dir), level: 6, note: (m) => notes.push(m) }), notes });
   return { go, calls };
 }
 

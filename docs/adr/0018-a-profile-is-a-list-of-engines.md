@@ -1,6 +1,6 @@
 # 0018. A profile is a list of engines
 
-- Status: Accepted
+- Status: Superseded by [0028](0028-presets-are-files.md)
 - Date: 2026-11-24
 
 ## Context and problem statement

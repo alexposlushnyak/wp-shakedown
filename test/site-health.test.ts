@@ -44,7 +44,7 @@ test('site-health reads the JSON after anything printed before it', unix, async 
   const json = JSON.stringify({ wordpress: '6.8', tests: [{ test: 'theme_version', status: 'recommended', label: 'You should remove inactive themes' }, { test: 'sql_server', status: 'error', label: 'boom' }] });
   fakeWp(t, `PHP Notice: something\n${json}`);
   const notes: string[] = [];
-  const found = await siteHealth.run({ target: detectTarget(makeInstall(tmp(t))), note: (m) => notes.push(m) });
+  const found = await siteHealth.run({ target: detectTarget(makeInstall(tmp(t))), level: 6, note: (m) => notes.push(m) });
   assert.deepEqual(found.map((f) => f.rule), ['theme_version']);
   assert.deepEqual(notes, ['The Site Health test sql_server could not run: boom']);
 });

@@ -28,7 +28,7 @@ const engines = [phpLint, wpcs, phpCompat, phpstan, wpJson];
 describe('php engines', opts, () => {
   test('lint, wpcs and compat report the sample plugin', opts, async (t) => {
     const dir = makeSample(tmp(t));
-    const r = await run(detectTarget(dir), { engines, depth: 'deep' });
+    const r = await run(detectTarget(dir), { engines, level: 8 });
     assert.deepEqual(r.engines.map((e) => e.status), ['ok', 'ok', 'ok', 'ok', 'ok'], JSON.stringify(r.engines));
 
     const lint = r.findings.filter((f) => f.engine === 'php-lint');
@@ -62,7 +62,7 @@ describe('php engines', opts, () => {
   test('phpstan reports the sample plugin and leaves out the file that does not parse', async (t) => {
     const dir = makeSample(tmp(t));
     const events: RunEvent[] = [];
-    const r = await run(detectTarget(dir), { engines: [phpstan], depth: 'deep', onEvent: (e) => events.push(e) });
+    const r = await run(detectTarget(dir), { engines: [phpstan], level: 8, onEvent: (e) => events.push(e) });
     assert.ok(events.some((e) => e.type === 'engine:note' && e.message === 'Left out 1 file that PHP cannot parse. php-lint reports them.'));
     assert.ok(!r.findings.some((f) => f.rule === 'phpstan.parse'));
     assert.equal(r.engines[0]!.status, 'ok', r.engines[0]!.reason);
@@ -112,7 +112,7 @@ describe('php engines', opts, () => {
     resetPhpCache();
     resetToolsCache();
     try {
-      const r = await run(detectTarget(dir), { engines, depth: 'deep' });
+      const r = await run(detectTarget(dir), { engines, level: 8 });
       assert.deepEqual(r.engines.filter((e) => e.engine !== 'wp-json').map((e) => e.status), ['skipped', 'skipped', 'skipped', 'skipped']);
       for (const e of r.engines.filter((x) => x.engine !== 'wp-json')) assert.ok(e.reason?.startsWith('PHP is not installed.'), e.reason);
     } finally {
@@ -151,17 +151,17 @@ describe('php engines', opts, () => {
     write(path.join(child, 'style.css'), '/*\nTheme Name: Kid\nTemplate: nowhere\nVersion: 1.0\n*/\n');
     write(path.join(child, 'index.php'), '<?php\n');
     const notes: string[] = [];
-    await themeCheck.run({ target: detectTarget(child), note: (m) => notes.push(m) });
+    await themeCheck.run({ target: detectTarget(child), level: 6, note: (m) => notes.push(m) });
     assert.ok(notes.some((n) => n.includes('nowhere')), JSON.stringify(notes));
   });
 
-  test('under the envato profile theme check runs the Envato fork', opts, async (t) => {
+  test('under the envato preset theme check runs the Envato fork', opts, async (t) => {
     const dir = tmp(t);
     write(path.join(dir, 'style.css'), '/*\nTheme Name: Bad\nVersion: 1.0\n*/\n');
     write(path.join(dir, 'index.php'), '<?php\n');
     write(path.join(dir, 'functions.php'), '<?php\nmkdir( "x" );\n');
     const target = detectTarget(dir);
-    const envato = await run(target, { engines: [themeCheck], only: ['theme-check'], profile: 'envato' });
+    const envato = await run(target, { engines: [themeCheck], only: ['theme-check'], preset: 'envato', themeCheck: 'envato' });
     assert.equal(envato.engines[0]!.status, 'ok', envato.engines[0]!.reason);
     assert.equal(envato.engines[0]!.variant, 'envato');
     const own = envato.findings.find((f) => f.rule === 'themeforest');

@@ -121,7 +121,7 @@ export function projectTable(projects: Project[]): string {
     const when = p.problem ?? (p.last ? localTime(p.last.finishedAt) : 'never');
     return [p.id, p.name, when, ...(p.problem ? ['-', '-', '-'] : counts), p.path];
   };
-  const head = ['ID', 'Name', 'Last run', 'Errors', 'Warnings', 'Notes', 'Path'];
+  const head = ['ID', 'Name', 'Last run', 'Critical', 'Important', 'Recommended', 'Path'];
   // Any kind without a group of its own goes to the last one, so no project drops out of the list.
   const known: (string | undefined)[] = PROJECT_GROUPS.map((g) => g.kind).filter(Boolean);
   const fits = (p: Project, kind: string | undefined): boolean => (kind === undefined ? !known.includes(p.kind) : p.kind === kind);

@@ -1,12 +1,19 @@
+import { LEVEL_NAMES, SEVERITY_NAMES } from '../types.ts';
 import type { Finding, RunDiff, RunResult } from '../types.ts';
 
 const oneLine = (s: string): string => s.replace(/\s*\r?\n\s*/g, ' ');
 const cell = (s: string): string => oneLine(s).replace(/\|/g, '\\|');
 const plural = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`;
 
+/** The level with its name where it has one: `6 (standard)` or `7`. */
+export function levelLabel(level: number): string {
+  const name = Object.entries(LEVEL_NAMES).find(([, n]) => n === level)?.[0];
+  return name ? `${level} (${name})` : String(level);
+}
+
 export function summaryLine(result: RunResult): string {
   const s = result.summary;
-  const base = `${plural(s.error, 'error', 'errors')}, ${plural(s.warning, 'warning', 'warnings')}, ${plural(s.info, 'note', 'notes')}.`;
+  const base = `${s.error} critical, ${s.warning} important, ${s.info} recommended.`;
   return s.suppressed > 0 ? `${base} ${s.suppressed} suppressed.` : base;
 }
 
@@ -21,14 +28,14 @@ export function groupName(f: Finding): string {
 
 function findingText(f: Finding): string {
   const line = f.location.line !== undefined ? ` line ${f.location.line}` : '';
-  return `${f.severity} \`${f.id}\`${line}: ${oneLine(f.message)} (${f.engine}: ${f.rule})`;
+  return `${SEVERITY_NAMES[f.severity]} \`${f.id}\`${line}: ${oneLine(f.message)} (${f.engine}: ${f.rule})`;
 }
 
 export function toMarkdown(result: RunResult, diff?: RunDiff): string {
   const out: string[] = [];
   out.push('# wp-shakedown report');
   out.push(
-    `- Target: ${result.target.kind} "${result.target.name}" at ${result.target.path}${result.profile ? `\n- Profile: ${result.profile}` : ''}${result.depth && result.depth !== 'standard' ? `\n- Depth: ${result.depth}` : ''}${result.experimental ? '\n- Experimental checks: on' : ''}\n- Run: ${result.finishedAt}, wp-shakedown ${result.tool.version}`,
+    `- Target: ${result.target.kind} "${result.target.name}" at ${result.target.path}${result.preset ? `\n- Preset: ${result.preset}` : ''}${result.level !== undefined ? `\n- Level: ${levelLabel(result.level)}` : ''}${result.experimental ? '\n- Experimental checks: on' : ''}\n- Run: ${result.finishedAt}, wp-shakedown ${result.tool.version}`,
   );
 
   const summary = ['## Summary', summaryLine(result)];

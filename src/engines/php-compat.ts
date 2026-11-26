@@ -6,6 +6,7 @@ export const phpCompat: Engine = {
   id: 'php-compat',
   title: 'PHP compatibility',
   kinds: ['theme', 'plugin'],
+  level: 5,
   async run({ target, signal, note }) {
     const declared = requiresPhp(target.path);
     const min = declared ?? '7.4';

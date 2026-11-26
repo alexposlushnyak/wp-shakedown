@@ -71,7 +71,7 @@ test('hubLines formats the four states and cuts to the width', () => {
   assert.deepEqual(hubLines(rows, 200), [
     '  a          waiting',
     '  long-name  1/4  wpcs theme:x',
-    '  c          1 error, 0 warnings, 0 notes. 1 engine failed.',
+    '  c          1 critical, 0 important, 0 recommended. 1 engine failed.',
     '  d          failed: boom',
   ]);
   assert.equal(hubLines(rows, 8)[1], '  long-n');
@@ -95,15 +95,15 @@ test('projectTable groups themes, plugins and folders and pads columns', () => {
     p,
   ]).split('\n');
   assert.deepEqual(lines, [
-    'ID        Name   Last run  Errors  Warnings  Notes  Path',
+    'ID        Name   Last run  Critical  Important  Recommended  Path',
     '',
     'Themes',
-    'aaaaaaaa  Alpha  never     -       -         -      /x/alpha',
+    'aaaaaaaa  Alpha  never     -         -          -            /x/alpha',
     '',
     'Plugins',
-    'cccccccc  Cart   never     -       -         -      /x/cart',
+    'cccccccc  Cart   never     -         -          -            /x/cart',
     '',
     'Cannot be tested',
-    'bbbbbbbb  B      gone      -       -         -      /x/alpha',
+    'bbbbbbbb  B      gone      -         -          -            /x/alpha',
   ]);
 });

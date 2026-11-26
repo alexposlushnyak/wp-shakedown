@@ -3,18 +3,21 @@ import path from 'node:path';
 import { loadBaseline } from './baseline.ts';
 import { diffRuns } from './diff.ts';
 import { assertReportDir, defaultReportDir, readPreviousRun, writeReports } from './report/write.ts';
-import { profileEngines } from './profiles.ts';
+import { findPreset, presetEngines } from './presets.ts';
 import { customEngines } from './engines/custom.ts';
 import { run } from './runner.ts';
 import { detectTarget } from './target.ts';
-import type { Depth, Engine, RunDiff, RunEvent, RunResult } from './types.ts';
+import type { Engine, RunDiff, RunEvent, RunResult } from './types.ts';
 
 export interface SessionOptions {
   input: string;
   type?: 'theme' | 'plugin' | 'install';
   only?: string[];
+  preset?: string;
+  /** Old name of `preset`. */
   profile?: string;
-  depth?: Depth;
+  /** The level of the run. A preset with a level sets it when this is absent. */
+  level?: number;
   experimental?: boolean;
   out?: string;
   baselineFile?: string;
@@ -33,8 +36,12 @@ export interface SessionResult {
 /** The steps from a path to written reports. The command line and the local server share them. */
 export async function runSession(opts: SessionOptions): Promise<SessionResult> {
   const target = detectTarget(opts.input, opts.type ? { type: opts.type } : {});
-  if (opts.profile && opts.only) throw new Error('Use a profile or a list of engines, not both.');
-  const only = opts.profile ? profileEngines(opts.profile, target) : opts.only;
+  const preset = opts.preset ?? opts.profile;
+  if (preset && opts.only) throw new Error('Use a preset or a list of engines, not both.');
+  const all = [...opts.engines, ...customEngines(target)];
+  const only = preset ? presetEngines(preset, target, all.map((e) => e.id)) : opts.only;
+  const found = preset ? findPreset(preset) : undefined;
+  const level = opts.level ?? found?.level;
   let baselineFile = opts.baselineFile;
   if (!baselineFile && target.kind !== 'url') {
     const candidate = path.join(target.path, 'wp-shakedown-baseline.json');
@@ -45,10 +52,11 @@ export async function runSession(opts: SessionOptions): Promise<SessionResult> {
   assertReportDir(target, dir);
   const previous = readPreviousRun(dir);
   const result = await run(target, {
-    engines: [...opts.engines, ...customEngines(target)],
+    engines: all,
     ...(only ? { only } : {}),
-    ...(opts.profile ? { profile: opts.profile } : {}),
-    ...(opts.depth ? { depth: opts.depth } : {}),
+    ...(preset ? { preset } : {}),
+    ...(found?.themeCheck ? { themeCheck: found.themeCheck } : {}),
+    ...(level !== undefined ? { level } : {}),
     ...(opts.experimental ? { experimental: true } : {}),
     ...(baseline ? { baseline } : {}),
     ...(opts.onEvent ? { onEvent: opts.onEvent } : {}),

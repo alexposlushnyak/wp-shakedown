@@ -6,7 +6,7 @@ import { test } from 'node:test';
 import { diffRuns } from '../src/diff.ts';
 import { toHtml } from '../src/report/html.ts';
 import { toJson } from '../src/report/json.ts';
-import { toMarkdown } from '../src/report/markdown.ts';
+import { summaryLine, toMarkdown } from '../src/report/markdown.ts';
 import { toSarif } from '../src/report/sarif.ts';
 import { defaultReportDir, readPreviousRun, writeReports } from '../src/report/write.ts';
 import { detectTarget } from '../src/target.ts';
@@ -15,8 +15,8 @@ import { finding, makeTheme, result, tmp, write } from './helpers.ts';
 test('markdown shows a finding with id, message, fix and docs', () => {
   const md = toMarkdown(result([finding({ id: 'abc123abc123', message: 'Bad thing', hint: 'Do this', docs: 'https://x.test/d' })]));
   assert.match(md, /^# wp-shakedown report\n/);
-  assert.match(md, /1 error, 0 warnings, 0 notes\./);
-  assert.match(md, /### a\.php\n\n- error `abc123abc123` line 3: Bad thing \(fake: r1\)\n  Fix: Do this\n  Docs: https:\/\/x\.test\/d/);
+  assert.match(md, /1 critical, 0 important, 0 recommended\./);
+  assert.match(md, /### a\.php\n\n- Critical `abc123abc123` line 3: Bad thing \(fake: r1\)\n  Fix: Do this\n  Docs: https:\/\/x\.test\/d/);
   assert.match(md, /## Run again/);
   assert.ok(md.endsWith('\n') && !md.endsWith('\n\n'));
 });
@@ -33,11 +33,11 @@ test('markdown has diff, suppressed and stale sections', () => {
   const cur = result([finding({ id: 'new' }), finding({ id: 'sup', suppressed: { reason: 'accepted' } })], { staleBaseline: ['gone'] });
   const md = toMarkdown(cur, diffRuns(prev, cur));
   assert.match(md, /## Since the last run\n\n1 fixed, 1 new, 0 still open\./);
-  assert.match(md, /New:\n\n- a\.php: error `new`/);
-  assert.match(md, /Fixed:\n\n- a\.php: error `old`/);
+  assert.match(md, /New:\n\n- a\.php: Critical `new`/);
+  assert.match(md, /Fixed:\n\n- a\.php: Critical `old`/);
   assert.match(md, /## Suppressed\n\n- `sup` fake: r1\. Reason: accepted/);
   assert.match(md, /## Stale baseline entries\n\nThese baseline entries match nothing now\. Remove them\.\n\n- `gone`/);
-  assert.match(md, /1 error, 0 warnings, 0 notes\. 1 suppressed\./);
+  assert.match(md, /1 critical, 0 important, 0 recommended\. 1 suppressed\./);
 });
 
 test('markdown escapes pipes in cells and flattens newlines', () => {
@@ -150,25 +150,59 @@ test('markdown says so when only style findings exist', () => {
   assert.ok(md.includes('1 style finding in 1 rule.'));
 });
 
-test('the reports show the profile only when the run has one', () => {
-  const withProfile = result([], { profile: 'wporg-theme' });
-  assert.match(toMarkdown(withProfile), /- Target: .*\n- Profile: wporg-theme\n- Run: /);
-  assert.match(toHtml(withProfile), /Profile: wporg-theme<br>\nRun: /);
-  assert.doesNotMatch(toMarkdown(result([])), /Profile:/);
-  assert.doesNotMatch(toHtml(result([])), /Profile:/);
+test('the reports show the preset only when the run has one', () => {
+  const withPreset = result([], { preset: 'wporg-theme' });
+  assert.match(toMarkdown(withPreset), /- Target: .*\n- Preset: wporg-theme\n- Level: 6 \(standard\)\n- Run: /);
+  assert.match(toHtml(withPreset), /Preset: wporg-theme<br>\nLevel: 6 \(standard\)<br>\nRun: /);
+  assert.doesNotMatch(toMarkdown(result([])), /Preset:/);
+  assert.doesNotMatch(toHtml(result([])), /Preset:/);
 });
 
-test('the reports show the depth only when it is not standard', () => {
-  const quick = result([], { depth: 'quick' });
-  assert.match(toMarkdown(quick), /- Target: .*\n- Depth: quick\n- Run: /);
-  assert.match(toHtml(quick), /Depth: quick<br>\nRun: /);
-  assert.doesNotMatch(toMarkdown(result([], { depth: 'standard' })), /Depth:/);
-  assert.doesNotMatch(toHtml(result([])), /Depth:/);
+test('the reports show the level, with its name where it has one', () => {
+  const seven = result([], { level: 7 });
+  assert.match(toMarkdown(seven), /- Target: .*\n- Level: 7\n- Run: /);
+  assert.match(toHtml(seven), /Level: 7<br>\nRun: /);
+  assert.match(toMarkdown(result([], { level: 3 })), /- Level: 3 \(quick\)\n/);
+  assert.match(toMarkdown(result([], { level: 8 })), /- Level: 8 \(deep\)\n/);
+  assert.match(toMarkdown(result([])), /- Level: 6 \(standard\)\n/);
+});
+
+test('the reports name the severities', () => {
+  const r = result([finding({ id: 'e1', severity: 'error' }), finding({ id: 'w1', severity: 'warning' }), finding({ id: 'i1', severity: 'info' })]);
+  const md = toMarkdown(r);
+  assert.match(md, /- Critical `e1`/);
+  assert.match(md, /- Important `w1`/);
+  assert.match(md, /- Recommended `i1`/);
+  const html = toHtml(r);
+  for (const name of ['Critical', 'Important', 'Recommended']) assert.ok(html.includes(`<td>${name}</td>`), name);
+  assert.match(toJson(r), /"severity": "error"/);
+});
+
+test('the summary line names the severities', () => {
+  const r = result([finding({ severity: 'error' }), finding({ id: 'b', severity: 'warning' }), finding({ id: 'c', severity: 'warning' })]);
+  assert.equal(summaryLine(r), '1 critical, 2 important, 0 recommended.');
+  assert.equal(summaryLine(result([finding({ suppressed: { reason: 'x' } })])), '0 critical, 0 important, 0 recommended. 1 suppressed.');
+});
+
+test('a report written before levels reads back with level and preset', (t) => {
+  const dir = tmp(t);
+  const old = (extra: object) => {
+    const { level: _level, ...rest } = result([]);
+    write(path.join(dir, 'report.json'), JSON.stringify({ ...rest, ...extra }));
+    return readPreviousRun(dir)!;
+  };
+  assert.equal(old({ depth: 'quick' }).level, 3);
+  assert.equal(old({ depth: 'standard' }).level, 6);
+  assert.equal(old({ depth: 'deep' }).level, 8);
+  assert.equal(old({}).level, 6);
+  const withProfile = old({ depth: 'deep', profile: 'envato' });
+  assert.equal(withProfile.preset, 'envato');
+  assert.ok(!('profile' in withProfile) && !('depth' in withProfile));
 });
 
 test('the reports show experimental checks only when they were on', () => {
   const on = result([], { experimental: true });
-  assert.match(toMarkdown(on), /- Target: .*\n- Experimental checks: on\n- Run: /);
+  assert.match(toMarkdown(on), /- Target: .*\n- Level: 6 \(standard\)\n- Experimental checks: on\n- Run: /);
   assert.match(toHtml(on), /Experimental checks: on<br>\nRun: /);
   assert.doesNotMatch(toMarkdown(result([])), /Experimental/);
   assert.doesNotMatch(toHtml(result([])), /Experimental/);

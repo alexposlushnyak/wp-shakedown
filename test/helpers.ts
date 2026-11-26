@@ -40,8 +40,8 @@ export function makeInstall(dir: string): string {
   return dir;
 }
 
-export function fakeEngine(id: string, kinds: TargetKind[], run: Engine['run']): Engine {
-  return { id, title: id, kinds, run };
+export function fakeEngine(id: string, kinds: TargetKind[], run: Engine['run'], level = 6): Engine {
+  return { id, title: id, kinds, level, run };
 }
 
 export function raw(over: Partial<RawFinding> = {}): RawFinding {
@@ -63,6 +63,7 @@ export function result(findings: Finding[] = [], over: Partial<RunResult> = {}):
     schema: 1,
     tool: { name: 'wp-shakedown', version: '0.0.0' },
     target: { kind: 'theme', path: '/x/theme', name: 'Fixture Theme', units: [] },
+    level: 6,
     startedAt: '2026-01-01T00:00:00.000Z',
     finishedAt: '2026-01-01T00:00:01.000Z',
     engines,

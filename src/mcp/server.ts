@@ -1,5 +1,6 @@
 import { createInterface } from 'node:readline';
 import { Ajv } from 'ajv';
+import type { ValidateFunction } from 'ajv';
 import type { Engine } from '../types.ts';
 import { VERSION } from '../version.ts';
 import { tools } from './tools.ts';
@@ -11,12 +12,12 @@ export interface McpOptions {
 }
 
 const VERSIONS = ['2025-11-25', '2025-06-18', '2025-03-26', '2024-11-05'];
-const INSTRUCTIONS = 'Call run_checks with the folder of a theme, a plugin or a WordPress site. Fix the errors first. Call run_checks again to confirm that they are gone.';
+const INSTRUCTIONS = 'Call run_checks with the folder of a theme, a plugin or a WordPress site. Fix the Critical findings first, then the Important ones. Call run_checks again to confirm that they are gone.';
 
 type Msg = { id?: string | number | null; method?: string; params?: Record<string, any> };
 
 const ajv = new Ajv({ strict: false, allErrors: true });
-const validators = new Map(tools.map((t) => [t.name, ajv.compile(t.inputSchema)]));
+const validators = new Map<string, ValidateFunction>();
 
 export function startMcp(opts: McpOptions): { closed: Promise<void> } {
   const running = new Map<string | number, AbortController>();
@@ -31,7 +32,12 @@ export function startMcp(opts: McpOptions): { closed: Promise<void> } {
     const tool = tools.find((t) => t.name === params.name);
     if (!tool) return fail(id, -32602, `Unknown tool: ${params.name}`);
     const args = (params.arguments ?? {}) as Record<string, unknown>;
-    const validate = validators.get(tool.name)!;
+    // The schema of run_checks lists the presets that exist now, and a preset file can appear while the server runs.
+    // Validators are cached by the schema text, so a call compiles only when the schema changed.
+    const schema = tool.inputSchema;
+    const key = JSON.stringify(schema);
+    let validate = validators.get(key);
+    if (!validate) validators.set(key, (validate = ajv.compile(schema)));
     if (!validate(args)) return reply(id, text(`Invalid arguments: ${ajv.errorsText(validate.errors)}`, true));
     const ac = new AbortController();
     running.set(id, ac);

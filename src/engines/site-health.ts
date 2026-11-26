@@ -52,6 +52,7 @@ export const siteHealth: Engine = {
   id: 'site-health',
   title: 'Site Health',
   kinds: ['install'],
+  level: 4,
   async run({ target, signal, note }) {
     const wp = process.env.WP_SHAKEDOWN_WP || 'wp';
     const args = [

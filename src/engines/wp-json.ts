@@ -94,7 +94,7 @@ export const wpJson: Engine = {
   id: 'wp-json',
   title: 'theme.json and block.json',
   kinds: ['theme', 'plugin'],
-  depth: 'quick',
+  level: 1,
   async run({ target, signal }) {
     const files = jsonFiles(target);
     const out: RawFinding[] = [];

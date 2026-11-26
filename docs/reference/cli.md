@@ -22,24 +22,33 @@ In a WordPress folder the tool lists every theme in `wp-content/themes` and ever
 |---|---|
 | `--type <kind>` | Treats the path as `theme`, `plugin` or `install` without looking |
 | `--engine <id>` | Runs only this engine. Repeat it for more than one. [Engines](engines.md) lists the IDs |
-| `--profile <id>` | Runs the engines for one gate: `wporg-theme`, `envato`, `wporg-plugin` or `site`. See [Profiles](profiles.md). It does not combine with `--engine` |
-| `--depth <level>` | Sets how thorough the run is: `quick`, `standard` or `deep`. The default is `standard`. See [Depth](#depth) |
+| `--preset <id>` | Runs the engines of one [preset](presets.md): `wporg-theme`, `envato`, `wporg-plugin`, `client`, `site`, or a preset of your own. It does not combine with `--engine`. `--profile` is the old name |
+| `--level <n>` | Sets how thorough the run is, from 0 to 10. The names `quick`, `standard` and `deep` work as 3, 6 and 8. The default is 6. A preset can set its own level. See [Levels](#levels). `--depth` is the old name |
 | `--experimental` | Also runs the experimental engines. Today that is [`theme-review`](engines.md#theme-review) |
 | `--out <dir>` | Writes the report to this folder |
 | `--baseline <file>` | Uses this baseline file |
-| `--fail-on <level>` | Sets the severity that makes the command exit 1: `error`, `warning`, `info` or `never`. The default is `error` |
+| `--fail-on <name>` | Sets the severity that makes the command exit 1: `critical`, `important`, `recommended` or `never`. The default is `critical`. The old names `error`, `warning` and `info` work too. A [preset](presets.md) can set it |
 
-### Depth
+### Levels
 
-| Depth | Runs | For |
+A level from 0 to 10 sets how thorough a run is. Each engine has a level, and a run at a level runs every engine at that level or below. A higher level adds engines and runs everything the lower levels run.
+
+| Level | Adds | For |
 |---|---|---|
-| `quick` | `php-lint`, `theme-check`, `wp-json`, `config` | A check after every change. It takes seconds |
-| `standard` | The quick engines, and `wpcs`, `php-compat`, `eslint`, `stylelint`, `integrity`, `updates`, `vulnerabilities` | The usual run |
-| `deep` | Everything, with `phpstan` | Before a release |
+| 0 | `php-lint` | Does the PHP parse. It takes seconds |
+| 1 | `wp-json` | `theme.json` and `block.json` |
+| 2 | `config` | Risky settings in a WordPress folder |
+| 3 | `theme-check` | The checks of the wordpress.org theme directory. `quick` is 3 |
+| 4 | `integrity`, `updates`, `vulnerabilities`, `site-health` | Whether a WordPress folder is intact, current and safe |
+| 5 | `wpcs`, `php-compat` | The WordPress Coding Standards and PHP versions |
+| 6 | `eslint`, `stylelint` | JavaScript and CSS. This is the default, and `standard` is 6 |
+| 7 | `theme-review`, `activation-lock` | What the directories require beyond the tools above |
+| 8 | `phpstan` | Static analysis. `deep` is 8 |
+| 9, 10 | Nothing yet | Room for narrow checks |
 
-[Your own checks](checks.md) name the depth they start at.
+[Your own checks](checks.md) and [presets](presets.md) set a level the same way. `--engine` names engines by hand, and the level does not filter those. A preset keeps the level filter.
 
-A depth and a [profile](profiles.md) combine: the run gets the engines that are in both. `--engine` names engines by hand, and the depth does not filter those.
+`--level` also reaches the engines as `level`, so an engine can leave out its own rules above that level.
 
 ### Progress
 
@@ -77,6 +86,8 @@ The comparison covers only the engines that ran in both runs. After `--engine ph
 | 1 | At least one finding at or above `--fail-on` |
 | 2 | The run itself failed: bad arguments, an unreadable path, or an engine that crashed |
 
+The terminal output and the reports call the severities Critical, Important and Recommended. The JSON and SARIF reports keep `error`, `warning` and `info`. See [Severity names](report.md#severity-names).
+
 ## Baseline file
 
 A baseline silences findings you have decided to keep. Put `wp-shakedown-baseline.json` in the target folder, or pass a file with `--baseline`.
@@ -92,7 +103,7 @@ A baseline silences findings you have decided to keep. Put `wp-shakedown-baselin
 
 Every entry needs a reason. The tool rejects a baseline with an entry that has none.
 
-A suppressed finding stays in the report under its own heading and does not count toward the exit code. When an entry matches nothing, the report lists it as stale so you can remove it. It does that only after a run where every engine ran, because after a partial run the entry may belong to an engine that did not. For a theme or a plugin that is a run with `--depth deep`.
+A suppressed finding stays in the report under its own heading and does not count toward the exit code. When an entry matches nothing, the report lists it as stale so you can remove it. It does that only after a run where every engine ran, because after a partial run the entry may belong to an engine that did not. For a theme or a plugin that is a run at level 8 or higher, with every engine that fits.
 
 ## Projects
 
@@ -108,7 +119,7 @@ Keep a list of the folders you test, and run them together.
 
 Several projects run at once, three by default. `--jobs <n>` sets how many, from 1 to 8. In a terminal each project has one line that updates while it runs. When the output goes to a file or a pipe, each engine gets a line with the project name in front.
 
-`--engine`, `--profile`, `--depth` and `--fail-on` apply to every project. `--out` and `--baseline` work with one path only. The exit code is the highest one among the runs.
+`--engine`, `--preset`, `--level` and `--fail-on` apply to every project. `--out` and `--baseline` work with one path only. The exit code is the highest one among the runs.
 
 The list is the file `~/.wp-shakedown/projects.json`. The [web page](ui.md) reads the same file. See [ADR 0021](../adr/0021-the-hub-keeps-projects-in-a-file.md).
 
@@ -116,6 +127,7 @@ The list is the file `~/.wp-shakedown/projects.json`. The [web page](ui.md) read
 
 | Command | What it does |
 |---|---|
+| `wp-shakedown presets` | Lists the built-in [presets](presets.md) and your own, with their level, the number of engines and the file of each. A file that is not a valid preset is listed after the table, with the reason |
 | `wp-shakedown ui [path]` | Starts the [local web page](ui.md) |
 | `wp-shakedown mcp` | Starts the [MCP server](mcp.md) for an AI assistant |
 | `wp-shakedown --help` | Prints the usage text |

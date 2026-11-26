@@ -3,7 +3,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { Ajv } from 'ajv';
 import { home } from '../home.ts';
-import { DEPTHS, EngineSkipped } from '../types.ts';
+import { DEFAULT_LEVEL, EngineSkipped, LEVEL_NAMES, MAX_LEVEL } from '../types.ts';
 import type { Category, Depth, Engine, RawFinding, Severity, Target } from '../types.ts';
 
 const esc = (s: string): string => s.replace(/[.*+?^${}()|[\]\\\/]/g, '\\$&');
@@ -41,7 +41,8 @@ const common = {
   title: { type: 'string' },
   kinds: { type: 'array', items: { enum: ['theme', 'plugin', 'install'] }, minItems: 1 },
   paths: strings({ minItems: 1 }),
-  depth: { enum: [...DEPTHS] },
+  level: { type: 'integer', minimum: 0, maximum: MAX_LEVEL },
+  depth: { enum: Object.keys(LEVEL_NAMES) },
   severity: { enum: ['error', 'warning', 'info'] },
   category: { enum: CATEGORIES },
   message: { type: 'string' },
@@ -76,6 +77,8 @@ interface Check {
   title?: string;
   kinds?: ('theme' | 'plugin' | 'install')[];
   paths?: string[];
+  level?: number;
+  /** Old name of `level`. */
   depth?: Depth;
   severity?: Severity;
   category?: Category;
@@ -230,7 +233,7 @@ function failing(name: string, reason: string): Engine {
     id: `custom:${name}`,
     title: name,
     kinds: ['theme', 'plugin', 'install'],
-    depth: 'quick',
+    level: 0,
     async run() {
       throw new Error(`The check file ${name}.json is not valid: ${reason}.`);
     },
@@ -242,7 +245,7 @@ function toEngine(name: string, check: Check): Engine {
     id: `custom:${name}`,
     title: check.title ?? name,
     kinds: check.kinds ?? ['theme', 'plugin'],
-    depth: check.depth ?? 'standard',
+    level: check.level ?? (check.depth ? LEVEL_NAMES[check.depth] : DEFAULT_LEVEL),
     async run({ target, signal }) {
       try {
         return await runCheck(name, check, target, signal);
