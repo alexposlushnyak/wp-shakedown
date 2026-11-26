@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { test } from 'node:test';
 import { exec } from '../src/exec.ts';
 import { VERSION } from '../src/version.ts';
 import { root, testHome } from './env.ts';
-import { makeSample, makeTheme, tmp } from './helpers.ts';
+import { makeSample, makeTheme, tmp, zipOf } from './helpers.ts';
 
 const cli = (...args: string[]) =>
   spawnSync(process.execPath, ['src/cli.ts', ...args], { cwd: root, encoding: 'utf8', env: { ...process.env, WP_SHAKEDOWN_HOME: testHome } });
@@ -40,6 +40,15 @@ test('add, list and remove', (t) => {
   assert.equal(gone.status, 2);
   assert.match(gone.stderr, /No project fits "alpha"/);
   assert.equal(cliHome(home, 'remove').status, 2);
+});
+
+test('add takes a ZIP file and lists the theme under Themes', (t) => {
+  const home = tmp(t);
+  const zip = path.join(tmp(t), 'gamma-1.2.zip');
+  writeFileSync(zip, zipOf([{ name: 'gamma/style.css', data: '/*\nTheme Name: Gamma\n*/\n' }, { name: 'gamma/index.php', data: '<?php\n' }]));
+  assert.match(cliHome(home, 'add', zip).stdout, /Added the theme "Gamma"\./);
+  assert.ok(existsSync(path.join(home, 'uploads', 'themes', 'gamma', 'style.css')));
+  assert.match(cliHome(home, 'list').stdout, /\nThemes\n\S+\s+Gamma /);
 });
 
 test('run with several targets checks its input', (t) => {

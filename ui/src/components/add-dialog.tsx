@@ -58,8 +58,8 @@ export function AddDialog({ open, onOpenChange, startDir, onAdd, onError }: Prop
 			<DialogContent className="sm:max-w-xl">
 				<form onSubmit={submit} className="flex flex-col gap-4">
 					<DialogHeader>
-						<DialogTitle>Add a folder</DialogTitle>
-						<DialogDescription>The folder of a theme, a plugin or a whole WordPress site.</DialogDescription>
+						<DialogTitle>Browse or type a path</DialogTitle>
+						<DialogDescription>Pick the folder of a theme, a plugin or a whole WordPress site, or paste its path.</DialogDescription>
 					</DialogHeader>
 					<Input
 						aria-label="Folder"

@@ -106,17 +106,28 @@ function localTime(iso: string): string {
   return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
 }
 
-/** The text table of the project list: a header row and one row per project, columns padded with spaces. */
+/** The groups of the project list, in the order the list and the page show them. */
+export const PROJECT_GROUPS = [
+  { kind: 'theme', title: 'Themes' },
+  { kind: 'plugin', title: 'Plugins' },
+  { kind: 'install', title: 'WordPress folders' },
+  { kind: undefined, title: 'Cannot be tested' },
+] as const;
+
+/** The text table of the project list: a header row, then the projects under a title per group, columns padded with spaces. */
 export function projectTable(projects: Project[]): string {
-  const kinds = { theme: 'theme', plugin: 'plugin', install: 'WordPress folder', url: 'site URL' };
-  const rows = [
-    ['ID', 'Name', 'Kind', 'Last run', 'Errors', 'Warnings', 'Notes', 'Path'],
-    ...projects.map((p) => {
-      const counts = p.last ? [p.last.summary.error, p.last.summary.warning, p.last.summary.info].map(String) : ['-', '-', '-'];
-      const when = p.problem ?? (p.last ? localTime(p.last.finishedAt) : 'never');
-      return [p.id, p.name, p.kind ? kinds[p.kind] : '-', when, ...(p.problem ? ['-', '-', '-'] : counts), p.path];
-    }),
-  ];
-  const widths = rows[0]!.map((_, c) => Math.max(...rows.map((r) => r[c]!.length)));
-  return rows.map((r) => r.map((cell, c) => (c === r.length - 1 ? cell : cell.padEnd(widths[c]!))).join('  ').trimEnd()).join('\n');
+  const row = (p: Project): string[] => {
+    const counts = p.last ? [p.last.summary.error, p.last.summary.warning, p.last.summary.info].map(String) : ['-', '-', '-'];
+    const when = p.problem ?? (p.last ? localTime(p.last.finishedAt) : 'never');
+    return [p.id, p.name, when, ...(p.problem ? ['-', '-', '-'] : counts), p.path];
+  };
+  const head = ['ID', 'Name', 'Last run', 'Errors', 'Warnings', 'Notes', 'Path'];
+  // Any kind without a group of its own goes to the last one, so no project drops out of the list.
+  const known: (string | undefined)[] = PROJECT_GROUPS.map((g) => g.kind).filter(Boolean);
+  const fits = (p: Project, kind: string | undefined): boolean => (kind === undefined ? !known.includes(p.kind) : p.kind === kind);
+  const groups = PROJECT_GROUPS.map((g) => ({ title: g.title, rows: projects.filter((p) => fits(p, g.kind)).map(row) })).filter((g) => g.rows.length > 0);
+  const all = [head, ...groups.flatMap((g) => g.rows)];
+  const widths = head.map((_, c) => Math.max(...all.map((r) => r[c]!.length)));
+  const line = (r: string[]): string => r.map((cell, c) => (c === r.length - 1 ? cell : cell.padEnd(widths[c]!))).join('  ').trimEnd();
+  return [line(head), ...groups.flatMap((g) => ['', g.title, ...g.rows.map(line)])].join('\n');
 }

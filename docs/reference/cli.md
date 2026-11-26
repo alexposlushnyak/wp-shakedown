@@ -6,7 +6,7 @@
 wp-shakedown run <path> [options]
 ```
 
-`<path>` is a theme folder, a plugin folder or a WordPress folder. The tool works out which one it is:
+`<path>` is a theme folder, a plugin folder or a WordPress folder, or a ZIP file of one. The tool unpacks a ZIP file into `~/.wp-shakedown/uploads` first, the same way the [web page](ui.md#adding-a-project) does. It works out what the path is:
 
 | It finds | It treats the path as |
 |---|---|
@@ -100,9 +100,9 @@ Keep a list of the folders you test, and run them together.
 
 | Command | What it does |
 |---|---|
-| `wp-shakedown add <path>...` | Puts a theme, a plugin or a WordPress folder on the list |
-| `wp-shakedown list` | Shows the list with the result of each project's last run |
-| `wp-shakedown remove <project>...` | Takes a project off the list by ID, path or name. Its reports stay |
+| `wp-shakedown add <path>...` | Puts a theme, a plugin or a WordPress folder on the list. A ZIP file is unpacked first |
+| `wp-shakedown list` | Shows the list with the result of each project's last run, with themes, plugins and WordPress folders in separate groups |
+| `wp-shakedown remove <project>...` | Takes a project off the list by ID, path or name. A project made from a ZIP file loses its unpacked folder. Its reports stay |
 | `wp-shakedown run --all` | Runs every project on the list |
 | `wp-shakedown run <path> <path>...` | Runs several folders, on the list or not |
 

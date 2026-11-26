@@ -1,6 +1,7 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { crc32, deflateRawSync } from 'node:zlib';
 import type { TestContext } from 'node:test';
 import { net } from '../src/net.ts';
 import type { Engine, EngineRun, Finding, RawFinding, RunResult, Severity, TargetKind } from '../src/types.ts';
@@ -120,4 +121,66 @@ export function fakeNet(t: TestContext, routes: Map<string, { status: number; bo
     else process.env.WP_SHAKEDOWN_HOME = oldHome;
   });
   return calls;
+}
+
+export interface ZipEntry {
+  name: string;
+  data?: string | Buffer;
+  method?: 0 | 8;
+  dir?: boolean;
+  /** Unix mode, stored in the high 16 bits of the external attributes. Use 0o120777 for a symlink. */
+  mode?: number;
+  /** General purpose flags. Bit 0 marks an encrypted entry. */
+  flags?: number;
+  badCrc?: boolean;
+  /** Overrides the declared uncompressed size. */
+  size?: number;
+}
+
+/** Builds a classic ZIP (no ZIP64): local headers, central directory, end record. */
+export function zipOf(entries: ZipEntry[]): Buffer {
+  const locals: Buffer[] = [];
+  const centrals: Buffer[] = [];
+  let offset = 0;
+  for (const e of entries) {
+    const name = Buffer.from(e.dir && !e.name.endsWith('/') ? `${e.name}/` : e.name);
+    const data = Buffer.from(e.data ?? '');
+    const method = e.method ?? 8;
+    const body = method === 8 ? deflateRawSync(data) : data;
+    const crc = e.badCrc ? (crc32(data) ^ 1) >>> 0 : crc32(data);
+    const size = e.size ?? data.length;
+    const flags = e.flags ?? 0;
+    const local = Buffer.alloc(30);
+    local.writeUInt32LE(0x04034b50, 0);
+    local.writeUInt16LE(20, 4);
+    local.writeUInt16LE(flags, 6);
+    local.writeUInt16LE(method, 8);
+    local.writeUInt32LE(crc, 14);
+    local.writeUInt32LE(body.length, 18);
+    local.writeUInt32LE(size, 22);
+    local.writeUInt16LE(name.length, 26);
+    const central = Buffer.alloc(46);
+    central.writeUInt32LE(0x02014b50, 0);
+    central.writeUInt16LE(20, 4);
+    central.writeUInt16LE(20, 6);
+    central.writeUInt16LE(flags, 8);
+    central.writeUInt16LE(method, 10);
+    central.writeUInt32LE(crc, 16);
+    central.writeUInt32LE(body.length, 20);
+    central.writeUInt32LE(size, 24);
+    central.writeUInt16LE(name.length, 28);
+    central.writeUInt32LE(((e.mode ?? 0) << 16) >>> 0, 38);
+    central.writeUInt32LE(offset, 42);
+    locals.push(local, name, body);
+    centrals.push(central, name);
+    offset += 30 + name.length + body.length;
+  }
+  const cd = Buffer.concat(centrals);
+  const end = Buffer.alloc(22);
+  end.writeUInt32LE(0x06054b50, 0);
+  end.writeUInt16LE(entries.length, 8);
+  end.writeUInt16LE(entries.length, 10);
+  end.writeUInt32LE(cd.length, 12);
+  end.writeUInt32LE(offset, 16);
+  return Buffer.concat([...locals, cd, end]);
 }

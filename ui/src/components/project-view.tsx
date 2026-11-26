@@ -4,7 +4,6 @@ import { toast } from 'sonner';
 import { DepthControl } from '@/components/depth-control';
 import { EngineList } from '@/components/engine-line';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Progress } from '@/components/ui/progress';
 import { Label } from '@/components/ui/label';
@@ -24,14 +23,12 @@ async function copy(text: string, done: string) {
 	}
 }
 
-function Tile({ label, value, bad }: { label: string; value: number; bad?: boolean }) {
+function Tile({ label, value, tone }: { label: string; value: number; tone?: string }) {
 	return (
-		<Card size="sm">
-			<CardContent className="flex flex-col items-center">
-				<span className={`text-3xl font-medium tabular-nums ${bad ? 'text-destructive' : ''}`}>{value}</span>
-				<span className="text-muted-foreground text-sm">{label}</span>
-			</CardContent>
-		</Card>
+		<div className="flex flex-col gap-1">
+			<span className={`text-4xl font-semibold tracking-[-0.02em] tabular-nums ${value > 0 && tone ? tone : ''}`}>{value}</span>
+			<span className="text-muted-foreground text-sm">{label}</span>
+		</div>
 	);
 }
 
@@ -48,9 +45,9 @@ function Report({ report, id }: { report: ProjectReport; id: string }) {
 	const reportFile = report.files[0] ?? '';
 	return (
 		<div className="flex flex-col gap-4">
-			<div className="grid grid-cols-3 gap-3">
-				<Tile label="Errors" value={summary.error} bad={summary.error > 0} />
-				<Tile label="Warnings" value={summary.warning} />
+			<div className="grid grid-cols-3 gap-6">
+				<Tile label="Errors" value={summary.error} tone="text-destructive" />
+				<Tile label="Warnings" value={summary.warning} tone="text-warning" />
 				<Tile label="Notes" value={summary.info} />
 			</div>
 			<p className="text-muted-foreground text-sm">
@@ -126,15 +123,15 @@ export function ProjectView({ project, events, profiles, depth, onDepth, onRun, 
 	useEffect(() => setProfile('all'), [project.id]);
 
 	return (
-		<section className="flex flex-col gap-5">
-			<Button variant="ghost" size="sm" className="-ml-2 self-start" asChild>
+		<section className="flex flex-col gap-8">
+			<Button variant="ghost" size="sm" className="text-muted-foreground -ml-2 self-start" asChild>
 				<a href="#/">
 					<ArrowLeftIcon />
 					Projects
 				</a>
 			</Button>
 			<div className="flex min-w-0 flex-col gap-1">
-				<h1 className="text-lg font-medium">{project.name}</h1>
+				<h1 className="text-3xl font-semibold tracking-[-0.02em]">{project.name}</h1>
 				<p className="text-muted-foreground flex min-w-0 gap-2 text-sm">
 					<span className="shrink-0">{project.kind === 'install' ? 'WordPress folder' : (project.kind ?? 'unavailable')}</span>
 					<span className="truncate font-mono" title={project.path}>

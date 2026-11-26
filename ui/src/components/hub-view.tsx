@@ -1,24 +1,24 @@
-import { FolderPlusIcon, PlayIcon, PlusIcon, SquareIcon } from 'lucide-react';
+import { PlayIcon, SquareIcon } from 'lucide-react';
 import { DepthControl } from '@/components/depth-control';
 import { Button } from '@/components/ui/button';
-import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
-import { Item, ItemActions, ItemContent, ItemDescription, ItemGroup, ItemSeparator, ItemTitle } from '@/components/ui/item';
+import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty';
+import { Item, ItemActions, ItemContent, ItemDescription, ItemGroup, ItemTitle } from '@/components/ui/item';
 import { Progress } from '@/components/ui/progress';
 import type { Depth, Project } from '@/lib/api';
-import { lastRunText, plural, progress, projectTone, runModel, timeAgo } from '@/lib/run';
+import { groupProjects, lastRunText, plural, progress, projectTone, runModel, shortPath, timeAgo } from '@/lib/run';
+import { cn } from '@/lib/utils';
 import type { Tone, WireEvent } from '@/lib/run';
 
 const DOT: Record<Tone, { color: string; label: string }> = {
 	error: { color: 'bg-destructive', label: 'The last run found errors.' },
-	warning: { color: 'bg-amber-500', label: 'The last run found warnings.' },
-	clean: { color: 'bg-emerald-500', label: 'The last run was clean.' },
+	warning: { color: 'bg-warning', label: 'The last run found warnings.' },
+	clean: { color: 'bg-success', label: 'The last run was clean.' },
 	none: { color: 'bg-muted-foreground/40', label: 'Not run yet.' },
 };
 
-function kindText(p: Project): string {
-	if (p.kind === 'theme') return 'theme';
-	if (p.kind === 'plugin') return 'plugin';
-	return `WordPress folder · ${plural(p.units, 'part', 'parts')}`;
+function kindText(p: Project, home: string): string {
+	if (p.kind === 'install') return `${plural(p.units, 'theme or plugin', 'themes and plugins')} inside`;
+	return shortPath(p.path, home);
 }
 
 function Status({ project, events }: { project: Project; events: WireEvent[] }) {
@@ -37,24 +37,26 @@ function Status({ project, events }: { project: Project; events: WireEvent[] }) 
 	}
 	return (
 		<div className="flex flex-col items-end">
-			<span className="text-sm">{lastRunText(project.last)}</span>
+			<span className={cn('text-sm', !project.last && 'text-muted-foreground')}>{lastRunText(project.last)}</span>
 			{project.last && <span className="text-muted-foreground text-xs">{timeAgo(project.last.finishedAt, Date.now())}</span>}
 		</div>
 	);
 }
 
-function Row({ project, events, onRun, onStop }: { project: Project; events: WireEvent[]; onRun: () => void; onStop: () => void }) {
+function Row({ project, home, events, onRun, onStop }: { project: Project; home: string; events: WireEvent[]; onRun: () => void; onStop: () => void }) {
 	const tone = DOT[projectTone(project.last)];
 	const active = project.run !== undefined;
 	return (
-		<Item asChild>
+		<Item asChild className="hover:bg-accent/60 -mx-3 rounded-xl px-3 py-3 transition-colors duration-100">
 			<a href={`#/p/${project.id}`}>
 				<span className={`size-2 shrink-0 rounded-full ${tone.color}`}>
 					<span className="sr-only">{tone.label}</span>
 				</span>
 				<ItemContent className="min-w-0">
-					<ItemTitle>{project.name}</ItemTitle>
-					<ItemDescription className={project.problem ? 'text-destructive' : ''}>{project.problem ?? kindText(project)}</ItemDescription>
+					<ItemTitle className="text-[15px]">{project.name}</ItemTitle>
+					<ItemDescription className={project.problem ? 'text-destructive' : 'truncate'} title={project.problem ? undefined : project.path}>
+						{project.problem ?? kindText(project, home)}
+					</ItemDescription>
 				</ItemContent>
 				<ItemActions>
 					<Status project={project} events={events} />
@@ -85,48 +87,44 @@ interface Props {
 	onDepth: (depth: Depth) => void;
 	onRun: (ids: string[]) => void;
 	onStop: (id: string) => void;
-	onAdd: () => void;
+	home: string;
 }
 
-export function HubView({ projects, runs, depth, onDepth, onRun, onStop, onAdd }: Props) {
+export function HubView({ projects, runs, depth, onDepth, onRun, onStop, home }: Props) {
 	const runnable = projects.filter((p) => p.kind && !p.run).map((p) => p.id);
 	return (
-		<section className="flex flex-col gap-4">
-			<div className="flex flex-wrap items-center justify-between gap-3">
-				<h1 className="text-lg font-medium">Projects</h1>
+		<section className="flex flex-col gap-10">
+			<div className="flex flex-wrap items-end justify-between gap-4">
+				<h1 className="text-3xl font-semibold tracking-[-0.02em]">Projects</h1>
 				<div className="flex flex-wrap items-center gap-2">
 					<DepthControl value={depth} onChange={onDepth} />
 					<Button disabled={runnable.length === 0} onClick={() => onRun(runnable)}>
+						<PlayIcon />
 						Run all
-					</Button>
-					<Button variant="outline" onClick={onAdd}>
-						<PlusIcon />
-						Add
 					</Button>
 				</div>
 			</div>
 			{projects.length === 0 ? (
-				<Empty className="border">
+				<Empty className="py-16">
 					<EmptyHeader>
-						<EmptyMedia variant="icon">
-							<FolderPlusIcon />
-						</EmptyMedia>
-						<EmptyTitle>No projects yet</EmptyTitle>
-						<EmptyDescription>Add the folder of a theme, a plugin or a whole WordPress site.</EmptyDescription>
+						<EmptyTitle className="text-lg">No projects yet</EmptyTitle>
+						<EmptyDescription>Add the folder of a theme, a plugin or a whole WordPress site with the button below, or drop ZIP files anywhere on this page.</EmptyDescription>
 					</EmptyHeader>
-					<EmptyContent>
-						<Button onClick={onAdd}>Add a folder</Button>
-					</EmptyContent>
 				</Empty>
 			) : (
-				<ItemGroup className="gap-0">
-					{projects.map((p, i) => (
-						<div key={p.id}>
-							{i > 0 && <ItemSeparator className="my-0" />}
-							<Row project={p} events={runs[p.id] ?? []} onRun={() => onRun([p.id])} onStop={() => onStop(p.id)} />
-						</div>
-					))}
-				</ItemGroup>
+				groupProjects(projects).map((g) => (
+					<section key={g.title} aria-labelledby={`group-${g.title.replace(/ /g, '-')}`} className="flex flex-col gap-1">
+						<h2 id={`group-${g.title.replace(/ /g, '-')}`} className="text-muted-foreground flex items-baseline gap-2 text-sm font-medium">
+							{g.title}
+							<span className="text-muted-foreground/60 tabular-nums">{g.projects.length}</span>
+						</h2>
+						<ItemGroup className="gap-0">
+							{g.projects.map((p) => (
+								<Row key={p.id} project={p} home={home} events={runs[p.id] ?? []} onRun={() => onRun([p.id])} onStop={() => onStop(p.id)} />
+							))}
+						</ItemGroup>
+					</section>
+				))
 			)}
 		</section>
 	);

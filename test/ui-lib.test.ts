@@ -2,6 +2,9 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
   groupJobs,
+  groupProjects,
+  queueText,
+  shortPath,
   aiPrompt,
   crumbs,
   detectedText,
@@ -149,4 +152,35 @@ test('groupJobs puts the folder first and keeps one group per part', () => {
     ],
   );
   assert.deepEqual(groupJobs([job('wpcs')]).length, 1);
+});
+
+test('groupProjects orders themes, plugins, folders, then what cannot be tested, and drops empty groups', () => {
+  const p = (name: string, kind?: string) => ({ name, ...(kind ? { kind } : {}) });
+  const groups = groupProjects([p('gone'), p('cart', 'plugin'), p('aurora', 'theme'), p('lumen', 'theme')]);
+  assert.deepEqual(
+    groups.map((g) => [g.title, g.projects.map((x) => x.name)]),
+    [
+      ['Themes', ['aurora', 'lumen']],
+      ['Plugins', ['cart']],
+      ['Cannot be tested', ['gone']],
+    ],
+  );
+});
+
+test('queueText counts running and queued projects', () => {
+  assert.equal(queueText([{}, {}]), 'Idle');
+  assert.equal(queueText([{ run: 'running' }, { run: 'running' }, { run: 'queued' }]), '2 running, 1 queued');
+  assert.equal(queueText([{ run: 'queued' }]), '1 queued');
+});
+
+test('shortPath writes the home folder as ~ and leaves other paths alone', () => {
+  assert.equal(shortPath('/Users/a/Sites/aurora', '/Users/a'), '~/Sites/aurora');
+  assert.equal(shortPath('/Users/a', '/Users/a'), '~');
+  assert.equal(shortPath('/Users/ab/x', '/Users/a'), '/Users/ab/x');
+  assert.equal(shortPath('/tmp/x', ''), '/tmp/x');
+});
+
+test('groupProjects puts a kind without a group of its own into the last group', () => {
+  const groups = groupProjects([{ name: 'site', kind: 'url' }, { name: 'gone' }]);
+  assert.deepEqual(groups.map((g) => [g.title, g.projects.map((x) => x.name)]), [['Cannot be tested', ['site', 'gone']]]);
 });

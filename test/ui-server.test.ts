@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
 import { test } from 'node:test';
@@ -8,11 +9,11 @@ import { runSession } from '../src/session.ts';
 import { startUi } from '../src/ui/server.ts';
 import type { Engine } from '../src/types.ts';
 import { root, testHome } from './env.ts';
-import { fakeEngine, makeTheme, raw, tmp, write } from './helpers.ts';
+import { fakeEngine, makeTheme, raw, tmp, write, zipOf } from './helpers.ts';
 
 const found = fakeEngine('found', ['theme'], async () => [raw()]);
 
-async function boot(t: TestContext, engines: Engine[] = [found]) {
+async function boot(t: TestContext, engines: Engine[] = [found], extra: Partial<Parameters<typeof startUi>[0]> = {}) {
   const home = tmp(t);
   const old = process.env.WP_SHAKEDOWN_HOME;
   process.env.WP_SHAKEDOWN_HOME = home;
@@ -21,7 +22,7 @@ async function boot(t: TestContext, engines: Engine[] = [found]) {
     else process.env.WP_SHAKEDOWN_HOME = old;
   });
   const startDir = tmp(t);
-  const ui = await startUi({ engines, startDir, port: 0 });
+  const ui = await startUi({ engines, startDir, port: 0, ...extra });
   t.after(() => ui.close());
   const base = `http://127.0.0.1:${ui.port}`;
   const api = (p: string, init: RequestInit = {}) =>
@@ -409,4 +410,61 @@ test('static routes serve only the page and plain file names under assets', asyn
   const missing = await get('/assets/nope.js');
   assert.equal(missing.status, 404);
   assert.ok(missing.headers.get('content-security-policy')?.includes("script-src 'self'"));
+});
+
+test('/api/state reports whether a folder dialog exists', async (t) => {
+  for (const [pick, want] of [[async () => '/x', true], [null, false]] as const) {
+    const { api } = await boot(t, [found], { pick });
+    assert.equal(((await (await api('/api/state')).json()) as { picker: boolean }).picker, want);
+  }
+});
+
+test('/api/pick returns the chosen path or a cancel', async (t) => {
+  const a = await boot(t, [found], { pick: async () => '/chosen' });
+  assert.deepEqual(await (await a.post('/api/pick', {})).json(), { path: '/chosen' });
+  const b = await boot(t, [found], { pick: async () => null });
+  assert.deepEqual(await (await b.post('/api/pick', {})).json(), { cancelled: true });
+});
+
+test('/api/pick answers 501 without a dialog and 500 when it fails', async (t) => {
+  const none = await boot(t, [found], { pick: null });
+  assert.equal((await none.post('/api/pick', {})).status, 501);
+  const bad = await boot(t, [found], { pick: async () => { throw new Error('no display'); } });
+  const res = await bad.post('/api/pick', {});
+  assert.equal(res.status, 500);
+  assert.match(((await res.json()) as { error: string }).error, /no display/);
+});
+
+test('/api/pick allows one dialog at a time', async (t) => {
+  let release!: (v: string) => void;
+  const { post } = await boot(t, [found], { pick: () => new Promise<string>((r) => (release = r)) });
+  const first = post('/api/pick', {});
+  await until(() => release !== undefined);
+  assert.equal((await post('/api/pick', {})).status, 409);
+  release('/done');
+  assert.deepEqual(await (await first).json(), { path: '/done' });
+});
+
+const themeZip = () => zipOf([{ name: 'aurora/style.css', data: '/*\nTheme Name: Aurora\n*/\n' }, { name: 'aurora/functions.php', data: '<?php\n' }]);
+
+test('/api/upload adds the project and removing it deletes the unpacked folder', async (t) => {
+  const { api, post } = await boot(t);
+  const up = await api('/api/upload', { method: 'POST', headers: { 'content-type': 'application/zip', 'x-file-name': encodeURIComponent('aurora.zip') }, body: new Uint8Array(themeZip()) });
+  assert.equal(up.status, 200);
+  const { project, added } = (await up.json()) as { project: Project & { path: string }; added: boolean };
+  assert.equal(added, true);
+  assert.ok(existsSync(project.path));
+  const list = (await (await api('/api/projects')).json()) as { projects: Project[] };
+  assert.ok(list.projects.some((p) => p.id === project.id));
+  assert.equal((await post('/api/projects/remove', { id: project.id })).status, 200);
+  assert.ok(!existsSync(project.path));
+});
+
+test('/api/upload rejects other content types and bad archives', async (t) => {
+  const { api } = await boot(t);
+  const json = await api('/api/upload', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' });
+  assert.equal(json.status, 415);
+  const bad = await api('/api/upload', { method: 'POST', headers: { 'content-type': 'application/zip', 'x-file-name': encodeURIComponent('my theme.zip') }, body: 'not a zip at all, only text' });
+  assert.equal(bad.status, 400);
+  assert.match(((await bad.json()) as { error: string }).error, /^my theme\.zip: /);
 });

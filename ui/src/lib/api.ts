@@ -26,6 +26,8 @@ export interface ServerState {
 	version: string;
 	home: string;
 	startDir: string;
+	/** Whether the server can open the system folder dialog. */
+	picker: boolean;
 	engines: EngineInfo[];
 	profiles: ProfileInfo[];
 }
@@ -86,6 +88,18 @@ export async function api<T>(path: string, body?: unknown): Promise<T> {
 }
 
 export const q = (path: string): string => encodeURIComponent(path);
+
+/** Sends one ZIP file to the server, which unpacks it and adds it as a project. */
+export async function upload(file: File): Promise<{ project: Project; added: boolean }> {
+	const res = await fetch('/api/upload', {
+		method: 'POST',
+		headers: { 'x-shakedown-token': token, 'content-type': 'application/zip', 'x-file-name': encodeURIComponent(file.name) },
+		body: file,
+	});
+	const data = (await res.json().catch(() => ({}))) as { error?: string; project: Project; added: boolean };
+	if (!res.ok) throw new Error(data.error ?? `The server answered ${res.status}.`);
+	return data;
+}
 
 /** Opens the event stream. The server sends what happened so far first, then each new event. */
 export function listen(on: {

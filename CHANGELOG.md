@@ -4,6 +4,17 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+### Added
+
+- The web page opens the folder dialog of your system to add a project: Finder on macOS, the folder browser on Windows, zenity or kdialog on Linux. The folder list and the path field stay as a second way.
+- ZIP files of themes, plugins and WordPress sites: upload one or several on the web page, or drop them on it, and their runs start in the queue. `wp-shakedown add` and `run` take a ZIP file too. A newer archive of the same theme replaces the old one and the runs compare.
+- The web page and `wp-shakedown list` group projects into themes, plugins and WordPress folders.
+- A dock at the bottom of the web page with the way home, the run status and the ways to add a project. Screens change with a short fade.
+
+### Changed
+
+- The web page is dark only, set in Inter, with neutral greys and larger type.
+
 ## [0.3.0] - 2026-11-25
 
 ### Added

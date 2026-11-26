@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict';
-import { rmSync, writeFileSync } from 'node:fs';
+import { existsSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { test } from 'node:test';
 import type { TestContext } from 'node:test';
 import { addProject, findProject, listProjects, removeProject } from '../src/projects.ts';
 import { runSession } from '../src/session.ts';
-import { makeTheme, tmp } from './helpers.ts';
+import { importZip } from '../src/uploads.ts';
+import { makeTheme, tmp, zipOf } from './helpers.ts';
 
 function home(t: TestContext): string {
   const dir = tmp(t);
@@ -48,6 +49,18 @@ test('removeProject returns true, then false', (t) => {
   assert.equal(removeProject('alpha'), true);
   assert.equal(removeProject('alpha'), false);
   assert.deepEqual(listProjects(), []);
+});
+
+test('removeProject deletes the unpacked folder of a ZIP project and leaves other folders', (t) => {
+  home(t);
+  const theme = makeTheme(tmp(t), 'Alpha');
+  const zipped = importZip(zipOf([{ name: 'beta/style.css', data: '/*\nTheme Name: Beta\n*/\n' }, { name: 'beta/index.php', data: '<?php\n' }]), 'beta.zip');
+  addProject(theme);
+  addProject(zipped);
+  assert.equal(removeProject('beta'), true);
+  assert.equal(removeProject('alpha'), true);
+  assert.equal(existsSync(zipped), false);
+  assert.equal(existsSync(theme), true);
 });
 
 test('a deleted folder shows a problem and no kind', (t) => {
