@@ -80,12 +80,12 @@ export const themeCheck: Engine = {
   title: 'Theme Check',
   kinds: ['theme'],
   level: 3,
-  variant: ({ themeCheck }) => themeCheck,
-  async run({ target, signal, note, themeCheck }) {
+  variant: ({ directory }) => (directory === 'envato' ? 'envato' : undefined),
+  async run({ target, signal, note, directory }) {
     await phpVersion(note);
     const tools = await phpTools(note);
     const r = await runPhp(
-      ['-d', 'memory_limit=-1', phpPath(runner), path.join(tools, 'vendor', ...(themeCheck === 'envato' ? ['envato', 'envato-theme-check'] : ['theme-check', 'theme-check'])), phpPath(target.path)],
+      ['-d', 'memory_limit=-1', phpPath(runner), path.join(tools, 'vendor', ...(directory === 'envato' ? ['envato', 'envato-theme-check'] : ['theme-check', 'theme-check'])), phpPath(target.path)],
       { note, ...(signal ? { signal } : {}) },
     );
     if (r.code !== 0) {

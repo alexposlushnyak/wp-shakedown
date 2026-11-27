@@ -1,6 +1,6 @@
 # 0022. Experimental engines are off until the user turns them on
 
-- Status: Accepted
+- Status: Superseded by [ADR 0031](0031-one-review-engine-and-directory-rules.md)
 - Date: 2026-11-24
 
 ## Context and problem statement

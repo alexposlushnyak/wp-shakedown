@@ -76,7 +76,7 @@ export const tools: Tool[] = [
     inputSchema: schema({}, []),
     annotations: { readOnlyHint: true },
     handler: async (_args, ctx) =>
-      JSON.stringify([...ctx.engines, ...customEngines()].map(({ id, title, kinds, level, experimental }) => ({ id, title, kinds, level, ...(experimental ? { experimental: true } : {}) })), null, 2),
+      JSON.stringify([...ctx.engines, ...customEngines()].map(({ id, title, kinds, level }) => ({ id, title, kinds, level })), null, 2),
   },
   {
     name: 'run_checks',
@@ -97,7 +97,7 @@ export const tools: Tool[] = [
           profile: { type: 'string', description: 'Old name of preset.' },
           level: { type: 'integer', minimum: 0, maximum: 10, description: 'How thorough the run is, from 0 to 10. A higher level runs more engines. The default is 6. A preset can set its own level.' },
           depth: { type: 'string', enum: ['quick', 'standard', 'deep'], description: 'Old name of level. quick, standard and deep are 3, 6 and 8.' },
-          experimental: { type: 'boolean', description: 'Also run the experimental engines, such as theme-review.' },
+          experimental: { type: 'boolean', description: 'Old name. It raises the level to at least 7 and, without a preset, runs the wordpress.org review rules.' },
           type: { type: 'string', enum: ['theme', 'plugin', 'install'], description: 'Use only when detection is wrong.' },
         },
         ['path'],
@@ -131,7 +131,7 @@ export const tools: Tool[] = [
             if (e.type === 'run:start') total = e.jobs.length;
             else if (e.type === 'engine:end') {
               done++;
-              ctx.progress(done, total, `${e.run.engine}${e.run.unit ? ' ' + e.run.unit : ''}: ${e.run.status}`);
+              ctx.progress(done, total, `${e.run.engine}: ${e.run.status}`);
             }
           },
         });

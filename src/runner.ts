@@ -1,12 +1,11 @@
-import { statSync } from 'node:fs';
 import path from 'node:path';
 import { applyBaseline } from './baseline.ts';
 import { assignIds } from './fingerprint.ts';
-import { unitLabel } from './target.ts';
 import { VERSION } from './version.ts';
-import { DEFAULT_LEVEL, EngineSkipped } from './types.ts';
+import { DEFAULT_LEVEL, EngineSkipped, MAX_LEVEL } from './types.ts';
 import type {
   Baseline,
+  Directory,
   Engine,
   EngineRun,
   Finding,
@@ -22,20 +21,13 @@ export interface RunOptions {
   engines: Engine[];
   only?: string[];
   preset?: string;
-  /** Envato's fork of Theme Check, when the preset asks for it. */
-  themeCheck?: 'envato';
+  /** The directory whose rules the run applies, when the preset names one. */
+  directory?: Directory;
   level?: number;
-  experimental?: boolean;
   baseline?: Baseline;
   signal?: AbortSignal;
   onEvent?: (e: RunEvent) => void;
   now?: () => Date;
-}
-
-interface Job {
-  engine: Engine;
-  target: Target;
-  unit?: Target;
 }
 
 const posix = (p: string): string => p.split('\\').join('/');
@@ -45,16 +37,6 @@ function relInside(base: string, p: string): string {
   if (!path.isAbsolute(p)) return p;
   const r = path.relative(base, p);
   return r === '' || r.startsWith('..') || path.isAbsolute(r) ? p : r;
-}
-
-function normaliseFile(file: string, job: Job, root: Target): string {
-  if (job.unit) {
-    const unitRel = path.relative(root.path, job.unit.path);
-    // A one-file plugin: every finding points at the plugin file itself.
-    if (statSync(job.unit.path, { throwIfNoEntry: false })?.isFile()) return posix(unitRel);
-    return posix(path.join(unitRel, relInside(job.target.path, file)));
-  }
-  return posix(relInside(job.target.path, file));
 }
 
 function sortKey(f: Finding): [string, number, number, string, string] {
@@ -79,48 +61,40 @@ export async function run(target: Target, opts: RunOptions): Promise<RunResult> 
     if (!known.includes(id)) throw new Error(`Unknown engine "${id}". Known engines: ${known.join(', ') || 'none'}.`);
   }
   const level = opts.level ?? DEFAULT_LEVEL;
+  // Rules of a directory run at level 10 without a preset, so the command that runs one engine again keeps them.
+  const rerunLevel = opts.directory ? ` --level ${MAX_LEVEL}` : level !== DEFAULT_LEVEL ? ` --level ${level}` : '';
   const named = opts.only ? opts.engines.filter((e) => opts.only!.includes(e.id)) : opts.engines;
   // Engines named by hand skip the level filter. A preset names engines too, but it keeps the filter.
   const byHand = opts.only !== undefined && opts.preset === undefined;
-  const passes = (e: Engine): boolean => byHand || e.level <= level || (e.experimental === true && opts.experimental === true);
+  const passes = (e: Engine): boolean => byHand || e.level <= level;
   const active = named.filter(passes);
-  const kindsHere = new Set<string>([target.kind, ...target.units.map((u) => u.kind)]);
-  const leftOut = named.some((e) => !passes(e) && e.kinds.some((k) => kindsHere.has(k)));
+  const leftOut = named.some((e) => !passes(e) && e.kinds.includes(target.kind));
   const now = opts.now ?? (() => new Date());
   const emit = opts.onEvent ?? (() => {});
 
-  const jobs: Job[] = active.filter((e) => e.kinds.includes(target.kind)).map((engine) => ({ engine, target }));
-  if (target.kind === 'install') {
-    for (const unit of target.units) {
-      for (const engine of active) if (engine.kinds.includes(unit.kind)) jobs.push({ engine, target: unit, unit });
-    }
-  }
+  // A WordPress folder runs the install engines only. A theme or plugin inside it is tested by giving its own folder.
+  const jobs = active.filter((e) => e.kinds.includes(target.kind));
 
   const startedAt = now().toISOString();
-  emit({
-    type: 'run:start',
-    target,
-    jobs: jobs.map((j) => ({ engine: j.engine.id, ...(j.unit ? { unit: unitLabel(j.unit) } : {}) })),
-  });
+  emit({ type: 'run:start', target, jobs: jobs.map((engine) => ({ engine: engine.id })) });
 
   const engineRuns: EngineRun[] = [];
   const raw: Omit<Finding, 'id'>[] = [];
   // shortcut: engines run one at a time. Run them in parallel once real engines make a run slow.
-  for (const job of jobs) {
+  for (const engine of jobs) {
     if (opts.signal?.aborted) break;
-    const unit = job.unit ? unitLabel(job.unit) : undefined;
-    emit({ type: 'engine:start', engine: job.engine.id, ...(unit ? { unit } : {}) });
+    emit({ type: 'engine:start', engine: engine.id });
     const t0 = performance.now();
     let status: EngineRun['status'] = 'ok';
     let reason: string | undefined;
     let found: RawFinding[] = [];
     try {
-      found = await job.engine.run({
-        target: job.target,
+      found = await engine.run({
+        target,
         ...(opts.preset ? { preset: opts.preset } : {}),
-        ...(opts.themeCheck ? { themeCheck: opts.themeCheck } : {}),
+        ...(opts.directory ? { directory: opts.directory } : {}),
         level,
-        note: (message) => emit({ type: 'engine:note', engine: job.engine.id, ...(unit ? { unit } : {}), message }),
+        note: (message) => emit({ type: 'engine:note', engine: engine.id, message }),
         ...(opts.signal ? { signal: opts.signal } : {}),
       });
     } catch (err) {
@@ -128,10 +102,9 @@ export async function run(target: Target, opts: RunOptions): Promise<RunResult> 
       else status = 'failed';
       reason = err instanceof Error ? err.message : String(err);
     }
-    const variant = job.engine.variant?.({ ...(opts.preset ? { preset: opts.preset } : {}), ...(opts.themeCheck ? { themeCheck: opts.themeCheck } : {}) });
+    const variant = engine.variant?.({ ...(opts.preset ? { preset: opts.preset } : {}), ...(opts.directory ? { directory: opts.directory } : {}), level });
     const er: EngineRun = {
-      engine: job.engine.id,
-      ...(unit ? { unit } : {}),
+      engine: engine.id,
       status,
       durationMs: Math.round(performance.now() - t0),
       findings: found.length,
@@ -141,13 +114,12 @@ export async function run(target: Target, opts: RunOptions): Promise<RunResult> 
     engineRuns.push(er);
     for (const f of found) {
       const location = { ...f.location };
-      if (location.file !== undefined) location.file = normaliseFile(location.file, job, target);
+      if (location.file !== undefined) location.file = posix(relInside(target.path, location.file));
       raw.push({
         ...f,
         location,
-        engine: job.engine.id,
-        ...(unit ? { unit } : {}),
-        rerun: `wp-shakedown run "${target.path}" --engine ${job.engine.id}`,
+        engine: engine.id,
+        rerun: `wp-shakedown run "${target.path}" --engine ${engine.id}${rerunLevel}`,
       });
     }
     emit({ type: 'engine:end', run: er });
@@ -180,7 +152,7 @@ export async function run(target: Target, opts: RunOptions): Promise<RunResult> 
     },
     ...(opts.preset ? { preset: opts.preset } : {}),
     level,
-    ...(opts.experimental ? { experimental: true as const } : {}),
+    ...(opts.directory ? { directory: opts.directory } : {}),
     startedAt,
     finishedAt: now().toISOString(),
     engines: engineRuns,

@@ -125,7 +125,3 @@ export function detectTarget(input: string, opts: { type?: 'theme' | 'plugin' | 
   name ??= kind === 'theme' ? themeName(abs) : pluginName(abs);
   return { kind, path: abs, name: name ?? base, units: [] };
 }
-
-export function unitLabel(unit: Target): string {
-  return `${unit.kind}:${path.basename(unit.path).replace(/\.php$/, '')}`;
-}

@@ -8,6 +8,8 @@ import { toFindings } from '../src/engines/theme-check.ts';
 import { parseLint } from '../src/engines/php-lint.ts';
 import { exec, NotFound } from '../src/exec.ts';
 import { phpFiles, requiresPhp } from '../src/php/files.ts';
+import { dominantPrefix } from '../src/php/prefix.ts';
+import { escapingSuppressed } from '../src/php/suppressions.ts';
 import { ignorePattern, parsePhpcs } from '../src/php/phpcs.ts';
 import type { PhpcsMessage } from '../src/php/phpcs.ts';
 import { progressLine } from '../src/progress.ts';
@@ -94,9 +96,8 @@ test('requiresPhp reads style.css, plugin headers and readme.txt', (t) => {
 test('progressLine formats events', () => {
   const run = (over: Partial<EngineRun>): EngineRun => ({ engine: 'wpcs', status: 'ok', durationMs: 1250, findings: 2, ...over });
   assert.equal(progressLine({ type: 'engine:note', engine: 'wpcs', message: 'Hello.' }), '  wpcs: Hello.');
-  assert.equal(progressLine({ type: 'engine:note', engine: 'wpcs', unit: 'theme:a', message: 'Hello.' }), '  wpcs theme:a: Hello.');
   assert.equal(progressLine({ type: 'engine:end', run: run({}) }), 'ok wpcs: 2 findings, 1.3s');
-  assert.equal(progressLine({ type: 'engine:end', run: run({ findings: 1, unit: 'plugin:p' }) }), 'ok wpcs plugin:p: 1 finding, 1.3s');
+  assert.equal(progressLine({ type: 'engine:end', run: run({ findings: 1 }) }), 'ok wpcs: 1 finding, 1.3s');
   assert.equal(progressLine({ type: 'engine:end', run: run({ status: 'skipped', reason: 'No PHP.' }) }), 'skipped wpcs: No PHP.');
   assert.equal(progressLine({ type: 'engine:end', run: run({ status: 'failed', reason: 'Boom.' }) }), 'failed wpcs: Boom.');
   assert.equal(progressLine({ type: 'engine:start', engine: 'wpcs' }), undefined);
@@ -118,6 +119,57 @@ test('requiresPhp reads a version without a minor part as .0', (t) => {
 test('ignorePattern is anchored to the target and escapes it', () => {
   assert.equal(ignorePattern('/a/vendor/my.plugin (1)'), '^/a/vendor/my\\.plugin \\(1\\)/(.+/)?(vendor|node_modules)/');
   assert.equal(ignorePattern('/a,b'), '^/a\\,b/(.+/)?(vendor|node_modules)/');
+});
+
+const php = (text: string) => [{ path: 'a.php', text: `<?php\n${text}` }];
+
+test('dominantPrefix finds the prefix of a theme', () => {
+  const files = php(`
+function twenty_twenty_one_setup() {}
+class Twenty_Twenty_One_SVG_Icons {}
+function twenty_twenty_one_get_icon_svg() {}
+do_action( 'twenty_twenty_one_after_header' );
+`);
+  assert.equal(dominantPrefix(files), 'twenty_twenty_one');
+});
+
+test('dominantPrefix finds the prefix of a plugin from functions and constants', () => {
+  const files = php(`
+define( 'ACME_VERSION', '1.0' );
+function acme_init() {}
+function acme_render() {}
+apply_filters( "acme_title", $t );
+`);
+  assert.equal(dominantPrefix(files), 'acme');
+});
+
+test('dominantPrefix ignores methods, comments and strings', () => {
+  const files = php(`
+class Acme_Box {
+	function other_one() {}
+	public function other_two() {}
+	function other_three() {}
+}
+// function other_four() {}
+$s = 'function other_five() {}';
+function acme_a() {}
+function acme_b() {}
+`);
+  assert.equal(dominantPrefix(files), 'acme');
+});
+
+test('dominantPrefix needs three names', () => {
+  assert.equal(dominantPrefix(php('function acme_a() {}\nfunction acme_b() {}\n')), undefined);
+});
+
+test('dominantPrefix returns nothing when no prefix covers 60% of the names', () => {
+  const files = php('function acme_a() {}\nfunction acme_b() {}\nfunction acme_c() {}\nfunction beta_a() {}\nfunction gamma_a() {}\nfunction delta_a() {}\n');
+  assert.equal(dominantPrefix(files), undefined);
+});
+
+test('dominantPrefix does not count WordPress names', () => {
+  const files = php('function wp_a() {}\nfunction wp_b() {}\nfunction wp_c() {}\nfunction get_x() {}\nfunction acme_a() {}\nfunction acme_b() {}\n');
+  assert.equal(dominantPrefix(files), undefined);
 });
 
 test('theme check: a required message becomes an error with its line', () => {
@@ -163,4 +215,26 @@ test('theme check: docs link, decoded entities and rule names', () => {
   assert.equal(f!.rule, 'textdomain');
   assert.equal(f!.category, 'i18n');
   assert.equal(f!.severity, 'info');
+});
+
+test('escapingSuppressed reports ignore comments that hide output from EscapeOutput', () => {
+  const lines = (php: string) => escapingSuppressed('a.php', php).map((f) => [f.location.line, f.severity]);
+  // Same line, no reason: a warning.
+  assert.deepEqual(lines("<?php\necho $title; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped\n"), [[2, 'warning']]);
+  // On its own line, it covers the next line. A reason after -- makes it a note.
+  assert.deepEqual(lines("<?php\n// phpcs:ignore WordPress.Security.EscapeOutput -- escaped in the helper\necho $html;\n"), [[2, 'info']]);
+  // A blanket ignore covers escaping too.
+  assert.deepEqual(lines('<?php\n?><p><?= $x ?></p><?php // phpcs:ignore\n'), [[2, 'warning']]);
+  // A disable block reports once, at the disable line.
+  assert.deepEqual(lines('<?php\n// phpcs:disable WordPress.Security\nprintf( $a );\necho $b;\n// phpcs:enable\n'), [[2, 'warning']]);
+  // Other sniffs, or no output under the comment: nothing.
+  assert.deepEqual(lines('<?php\necho $x; // phpcs:ignore WordPress.WP.I18n\n'), []);
+  assert.deepEqual(lines('<?php\n$x = 1; // phpcs:ignore\n'), []);
+  assert.deepEqual(lines('<?php\n// phpcs:ignore WordPress.DB.DirectDatabaseQuery\n$wpdb->query( $sql );\n'), []);
+});
+
+test('dominantPrefix ignores hooks a theme fires for other plugins', () => {
+  const woo = Array.from({ length: 30 }, (_, i) => `do_action( 'woocommerce_hook_${i}' );`).join('\n');
+  const own = ['mytheme_setup', 'mytheme_assets', 'mytheme_menus', 'mytheme_widgets'].map((n) => `function ${n}() {}`).join('\n');
+  assert.equal(dominantPrefix([{ path: 'functions.php', text: `<?php\n${own}\n` }, { path: 'woocommerce/archive-product.php', text: `<?php\n${woo}\n` }]), 'mytheme');
 });

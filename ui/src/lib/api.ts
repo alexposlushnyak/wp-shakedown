@@ -15,7 +15,6 @@ export interface EngineInfo {
 	kinds: string[];
 	/** The lowest level, 0 to 10, that runs the engine. */
 	level: number;
-	experimental?: boolean;
 }
 
 export type FailOn = 'error' | 'warning' | 'info' | 'never';
@@ -28,6 +27,8 @@ export interface PresetInfo {
 	engines: string[];
 	level?: number;
 	failOn?: FailOn;
+	/** The directory whose rules the preset applies. */
+	directory?: 'wporg' | 'envato';
 	/** Built-in presets come with the tool and cannot be changed. */
 	builtIn?: boolean;
 }
@@ -68,11 +69,10 @@ export interface Project {
 
 export interface ProjectReport {
 	summary: Summary;
-	engines: { engine: string; unit?: string; status: Exclude<JobStatus, 'waiting' | 'running'>; durationMs: number; findings: number; reason?: string }[];
+	engines: { engine: string; status: Exclude<JobStatus, 'waiting' | 'running'>; durationMs: number; findings: number; reason?: string }[];
 	finishedAt: string;
 	preset?: string;
 	level?: number;
-	experimental?: boolean;
 	diff?: { fixed: number; added: number; open: number };
 	files: string[];
 	dir: string;

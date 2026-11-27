@@ -28,7 +28,7 @@ The types below are in [`src/types.ts`](../../src/types.ts).
 | `location.url`, `location.selector` | string | For findings on a page instead of a file |
 | `hint` | string | How to fix it |
 | `docs` | string | A URL with more detail |
-| `unit` | string | In a WordPress folder, the theme or plugin it belongs to, as `theme:<folder>` or `plugin:<folder>` |
+| `unit` | string | Only in reports from versions that ran the code checks on each theme and plugin of a WordPress folder, as `theme:<folder>` or `plugin:<folder>` |
 | `rerun` | string | The command that runs this engine again |
 | `suppressed.reason` | string | Set when a baseline entry silences the finding |
 
@@ -61,7 +61,8 @@ The ID is a hash of the engine, the rule, the unit, the file or URL, the selecto
 | `target` | Kind, path and name of what was tested, and for a WordPress folder the themes and plugins found in it |
 | `preset` | ID of the [preset](presets.md) the run used. Absent when it used none |
 | `level` | The [level](cli.md#levels) of the run, an integer from 0 to 10 |
-| `experimental` | `true` when the run had experimental checks on. Absent otherwise |
+| `directory` | `wporg` or `envato` when the preset names a directory, absent otherwise. See [presets](presets.md#directory-rules) |
+| `experimental` | Only in reports from versions that had experimental engines. Newer versions do not write it |
 | `startedAt`, `finishedAt` | ISO 8601 timestamps |
 | `engines` | One entry per engine run: status `ok`, `skipped` or `failed`, duration, number of findings, the reason when it did not run, and the `variant` when the engine ran another version of its tool |
 | `findings` | Every finding, sorted by file, then line |

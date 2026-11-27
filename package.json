@@ -29,7 +29,8 @@
     "typecheck": "tsc -p tsconfig.json",
     "test": "node --test \"test/**/*.test.ts\"",
     "build:ui": "npm --prefix ui run build",
-    "build:core": "tsc -p tsconfig.build.json"
+    "build:core": "tsc -p tsconfig.build.json",
+    "tools:check": "node scripts/tools-check.mjs"
   },
   "repository": {
     "type": "git",

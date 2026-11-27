@@ -91,6 +91,18 @@ describe('php engines', opts, () => {
     assert.deepEqual(lines, [2]);
   });
 
+  test('wpcs passes the dominant prefix and flags a global without it', async (t) => {
+    const dir = makeTheme(tmp(t));
+    write(path.join(dir, 'functions.php'), '<?php\nfunction mytheme_a() {}\nfunction mytheme_b() {}\nfunction mytheme_c() {}\nfunction mytheme_d() {}\nfunction other_func() {}\n');
+    const events: RunEvent[] = [];
+    const r = await run(detectTarget(dir), { engines: [wpcs], onEvent: (e) => events.push(e) });
+    assert.equal(r.engines[0]!.status, 'ok', r.engines[0]!.reason);
+    assert.ok(events.some((e) => e.type === 'engine:note' && e.message === 'Using the prefix "mytheme" for global names.'));
+    const hits = r.findings.filter((f) => f.rule.startsWith('WordPress.NamingConventions.PrefixAllGlobals'));
+    assert.equal(hits.length, 1, JSON.stringify(hits));
+    assert.ok(hits[0]!.message.includes('other_func'));
+  });
+
   test('wp-json reports schema and syntax problems in a theme', async (t) => {
     const dir = makeTheme(tmp(t));
     write(path.join(dir, 'theme.json'), '{"$schema":"https://schemas.wp.org/trunk/theme.json","version":3,"settings":{"notARealSetting":true}}');
@@ -161,7 +173,7 @@ describe('php engines', opts, () => {
     write(path.join(dir, 'index.php'), '<?php\n');
     write(path.join(dir, 'functions.php'), '<?php\nmkdir( "x" );\n');
     const target = detectTarget(dir);
-    const envato = await run(target, { engines: [themeCheck], only: ['theme-check'], preset: 'envato', themeCheck: 'envato' });
+    const envato = await run(target, { engines: [themeCheck], only: ['theme-check'], preset: 'envato', directory: 'envato' });
     assert.equal(envato.engines[0]!.status, 'ok', envato.engines[0]!.reason);
     assert.equal(envato.engines[0]!.variant, 'envato');
     const own = envato.findings.find((f) => f.rule === 'themeforest');

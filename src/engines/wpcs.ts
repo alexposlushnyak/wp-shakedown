@@ -1,7 +1,10 @@
-import { existsSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+import { phpFiles } from '../php/files.ts';
 import { phpPath } from '../php/php.ts';
+import { dominantPrefix } from '../php/prefix.ts';
 import { runPhpcs } from '../php/phpcs.ts';
+import { escapingSuppressed } from '../php/suppressions.ts';
 import type { PhpcsMessage } from '../php/phpcs.ts';
 import { textDomain } from '../target.ts';
 import type { Category, Engine, RawFinding, Severity } from '../types.ts';
@@ -50,6 +53,16 @@ export function pluginRuleset(tools: string): string {
   return file;
 }
 
+function readPhp(target: string): { path: string; text: string }[] {
+  return phpFiles(target).flatMap((p) => {
+    try {
+      return [{ path: p, text: readFileSync(p, 'utf8') }];
+    } catch {
+      return [];
+    }
+  });
+}
+
 const RULESETS = ['.phpcs.xml', 'phpcs.xml', '.phpcs.xml.dist', 'phpcs.xml.dist'];
 
 export const wpcs: Engine = {
@@ -71,6 +84,17 @@ export const wpcs: Engine = {
     // A text domain from the command line would override the one a project ruleset sets.
     const domain = own ? undefined : textDomain(target);
     const extra = domain ? ['--runtime-set', 'text_domain', domain] : [];
-    return (await runPhpcs({ target, standard, extra, ...(signal ? { signal } : {}), note })).map(toFinding);
+    // PrefixAllGlobals stays silent without prefixes, and a project ruleset sets its own.
+    const files = readPhp(target.path);
+    const prefix = own ? undefined : dominantPrefix(files);
+    if (prefix) {
+      extra.push('--runtime-set', 'prefixes', prefix);
+      note(`Using the prefix "${prefix}" for global names.`);
+    }
+    const found = (await runPhpcs({ target, standard, extra, ...(signal ? { signal } : {}), note })).map(toFinding);
+    // WPCS honours its own ignore comments, so output hidden from EscapeOutput needs a look of its own.
+    const root = statSync(target.path).isDirectory() ? target.path : path.dirname(target.path);
+    for (const f of files) found.push(...escapingSuppressed(path.relative(root, f.path).split(path.sep).join('/'), f.text));
+    return found;
   },
 };

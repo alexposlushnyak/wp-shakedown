@@ -1,6 +1,6 @@
 # What theme reviewers ask for
 
-The `theme-review` engine is experimental. Its rules do not come from a handbook. They come from a study of what reviewers of the wordpress.org theme directory wrote in review tickets. This document describes the study, so you can judge how much weight a finding of that engine deserves.
+The `review` engine has rules that do not come from a handbook. They come from a study of what reviewers of the wordpress.org theme directory wrote in review tickets. This document describes the study, so you can judge how much weight a finding of those rules deserves.
 
 ## The study
 
@@ -42,9 +42,11 @@ Remarks about design came up in 36% of the reviews. They are specific to each th
 
 ## What the engine checks
 
-A rule made it into the engine when reviewers raise the point often, a tool can see it in the files, and Theme Check and the WordPress Coding Standards do not report it already. [Engines](../reference/engines.md#theme-review) lists the rules.
+A rule made it into the engine when reviewers raise the point often, a tool can see it in the files, and Theme Check and the WordPress Coding Standards do not report it already. [Engines](../reference/engines.md#review) lists the rules.
 
 Several frequent points are not in the engine, because files alone do not show them: keyboard focus, menus that do not work, and whether the screenshot shows the theme. Those need a browser and a running WordPress.
+
+Three more points are in the engine: admin notices that the user cannot dismiss, a redirect after activation, and a `readme.txt` that is not in English. Prefixes are checked by the `wpcs` engine.
 
 ## Limits
 

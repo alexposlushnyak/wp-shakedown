@@ -7,6 +7,7 @@ import { findPreset, presetEngines } from './presets.ts';
 import { customEngines } from './engines/custom.ts';
 import { run } from './runner.ts';
 import { detectTarget } from './target.ts';
+import { DEFAULT_LEVEL } from './types.ts';
 import type { Engine, RunDiff, RunEvent, RunResult } from './types.ts';
 
 export interface SessionOptions {
@@ -18,6 +19,7 @@ export interface SessionOptions {
   profile?: string;
   /** The level of the run. A preset with a level sets it when this is absent. */
   level?: number;
+  /** Old name from the command line and MCP. It raises the level to at least 7. */
   experimental?: boolean;
   out?: string;
   baselineFile?: string;
@@ -41,7 +43,10 @@ export async function runSession(opts: SessionOptions): Promise<SessionResult> {
   const all = [...opts.engines, ...customEngines(target)];
   const only = preset ? presetEngines(preset, target, all.map((e) => e.id)) : opts.only;
   const found = preset ? findPreset(preset) : undefined;
-  const level = opts.level ?? found?.level;
+  let level = opts.level ?? found?.level;
+  // The old --experimental flag asked for the reviewer rules of wordpress.org: level 7 with the wporg directory rules.
+  if (opts.experimental) level = Math.max(level ?? DEFAULT_LEVEL, 7);
+  const directory = found?.directory ?? (opts.experimental ? 'wporg' : undefined);
   let baselineFile = opts.baselineFile;
   if (!baselineFile && target.kind !== 'url') {
     const candidate = path.join(target.path, 'wp-shakedown-baseline.json');
@@ -55,9 +60,8 @@ export async function runSession(opts: SessionOptions): Promise<SessionResult> {
     engines: all,
     ...(only ? { only } : {}),
     ...(preset ? { preset } : {}),
-    ...(found?.themeCheck ? { themeCheck: found.themeCheck } : {}),
+    ...(directory ? { directory } : {}),
     ...(level !== undefined ? { level } : {}),
-    ...(opts.experimental ? { experimental: true } : {}),
     ...(baseline ? { baseline } : {}),
     ...(opts.onEvent ? { onEvent: opts.onEvent } : {}),
     ...(opts.signal ? { signal: opts.signal } : {}),

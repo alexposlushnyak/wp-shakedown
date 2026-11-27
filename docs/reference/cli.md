@@ -14,7 +14,7 @@ wp-shakedown run <path> [options]
 | `style.css` with a `Theme Name` header | a theme |
 | a PHP file with a `Plugin Name` header | a plugin |
 
-In a WordPress folder the tool lists every theme in `wp-content/themes` and every plugin in `wp-content/plugins`, and runs the code checks on each one.
+A WordPress folder is tested as an install: file integrity, updates, known vulnerabilities, settings and the health of the site. The tool does not run the code checks on the themes and plugins inside it. To test one of them, give the path of its own folder, for example `wp-content/themes/my-theme`.
 
 ### Options
 
@@ -23,8 +23,7 @@ In a WordPress folder the tool lists every theme in `wp-content/themes` and ever
 | `--type <kind>` | Treats the path as `theme`, `plugin` or `install` without looking |
 | `--engine <id>` | Runs only this engine. Repeat it for more than one. [Engines](engines.md) lists the IDs |
 | `--preset <id>` | Runs the engines of one [preset](presets.md): `wporg-theme`, `envato`, `wporg-plugin`, `client`, `site`, or a preset of your own. It does not combine with `--engine`. `--profile` is the old name |
-| `--level <n>` | Sets how thorough the run is, from 0 to 10. The names `quick`, `standard` and `deep` work as 3, 6 and 8. The default is 6. A preset can set its own level. See [Levels](#levels). `--depth` is the old name |
-| `--experimental` | Also runs the experimental engines. Today that is [`theme-review`](engines.md#theme-review) |
+| `--level <n>` | Sets how thorough the run is, from 0 to 10. The names `quick`, `standard` and `deep` work as 3, 6 and 8. The default is 6. A preset can set its own level. See [Levels](#levels). `--depth` is the old name. `--experimental` is another old name: it raises the level to at least 7 and, without a preset, turns on the review rules of wordpress.org |
 | `--out <dir>` | Writes the report to this folder |
 | `--baseline <file>` | Uses this baseline file |
 | `--fail-on <name>` | Sets the severity that makes the command exit 1: `critical`, `important`, `recommended` or `never`. The default is `critical`. The old names `error`, `warning` and `info` work too. A [preset](presets.md) can set it |
@@ -38,11 +37,11 @@ A level from 0 to 10 sets how thorough a run is. Each engine has a level, and a 
 | 0 | `php-lint` | Does the PHP parse. It takes seconds |
 | 1 | `wp-json` | `theme.json` and `block.json` |
 | 2 | `config` | Risky settings in a WordPress folder |
-| 3 | `theme-check` | The checks of the wordpress.org theme directory. `quick` is 3 |
+| 3 | `theme-check`, and the font rules of `review` | The checks of the wordpress.org theme directory. `quick` is 3 |
 | 4 | `integrity`, `updates`, `vulnerabilities`, `site-health` | Whether a WordPress folder is intact, current and safe |
 | 5 | `wpcs`, `php-compat` | The WordPress Coding Standards and PHP versions |
 | 6 | `eslint`, `stylelint` | JavaScript and CSS. This is the default, and `standard` is 6 |
-| 7 | `theme-review`, `activation-lock` | What the directories require beyond the tools above |
+| 7 | The directory rules of `review` | What wordpress.org and ThemeForest require beyond the tools above, when a preset names the directory |
 | 8 | `phpstan` | Static analysis. `deep` is 8 |
 | 9, 10 | Nothing yet | Room for narrow checks |
 

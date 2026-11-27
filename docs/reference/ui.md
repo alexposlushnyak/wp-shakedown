@@ -44,7 +44,9 @@ The list is the file `~/.wp-shakedown/projects.json`, the same one [`wp-shakedow
 
 ## One project
 
-Select a line to open the project. There you choose a [preset](presets.md) and the level, and start or stop the run. For a theme, a switch turns on the [experimental checks](engines.md#theme-review) from theme reviews. While it runs, every engine has a line with its state. In a WordPress folder the lines come in one group per theme and plugin, each with how many of its engines are done.
+Select a line to open the project. There you choose a [preset](presets.md) and the level, and start or stop the run. While it runs, every engine has a line with its state.
+
+The Presets screen copies, edits and removes presets. A preset has a Directory rules setting with three values: None, WordPress.org and ThemeForest. See [Directory rules](presets.md#directory-rules).
 
 After the run the page shows three numbers: critical, important and recommended findings. Under them it says when the run happened, how it compares with the run before, and whether an engine failed.
 

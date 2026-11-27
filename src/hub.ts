@@ -49,7 +49,7 @@ export async function runMany(inputs: string[], opts: HubOptions): Promise<HubRo
               row.name = e.target.name;
               row.total = e.jobs.length;
             } else if (e.type === 'engine:start') {
-              row.current = `${e.engine}${e.unit ? ' ' + e.unit : ''}`;
+              row.current = e.engine;
             } else if (e.type === 'engine:end') {
               row.done++;
               delete row.current;

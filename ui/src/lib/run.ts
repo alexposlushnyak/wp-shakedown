@@ -11,7 +11,6 @@ export type JobStatus = 'waiting' | 'running' | 'ok' | 'skipped' | 'failed';
 
 export interface Job {
 	engine: string;
-	unit?: string;
 	status: JobStatus;
 	findings: number;
 	durationMs: number;
@@ -27,10 +26,10 @@ export interface RunTarget {
 }
 
 export type WireEvent =
-	| { type: 'run:start'; target: RunTarget; jobs: { engine: string; unit?: string }[] }
-	| { type: 'engine:start'; engine: string; unit?: string }
-	| { type: 'engine:note'; engine: string; unit?: string; message: string }
-	| { type: 'engine:end'; run: { engine: string; unit?: string; status: 'ok' | 'skipped' | 'failed'; durationMs: number; findings: number; reason?: string } }
+	| { type: 'run:start'; target: RunTarget; jobs: { engine: string }[] }
+	| { type: 'engine:start'; engine: string }
+	| { type: 'engine:note'; engine: string; message: string }
+	| { type: 'engine:end'; run: { engine: string; status: 'ok' | 'skipped' | 'failed'; durationMs: number; findings: number; reason?: string } }
 	| { type: 'run:end'; summary: Summary; finishedAt: string }
 	| { type: 'run:error'; message: string };
 
@@ -49,10 +48,6 @@ export function plural(n: number, one: string, many: string): string {
 
 export function seconds(ms: number): string {
 	return `${(ms / 1000).toFixed(1)}s`;
-}
-
-export function jobKey(engine: string, unit?: string): string {
-	return `${engine}\n${unit ?? ''}`;
 }
 
 export function detectedText(d: { kind: string; name: string; units: { kind: string }[] }): string {
@@ -106,17 +101,6 @@ export function parseView(hash: string, ids: string[]): { view: 'hub' } | { view
 	return id ? { view: 'project', id } : { view: 'hub' };
 }
 
-/** The jobs of the folder itself first, then one group per theme or plugin, in the order the run lists them. */
-export function groupJobs(jobs: Job[]): { unit?: string; jobs: Job[] }[] {
-	const groups: { unit?: string; jobs: Job[] }[] = [];
-	for (const job of jobs) {
-		const group = groups.find((g) => g.unit === job.unit);
-		if (group) group.jobs.push(job);
-		else groups.push(job.unit === undefined ? { jobs: [job] } : { unit: job.unit, jobs: [job] });
-	}
-	return groups.sort((a, b) => (a.unit === undefined ? 0 : 1) - (b.unit === undefined ? 0 : 1));
-}
-
 /** Builds the state of the run card from the events the server sent. */
 export function runModel(events: WireEvent[]): RunModel {
 	const model: RunModel = { started: false, running: false, target: null, jobs: [], summary: null, error: null };
@@ -128,16 +112,16 @@ export function runModel(events: WireEvent[]): RunModel {
 			model.target = e.target;
 			model.summary = null;
 			model.error = null;
-			model.jobs = e.jobs.map((j) => ({ engine: j.engine, ...(j.unit ? { unit: j.unit } : {}), status: 'waiting', findings: 0, durationMs: 0, reason: '', notes: [] }));
+			model.jobs = e.jobs.map((j) => ({ engine: j.engine, status: 'waiting', findings: 0, durationMs: 0, reason: '', notes: [] }));
 			byKey.clear();
-			for (const j of model.jobs) byKey.set(jobKey(j.engine, j.unit), j);
+			for (const j of model.jobs) byKey.set(j.engine, j);
 		} else if (e.type === 'engine:start') {
-			const j = byKey.get(jobKey(e.engine, e.unit));
+			const j = byKey.get(e.engine);
 			if (j) j.status = 'running';
 		} else if (e.type === 'engine:note') {
-			byKey.get(jobKey(e.engine, e.unit))?.notes.push(e.message);
+			byKey.get(e.engine)?.notes.push(e.message);
 		} else if (e.type === 'engine:end') {
-			const j = byKey.get(jobKey(e.run.engine, e.run.unit));
+			const j = byKey.get(e.run.engine);
 			if (j) Object.assign(j, { status: e.run.status, findings: e.run.findings, durationMs: e.run.durationMs, reason: e.run.reason ?? '' });
 		} else if (e.type === 'run:end') {
 			model.running = false;

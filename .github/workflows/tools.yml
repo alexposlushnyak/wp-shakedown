@@ -1,0 +1,64 @@
+name: Tools
+
+# Looks for newer versions of the tools that Dependabot cannot see:
+# Theme Check, Envato Theme Check, the Plugin Check sniffs and PHP WebAssembly.
+# When one is behind, it opens a single pull request that CI then tests.
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.4"
+          tools: composer
+      - name: Write the newest pins
+        id: check
+        # Exit 1 means a pin was behind. Exit 2 means a lookup failed, and that fails the job.
+        run: |
+          set +e
+          npm run --silent tools:check -- --write | tee "$RUNNER_TEMP/tools.txt"
+          code=${PIPESTATUS[0]}
+          [ "$code" -le 1 ] || exit "$code"
+          {
+            echo 'report<<EOF'
+            cat "$RUNNER_TEMP/tools.txt"
+            echo EOF
+          } >> "$GITHUB_OUTPUT"
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+      - name: Refresh the locks
+        run: |
+          grep -E '^  (composer|npm) ' "$RUNNER_TEMP/tools.txt" | while read -r cmd; do
+            echo "+ $cmd"
+            $cmd
+          done || true
+      - uses: peter-evans/create-pull-request@v8
+        with:
+          branch: chore/tools-update
+          base: main
+          commit-message: "chore(tools): update pinned tools"
+          title: "chore(tools): update pinned tools"
+          labels: |
+            chore
+            ops
+          body: |
+            The weekly tools check found newer versions of the pinned tools.
+
+            ```
+            ${{ steps.check.outputs.report }}
+            ```
+
+            The locks are refreshed. CI runs the tests. See [How to update the tools](docs/how-to/update-tools.md).

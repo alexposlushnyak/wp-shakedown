@@ -1,15 +1,14 @@
 # Engines
 
-An engine runs one check and turns the result into findings. Each engine has a level, the lowest [level](cli.md#levels) of a run that runs it. Fourteen engines exist, in two groups. You can add [checks of your own](checks.md).
+An engine runs one check and turns the result into findings. Each engine has a level, the lowest [level](cli.md#levels) of a run that runs it. Fifteen engines exist, in two groups. You can add [checks of your own](checks.md).
 
-Nine check code. They run on a theme or a plugin, and on every theme and plugin inside a WordPress folder. `theme-check` and `theme-review` run on themes only.
+Nine check code. They run on a theme or a plugin. A WordPress folder does not run them: it is tested as an install, and you test a theme or plugin inside it by giving the folder of that theme or plugin. `theme-check` runs on themes only.
 
 | ID | Level | Tool | Finds |
 |---|---|---|---|
 | `php-lint` | 0 | `php -l` | PHP syntax errors |
 | `theme-check` | 3 | Theme Check, the checks of the wordpress.org theme directory | Missing files and headers, functions a theme must not call, plugin features inside a theme, missing template tags |
-| `theme-review` | 7 | Rules of our own, from a study of theme reviews. Experimental | What reviewers of the theme directory ask for beyond Theme Check: text that cannot be translated, images the readme does not credit, a missing skip link |
-| `activation-lock` | 7 | Rules of our own | Code that keeps theme or plugin features from working until the user enters a purchase code or license key |
+| `review` | 3 | Rules of our own | What no maintained tool checks: fonts that are not loaded, content a theme creates on activation, features locked behind a license key, and what reviewers of the directories ask for. See [review](#review) |
 | `wpcs` | 5 | PHP_CodeSniffer with the WordPress Coding Standards, plus the Plugin Check review rules for plugins | Unescaped output, missing nonces, unprepared SQL, translation mistakes, discouraged functions, code style |
 | `php-compat` | 5 | PHP_CodeSniffer with PHPCompatibilityWP | Code that the declared PHP version cannot run |
 | `phpstan` | 8 | PHPStan with the WordPress extension | Calls to functions that do not exist, wrong argument counts and types |
@@ -17,7 +16,7 @@ Nine check code. They run on a theme or a plugin, and on every theme and plugin 
 | `eslint` | 6 | ESLint with the WordPress config | Undefined variables, React hook mistakes, accessibility and translation problems in JavaScript |
 | `stylelint` | 6 | Stylelint with the WordPress config | Unknown properties, invalid values and duplicate selectors in CSS and SCSS |
 
-Five check a WordPress folder as a whole. Four of them read files and ask public services: WordPress does not have to run. `site-health` starts WordPress through WP-CLI and needs the database of the site. See [Install health](#install-health).
+Six check a WordPress folder as a whole. Five work from the files, and WordPress does not have to run. Three of those also ask public services. `site-health` starts WordPress through WP-CLI and needs the database of the site. See [Install health](#install-health).
 
 | ID | Level | Finds |
 |---|---|---|
@@ -25,11 +24,12 @@ Five check a WordPress folder as a whole. Four of them read files and ask public
 | `updates` | 4 | WordPress, plugins and themes that are behind, abandoned or closed |
 | `vulnerabilities` | 4 | Known vulnerabilities in the installed versions |
 | `config` | 2 | Risky settings in `wp-config.php` and files that should not be in a web folder |
+| `suspicious-files` | 4 | Files with the marks of malware: obfuscated code, request input that reaches `eval`, web shell names |
 | `site-health` | 4 | What the Site Health screen of WordPress reports: autoloaded options, missed cron events, inactive plugins and themes, PHP extensions, the database server |
 
-A run at the default level 6 leaves out `theme-review`, `activation-lock` and `phpstan`. `--level 7` adds `theme-review` and `activation-lock`, and `--level 8` adds `phpstan`. `theme-review` also runs at a lower level with `--experimental`. Run one engine with `--engine <id>`, and it runs at any level. Run the engines for one purpose with a [preset](presets.md).
+A run at the default level 6 leaves out `phpstan`, and `--level 8` adds it. `review` is an exception: it runs at level 3, and each of its rules has a level of its own. Run one engine with `--engine <id>`, and it runs at any level, but a rule of `review` still waits for its own level. Run the engines for one purpose with a [preset](presets.md).
 
-An engine can also skip its own rules above the level of the run. The engine receives the level in its context as `level`. No engine does that yet.
+The engine receives the level of the run in its context as `level`, and the directory of the preset, if it names one, as `directory`. `review` uses both to choose its rules.
 
 ## What they need
 
@@ -104,50 +104,68 @@ Under the [`envato`](presets.md#envato) preset the engine runs the fork of Theme
 
 Theme Check wants the folder name to match the theme name, as it does on wordpress.org. A theme in a folder with another name gets a warning about its text domain.
 
-## theme-review
+## review
 
-This engine is experimental. It runs at level 7 and above, below that with `--experimental`, and at any level when you name it with `--engine theme-review`.
+The rules of wp-shakedown itself, in one engine. It runs on themes and plugins, reads files and needs no PHP. A rule is here only when no maintained tool covers it and Theme Check, the WordPress Coding Standards and the other engines do not repeat it.
 
-Its rules come from a study of 878 reviews on the theme directory's Trac: what reviewers ask authors to change, and how often. [What theme reviewers ask for](../explanation/theme-review-feedback.md) describes the study and its limits. See also [ADR 0022](../adr/0022-experimental-engines.md).
+The engine starts at level 3. Each rule has its own:
 
-The rules are heuristics, so no finding is an error. The hint of each finding says how often reviewers raise the point.
+- `kinds`: whether the rule runs on themes, plugins or both.
+- `level`: the lowest level of a run that runs the rule.
+- `directories`: the directory requirements the rule states, `wporg` for wordpress.org and `envato` for ThemeForest. A rule with directories runs when the preset names one of them, as `wporg-theme`, `wporg-plugin` and `envato` do, or when the level is 10. A rule without directories runs for every preset at its level. See [presets](presets.md#directory-rules).
 
-| Rule | Looks for |
-|---|---|
-| `untranslated-text` | Text in a PHP template that no translation function wraps |
-| `text-in-template` | Text in an HTML template of a block theme, where it cannot be translated |
-| `readme-headers` | A readme with the wrong name, missing header lines, values that differ from `style.css`, no changelog |
-| `tested-up-to` | A `Tested up to` header behind the latest WordPress |
-| `asset-licenses` | Images and fonts that `readme.txt` does not credit, and fonts with no license file |
-| `skip-link` | No skip link in a classic theme, no `main` element in a block theme |
-| `minified-without-source` | A `.min.js` or `.min.css` file with no readable source |
-| `pot-missing` | A theme that says it is ready for translation and has no `.pot` file |
-| `placeholder-content` | Real-looking e-mail addresses and links to `#` in templates and patterns |
-| `readme-copyright` | No copyright notice that names the theme, or a license file without the GPL text |
-| `link-underline` | Links without underline in `theme.json` |
-| `plugin-territory` | SEO metadata, mail, public AJAX actions and REST routes |
-| `customizer-textareas` | More than three textarea controls in the Customizer |
-| `footer-copyright` | A copyright line that names the theme or its author |
-| `remote-fonts` | Fonts loaded from another server |
-| `demo-content` | Demo import hooks and content the theme creates |
+The rules that reviewers of the theme directory raise come from a study of 878 reviews on the Trac of wordpress.org: what reviewers ask authors to change, and how often. [What theme reviewers ask for](../explanation/theme-review-feedback.md) describes the study and its limits. The hint of such a finding says how often reviewers raise the point. The rules are heuristics, so no finding is an error.
 
-The engine reads files and needs no PHP. `tested-up-to` asks wordpress.org for the latest version and is left out when that fails.
+| Rule | Kinds | Level | Directories | Finds |
+|---|---|---|---|---|
+| `font-file-missing` | theme | 3 | none | A `fontFace` `src` in `theme.json` or a style variation that starts with `file:./` and points to a file the theme does not have |
+| `font-family-unloaded` | theme | 3 | none | A font family that the theme selects, with no `fontFace` and no generic family at the end of its stack |
+| `creates-site-data` | theme | 5 | none | A callback on `after_switch_theme` or `after_setup_theme`, or code behind a first-run option guard, that creates posts, terms, menus, attachments, widgets or front page options, or installs fonts |
+| `notice-not-dismissible` | theme, plugin | 5 | none | An admin notice with no `is-dismissible` class and no dismiss handler |
+| `placeholder-content` | theme | 5 | none | Real-looking e-mail addresses and links to `#` in templates and patterns |
+| `minified-without-source` | theme, plugin | 5 | none | A `.min.js` or `.min.css` file with no file of the same name without `.min` in the project |
+| `font-source-missing` | theme | 7 | wporg | `readme.txt` names a font the theme ships but gives no URL for its source |
+| `features-locked` | theme, plugin | 7 | wporg, envato | An `if` or `elseif` on a license check whose body returns, exits, removes hooks, loads files or registers features |
+| `asset-licenses` | theme | 7 | wporg, envato | Images and fonts that `readme.txt` does not credit, and fonts with no license file |
+| `plugin-territory` | theme | 7 | wporg, envato | SEO metadata, mail, public AJAX actions and REST routes |
+| `untranslated-text` | theme | 7 | wporg, envato | Text in a PHP template that no translation function wraps |
+| `text-in-template` | theme | 7 | wporg | Text in an HTML template of a block theme, where it cannot be translated |
+| `readme-headers` | theme | 7 | wporg | A readme with the wrong name, missing header lines, values that differ from `style.css`, no changelog |
+| `tested-up-to` | theme | 7 | wporg | A `Tested up to` header behind the latest WordPress |
+| `skip-link` | theme | 7 | wporg | No skip link in a classic theme, no `main` element in a block theme |
+| `pot-missing` | theme | 7 | wporg | A theme that says it is ready for translation and has no `.pot` file |
+| `readme-copyright` | theme | 7 | wporg | No copyright notice that names the theme, or a license file without the GPL text |
+| `link-underline` | theme | 7 | wporg | Links without underline in `theme.json` |
+| `customizer-textareas` | theme | 7 | wporg | More than three textarea controls in the Customizer |
+| `footer-copyright` | theme | 7 | wporg | A copyright line that names the theme or its author |
+| `remote-fonts` | theme | 7 | wporg | Fonts loaded from another server |
+| `demo-content` | theme | 7 | wporg | Demo import hooks and content the theme creates |
+| `activation-redirect` | theme | 7 | wporg | A redirect inside an `after_switch_theme` callback or an `if` on `$_GET['activated']` |
+| `readme-not-english` | theme | 7 | wporg | A `readme.txt` that is mostly non-ASCII letters, or long text with almost no common English words. Severity is `info` |
+
+The rules leave these checks to others:
+
+- `font-file-missing` and `font-family-unloaded` do not repeat `wp-json`, which reports schema errors in `theme.json`. A theme selects a family when `var(--wp--preset--font-family--<slug>)` or `var:preset|font-family|<slug>` appears in the `styles` of `theme.json` or of a style variation, or in a file in `templates/`, `parts/` or `patterns/`. A generic family is `serif`, `sans-serif`, `monospace`, `cursive`, `fantasy`, `system-ui`, `ui-serif`, `ui-sans-serif`, `ui-monospace`, `ui-rounded`, `math`, `emoji` or `fangsong`. The rules report a problem once per file and family or path.
+- `font-source-missing` wants the URL on the line that names the font or on the next one. A font that `readme.txt` does not mention is left to `asset-licenses`, which also checks the license files of fonts. `remote-fonts` reports fonts loaded from other hosts, such as Google Fonts.
+- `creates-site-data` does not repeat Theme Check or WPCS, which do not look at what a hook callback writes. It does not repeat `demo-content`, which reports import hooks, `wp_insert_user` and `wp_create_category` anywhere. A line that `demo-content` reports is not reported again. It ignores `set_theme_mod` for the theme's own settings, `add_theme_support`, `register_*` calls and `flush_rewrite_rules`. It follows a named callback into any file of the theme, but not a function that the callback calls.
+- `activation-redirect` does not repeat Theme Check or WPCS, which have no check for redirects after activation. WPCS only asks for `wp_safe_redirect` instead of `wp_redirect`.
+- `notice-not-dismissible` does not repeat Theme Check or WPCS, which never read the markup of an admin notice. It reads callbacks on `admin_notices`, `all_admin_notices` and `network_admin_notices`, in PHP strings and in inline HTML. It finds where a callback ends by its braces and treats every quote as the start of a PHP string, so an apostrophe in HTML printed outside PHP, as in `Don't`, can move that end.
+- `minified-without-source` runs on every theme and plugin. Whatever the project, a minified file that ships without its source cannot be read or changed.
+- `readme-not-english` does not repeat `readme-headers`, which checks the layout of the file and not its language. It skips URLs and code.
+
+`tested-up-to` asks wordpress.org for the latest version and is left out when that fails.
 
 Reviewers also raise points that files do not show, such as keyboard focus and menus that do not work. Those are not in the engine.
 
-## activation-lock
+### features-locked
 
-Finds code that stops theme or plugin features until the user enters a purchase code, license key or activation. A notice about missing activation is fine. Limiting what the product does is not, and both ThemeForest and wordpress.org reject it. The engine runs for themes and plugins at level 7 and needs no PHP.
+Finds code that stops theme or plugin features until the user enters a purchase code, license key or activation. A notice about missing activation is fine. Limiting what the product does is not, and both ThemeForest and wordpress.org reject it.
 
-| Rule | Severity | Meaning |
-|---|---|---|
-| `features-locked` | `warning` | An `if` or `elseif` on a license check whose body returns, exits, removes hooks, loads files or registers features |
-
-The engine strips comments, then reads each `if` and `elseif`. A condition counts as a license check when it contains `purchase_code`, `purchase-code`, `license`, `licence`, `is_activated`, `is_registered`, `activation_status`, `activated`, `envato_api`, `envato_token`, `verify_purchase`, or `item_id` together with `envato`, in any case. Quoted option names count, as in `get_option( 'mytheme_license_key' )`.
+The rule strips comments, then reads each `if` and `elseif`. A condition counts as a license check when it contains `purchase_code`, `purchase-code`, `license`, `licence`, `is_activated`, `is_registered`, `activation_status`, `activated`, `envato_api`, `envato_token`, `verify_purchase`, or `item_id` together with `envato`, in any case. Quoted option names count, as in `get_option( 'mytheme_license_key' )`.
 
 The body is the brace block or the next statement. It is a gate when it has `return`, `exit`, `die`, `wp_die(`, `remove_action(`, `remove_filter(`, `deactivate_plugins(` or `switch_theme(`, or when it loads or registers features: `require`, `include`, `add_action(` and `add_filter(`, `register_block_type(`, `register_post_type(`, `register_taxonomy(`, `add_theme_support(` or `add_shortcode(`. A hook on `admin_notices`, `network_admin_notices` or `all_admin_notices` and the code inside functions in the body do not count. A body that only prints a message, sets a variable or enqueues a notice script has no finding.
 
-The engine matches text, so it has limits:
+The rule matches text, so it has limits:
 
 - It checks only the `if` body. It does not read the `else` branch of a negated check, so `if ( ! $license ) { ... } else { require ... }` has no finding.
 - It does not follow a check through a helper, a variable or a ternary.
@@ -159,6 +177,12 @@ The engine matches text, so it has limits:
 Runs the `WordPress-Extra` standard. If the folder has its own ruleset (`.phpcs.xml`, `phpcs.xml`, `.phpcs.xml.dist` or `phpcs.xml.dist`), the engine uses that file and nothing else.
 
 When the theme or plugin has a `Text Domain` header, the engine passes it to WPCS, which then reports translation calls with another text domain as `WordPress.WP.I18n.TextDomainMismatch`. A project ruleset sets its own text domain, so the engine passes nothing then.
+
+The engine also passes a prefix, so `WordPress.NamingConventions.PrefixAllGlobals` reports functions, classes, constants and hooks that do not start with it. It finds the prefix in the code. It collects the names of top-level functions, classes, interfaces, traits, enums and constants, the names given to `define()`. Hook names do not count: a theme fires hooks of other plugins, such as WooCommerce in its template overrides. Methods, comments and names that start with `wp_`, `_`, `get_`, `the_`, `is_`, `esc_`, `admin_` or `do_` do not count. The prefix is the longest run of leading `_` segments, at least three characters long, that starts at least three names and at least 60% of all names. `twenty_twenty_one_setup` and `Twenty_Twenty_One_SVG_Icons` give `twenty_twenty_one`. The engine prints the prefix in a note. When no prefix qualifies, or the folder has its own ruleset, the engine passes none and WPCS skips the check.
+
+### Escaping switched off
+
+WPCS honours its own ignore comments. A `phpcs:ignore`, `phpcs:disable` or `@codingStandardsIgnore` comment that lists no sniffs, or lists `WordPress.Security.EscapeOutput` or a parent of it, hides unescaped output from the check. The engine reads every PHP file for such comments and reports each one that covers output (`echo`, `print`, `printf`, `vprintf`, `_e`, `_ex`, `exit`, `die`, `<?=`) as the rule `escaping-suppressed`, category `security`. A comment with a reason after `--` is a note. A comment without one is a warning. A `phpcs:ignore` on a line of its own covers the next line, a `phpcs:disable` covers the lines up to its `phpcs:enable`. A project ruleset does not turn this off. See [ADR 0029](../adr/0029-no-taint-engine-yet.md) for why wp-shakedown has no taint analysis.
 
 ### Plugins
 
@@ -249,7 +273,7 @@ Runs Stylelint with `@wordpress/stylelint-config` on `.css` files and with its S
 
 ## Install health
 
-These four engines run when the target is a WordPress folder.
+The install engines run when the target is a WordPress folder. `integrity`, `updates` and `vulnerabilities` ask public services, as below. `config`, `suspicious-files` and `site-health` send nothing.
 
 ### What they send
 
@@ -320,6 +344,23 @@ Reads `wp-config.php` and looks for files that do not belong in a web folder. It
 | `leftover.env` | `warning` | An `.env` file in the root |
 | `leftover.debug-log` | `warning` | `wp-content/debug.log` |
 | `uploads.php` | `error` | A PHP file in `wp-content/uploads` |
+
+### suspicious-files
+
+Reads the PHP files in the WordPress root and in `wp-content`, and any file in `wp-content` that holds a PHP open tag, and looks for what a healthy install does not have. It sends nothing and writes nothing. `config` already reports PHP files in `wp-content/uploads`, copies of `wp-config.php`, dumps and `debug.log`, and `integrity` reports extra files in `wp-admin` and `wp-includes`. This engine does not repeat those. It skips `node_modules` and `.git`, files over 2 MB and anything past 20000 files, and says so in a note.
+
+| Rule | Severity | Meaning |
+|---|---|---|
+| `obfuscated-code` | `error` | `eval(` with `base64_decode(`, `gzinflate(`, `gzuncompress(`, `str_rot13(` or `strrev(` in one statement. `assert(` or `create_function(` with a superglobal. `preg_replace` with the `/e` modifier. Four or more `chr()` calls joined with dots. A variable name written as `${"\x..."}` |
+| `remote-code` | `error` | `eval`, `include`, `require`, `system`, `shell_exec`, `passthru`, `exec`, `popen`, `proc_open` or a backtick command that takes `$_GET`, `$_POST`, `$_REQUEST`, `$_COOKIE` or `$_SERVER['HTTP_...']` as its argument |
+| `webshell-name` | `error` | A PHP file named like a known web shell: `wso`, `c99`, `r57`, `alfa`, `b374k`, `adminer` or `filesman`, with an optional version suffix. `adminer` in a plugin folder is fine, and `adminer.php` in the root is a `leftover.tool` finding of `config` |
+| `hidden-php` | `warning` | A PHP file whose name starts with a dot, or a file with an image extension that holds `<?php` |
+| `long-encoded-string` | `warning` | A line of more than 5000 characters that is more than 90 percent base64 characters, in a PHP file outside `vendor` and `node_modules`. A `data:...;base64,` URI does not count |
+| `php-in-root` | `warning` | A PHP file in the WordPress root that is not one of the core files and not `wp-config.php` |
+
+Each file gets at most one finding per rule, at the first line that matches. The core root files come from a fixed list, not from the checksums, so the engine needs no network.
+
+Limits: the rules are patterns, not a malware scanner. A clean file can match, for example a security plugin that quotes a shell in its own code, and malware that avoids these patterns passes. A signature database finds far more. Wordfence CLI is the open source scanner with one, but Wordfence has stopped issuing new licenses for it, and its free version reached end of life on 14 October 2026, so a tool cannot rely on it. The signature terms are not published next to the code, so wp-shakedown does not bundle or fetch them. See the [Wordfence CLI repository](https://github.com/wordfence/wordfence-cli).
 
 ### site-health
 
