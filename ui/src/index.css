@@ -55,7 +55,7 @@
 }
 
 :root {
-    /* Dark only, neutral greys with no blue cast. The blue lives in the square of the mark and nowhere else. */
+    /* Dark only, neutral greys. The coral of wpshakedown.dev lives in the square of the mark and nowhere else. */
     color-scheme: dark;
     --background: #171717;
     --foreground: #f4f4f4;
@@ -75,11 +75,11 @@
     --destructive: #f26d6d;
     --warning: #e8a33d;
     --success: #46b98a;
-    --brand: #4f7bff;
+    --brand: #ff7a4d;
     --border: rgb(255 255 255 / 0.08);
     --input: rgb(255 255 255 / 0.12);
     --ring: rgb(255 255 255 / 0.35);
-    --chart-1: #4f7bff;
+    --chart-1: #ff7a4d;
     --chart-2: #a8a8a8;
     --chart-3: #6b6b6b;
     --chart-4: #454545;
@@ -87,7 +87,7 @@
     --radius: 0.625rem;
     --sidebar: #1f1f1f;
     --sidebar-foreground: #f4f4f4;
-    --sidebar-primary: #4f7bff;
+    --sidebar-primary: #ff7a4d;
     --sidebar-primary-foreground: #f4f4f4;
     --sidebar-accent: rgb(255 255 255 / 0.06);
     --sidebar-accent-foreground: #f4f4f4;
