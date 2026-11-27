@@ -2,6 +2,7 @@ import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { loadBaseline } from './baseline.ts';
 import { diffRuns } from './diff.ts';
+import { saveRun } from './history.ts';
 import { assertReportDir, defaultReportDir, readPreviousRun, writeReports } from './report/write.ts';
 import { findPreset, presetEngines } from './presets.ts';
 import { customEngines } from './engines/custom.ts';
@@ -33,6 +34,8 @@ export interface SessionResult {
   diff?: RunDiff;
   files: string[];
   dir: string;
+  /** The id of the run in the history of the report folder. */
+  run: string;
 }
 
 /** The steps from a path to written reports. The command line and the local server share them. */
@@ -68,5 +71,6 @@ export async function runSession(opts: SessionOptions): Promise<SessionResult> {
   });
   const diff = previous ? diffRuns(previous, result) : undefined;
   const files = writeReports(result, dir, diff);
-  return { result, ...(diff ? { diff } : {}), files, dir };
+  const runId = saveRun(dir, result, previous);
+  return { result, ...(diff ? { diff } : {}), files, dir, run: runId };
 }

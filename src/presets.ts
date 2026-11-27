@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, w
 import path from 'node:path';
 import { Ajv } from 'ajv';
 import { home } from './home.ts';
+import { textTable } from './table.ts';
 import { MAX_LEVEL } from './types.ts';
 import type { Directory, Preset, Target, TargetKind } from './types.ts';
 
@@ -177,7 +178,5 @@ export function removePreset(id: string): boolean {
 /** The text table for the `presets` command: one row per preset, columns padded with spaces. */
 export function presetTable(presets: Preset[]): string {
   const rows = presets.map((p) => [p.id, p.title, p.kinds.join(', '), p.level === undefined ? '-' : String(p.level), String(p.engines.length), p.builtIn ? 'built-in' : fileOf(p.id)]);
-  const all = [['ID', 'Title', 'Kinds', 'Level', 'Engines', 'Source'], ...rows];
-  const widths = all[0]!.map((_, c) => Math.max(...all.map((r) => r[c]!.length)));
-  return all.map((r) => r.map((cell, c) => (c === r.length - 1 ? cell : cell.padEnd(widths[c]!))).join('  ').trimEnd()).join('\n');
+  return textTable([['ID', 'Title', 'Kinds', 'Level', 'Engines', 'Source'], ...rows]).join('\n');
 }

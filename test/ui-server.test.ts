@@ -323,7 +323,7 @@ test('the report has a summary and no findings, and its page is served with its 
   assert.equal(body.engines.length, 1);
   assert.equal('findings' in body, false);
   assert.equal('result' in body, false);
-  assert.deepEqual(body.files.map((f: string) => path.basename(f)), ['report.md', 'report.json', 'report.sarif', 'report.html']);
+  assert.deepEqual(body.files.map((f: string) => path.basename(f)), ['report.md', 'report.json', 'report.sarif', 'report.html', 'report-short.md', 'report.csv']);
 
   const html = await api(`/api/report.html?id=${id}`);
   assert.equal(html.status, 200);
@@ -335,6 +335,21 @@ test('the report has a summary and no findings, and its page is served with its 
   await post('/api/run', { ids: [id] });
   await until(async () => ((await (await api(`/api/report?id=${id}`)).json()) as { diff?: unknown }).diff !== undefined);
   assert.deepEqual(((await (await api(`/api/report?id=${id}`)).json()) as { diff: unknown }).diff, { fixed: 0, added: 0, open: 1 });
+
+  // Both runs are in the history and open as pages.
+  const { runs } = (await (await api(`/api/history?id=${id}`)).json()) as { runs: { run: string }[] };
+  assert.equal(runs.length, 2);
+  const old = await api(`/api/report.html?id=${id}&run=${runs[1]!.run}`);
+  assert.equal(old.status, 200);
+  assert.match(old.headers.get('content-type') ?? '', /^text\/html/);
+  assert.match(old.headers.get('content-security-policy') ?? '', /default-src 'none'/);
+  assert.match(await old.text(), /<html/i);
+  const compared = await api(`/api/report.html?id=${id}&run=${runs[0]!.run}&against=${runs[1]!.run}`);
+  assert.equal(compared.status, 200);
+  assert.equal((await api(`/api/report.html?id=${id}&run=../../etc`)).status, 404);
+  assert.equal((await api(`/api/report.html?id=${id}&run=${runs[0]!.run}&against=..`)).status, 404);
+  assert.equal((await api(`/api/report.html?id=${id}&run=2000-01-01T00-00-00-000Z`)).status, 404);
+  assert.deepEqual(await (await api('/api/history?id=nope')).json(), { runs: [] });
 });
 
 test('an engine that throws is a failed engine, not a run error', async (t) => {
@@ -355,11 +370,12 @@ test('an engine that throws is a failed engine, not a run error', async (t) => {
   assert.equal(types[2]!.run.status, 'failed');
 });
 
-test('runSession writes four files and returns a diff the second time', async (t) => {
+test('runSession writes the report files, keeps the run and returns a diff the second time', async (t) => {
   const theme = makeTheme(tmp(t));
   const out = path.join(tmp(t), 'out');
   const first = await runSession({ input: theme, out, engines: [found] });
-  assert.equal(first.files.length, 4);
+  assert.equal(first.files.length, 6);
+  assert.ok(existsSync(path.join(out, 'runs', first.run, 'report.json')));
   assert.equal(first.dir, out);
   assert.equal(first.diff, undefined);
   const second = await runSession({ input: theme, out, engines: [found] });

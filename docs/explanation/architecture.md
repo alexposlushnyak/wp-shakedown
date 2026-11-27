@@ -19,7 +19,7 @@ flowchart LR
     Core --> Adapters[Engine adapters]
     Adapters --> Tools["PHPCS, PHPStan, WP-CLI, Lighthouse and others"]
     Adapters --> Findings[Findings]
-    Findings --> Report["Report in Markdown, JSON, SARIF, HTML"]
+    Findings --> Report["Report in Markdown, JSON, SARIF, HTML, CSV"]
 ```
 
 ## Targets
@@ -68,9 +68,9 @@ The tools emit different formats: custom JSON, checkstyle XML, JUnit, SARIF. Ada
 - a location: file and line, or URL and selector
 - the message, a fix hint, and the command that re-runs this one check
 
-The tool exports the report as Markdown, JSON, SARIF and HTML. [Report format](../reference/report.md) lists every field, and [ADR 0005](../adr/0005-normalized-finding-schema.md) gives the reason for the shape.
+The tool exports the report as Markdown, in a full and a short version, JSON, SARIF, HTML and CSV. [Report format](../reference/report.md) lists every field, and [ADR 0005](../adr/0005-normalized-finding-schema.md) gives the reason for the shape.
 
-The report folder is outside the target. See [ADR 0009](../adr/0009-reports-outside-the-target.md).
+The report folder is outside the target. See [ADR 0009](../adr/0009-reports-outside-the-target.md). It keeps the JSON of the 20 newest runs, so any two runs can be compared. See [ADR 0032](../adr/0032-run-history-is-a-folder-per-run.md).
 
 ## The fix loop
 

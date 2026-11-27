@@ -6,6 +6,9 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ### Added
 
+- The report folder keeps the 20 newest runs. `wp-shakedown history <project>` lists them, prints the report of any one and compares any two. The web page lists the runs of a project, opens the report of each and compares two. See [ADR 0032](docs/adr/0032-run-history-is-a-folder-per-run.md).
+- `report-short.md` with the summary and the critical and important findings grouped by rule, and `report.csv` with one row per finding.
+- `report.md` and `report.html` list a rule that repeats across files once, with its fix, and then every place it was found.
 - `wpcs` passes the prefix most global names of a theme or plugin share, so WPCS reports functions, classes, constants and hooks without it.
 - `wpcs` reports the phpcs comments that switch off the escaping check on output, as `escaping-suppressed`: a warning without a reason, a note with one. See [ADR 0029](docs/adr/0029-no-taint-engine-yet.md).
 - `review`, one engine for the rules of wp-shakedown on themes and plugins. Each rule has its own level, and the rules a directory requires run when the preset sets `directory` to `wporg` or `envato`. New rules: font files in `theme.json` that do not exist, fonts a theme selects but never loads, fonts the readme names without a source URL, features locked until a purchase code or license key is entered, a theme that creates content or settings when it is activated, a redirect after activation, admin notices that cannot be dismissed, and a readme that is not in English. Every `.min.js` and `.min.css` of a theme or plugin needs its unminified file. See [ADR 0031](docs/adr/0031-one-review-engine-and-directory-rules.md).
@@ -32,6 +35,7 @@ All notable changes to this project are recorded here. The format follows [Keep 
 - The preset field `themeCheck` is now `directory`. A preset file with `themeCheck: "envato"` still works.
 - `phpstan` runs at level 8, the old `deep`.
 - The web page is dark only, set in Inter, with neutral greys and larger type.
+- `report.html` looks like the web page: dark, set in Inter, with the three counts at the top.
 
 ## [0.3.0] - 2026-11-25
 

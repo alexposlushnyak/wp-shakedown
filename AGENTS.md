@@ -48,7 +48,8 @@ To add an engine: write the adapter in `src/engines/`, add it to `src/engines/in
 | `src/presets.ts` | The presets: the built-in ones, and the user presets in `~/.wp-shakedown/presets` |
 | `src/js/` | What the JavaScript and CSS engines share: installing the tools, finding source files |
 | `js-tools/` | The npm manifest, lock file and configs for ESLint and Stylelint |
-| `src/report/` | The four report writers |
+| `src/report/` | The report writers |
+| `src/history.ts` | The past runs of a target, one folder each under `runs/` in its report folder |
 | `src/cli.ts` | The `wp-shakedown` command |
 | `src/session.ts` | The steps from a path to a written report, shared by the command and the web page |
 | `src/ui/server.ts` | The local server and its API |

@@ -215,3 +215,22 @@ test('--experimental is an old name: level 7 or more with the wordpress.org rule
   assert.equal(report('--experimental', '--level', '9').level, 9);
   assert.match(cli('--help').stdout, /--experimental is an old name: level 7 or more, with the wordpress.org rules/);
 });
+
+test('history lists the runs and prints one', (t) => {
+  const home = tmp(t);
+  const theme = makeTheme(tmp(t), 'Alpha');
+  assert.match(cliHome(home, 'history', theme).stdout, /No runs yet for "Alpha"\. Run wp-shakedown run <path> first\./);
+  for (let i = 0; i < 2; i++) assert.equal(cliHome(home, 'run', theme, '--engine', 'php-lint', '--fail-on', 'never').status, 0);
+  const table = cliHome(home, 'history', theme);
+  assert.equal(table.status, 0);
+  const lines = table.stdout.trim().split('\n');
+  assert.match(lines[0]!, /^#\s+Run\s+Critical\s+Important\s+Recommended\s+Level\s+Preset/);
+  assert.equal(lines.length, 3);
+  const one = cliHome(home, 'history', theme, '1');
+  assert.equal(one.status, 0);
+  assert.match(one.stdout, /since the run of \d{4}-\d{2}-\d{2} \d{2}:\d{2} UTC/);
+  assert.equal(cliHome(home, 'history', theme, '2', '--full').status, 0);
+  const missing = cliHome(home, 'history', theme, '9');
+  assert.equal(missing.status, 2);
+  assert.match(missing.stderr, /No run "9"\. wp-shakedown history .* lists them\./);
+});
