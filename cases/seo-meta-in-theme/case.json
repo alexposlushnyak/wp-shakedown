@@ -1,0 +1,23 @@
+{
+  "id": "seo-meta-in-theme",
+  "title": "The theme prints SEO meta tags",
+  "summary": "The reviewer asks that meta descriptions and other SEO output come from a plugin.",
+  "sources": [
+    "https://themes.trac.wordpress.org/ticket/298694"
+  ],
+  "category": "plugin-territory",
+  "kinds": [
+    "theme"
+  ],
+  "tags": [
+    "wporg"
+  ],
+  "status": "caught",
+  "expect": {
+    "engine": "review",
+    "rule": "plugin-territory",
+    "level": 7,
+    "directory": "wporg"
+  },
+  "checked": "2026-11-27"
+}

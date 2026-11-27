@@ -1,0 +1,21 @@
+{
+  "id": "output-not-escaped",
+  "title": "Output is not escaped",
+  "summary": "The reviewer asks that every printed value is escaped with the function that fits where it lands.",
+  "sources": [
+    "https://themes.trac.wordpress.org/ticket/271355"
+  ],
+  "category": "security",
+  "kinds": [
+    "theme",
+    "plugin"
+  ],
+  "tags": [],
+  "status": "caught",
+  "expect": {
+    "engine": "wpcs",
+    "rule": "WordPress.Security.EscapeOutput.OutputNotEscaped",
+    "level": 5
+  },
+  "checked": "2026-11-27"
+}

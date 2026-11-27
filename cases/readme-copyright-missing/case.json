@@ -1,0 +1,23 @@
+{
+  "id": "readme-copyright-missing",
+  "title": "The readme has no copyright notice",
+  "summary": "The reviewer asks for a copyright line in the readme that names the theme, the year and the author.",
+  "sources": [
+    "https://themes.trac.wordpress.org/ticket/269429"
+  ],
+  "category": "readme",
+  "kinds": [
+    "theme"
+  ],
+  "tags": [
+    "wporg"
+  ],
+  "status": "caught",
+  "expect": {
+    "engine": "review",
+    "rule": "readme-copyright",
+    "level": 7,
+    "directory": "wporg"
+  },
+  "checked": "2026-11-27"
+}

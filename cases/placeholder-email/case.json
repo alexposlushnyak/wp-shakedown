@@ -1,0 +1,22 @@
+{
+  "id": "placeholder-email",
+  "title": "A pattern shows a real-looking e-mail address",
+  "summary": "The reviewer asks that demo content uses a placeholder address on example.com.",
+  "sources": [
+    "https://themes.trac.wordpress.org/ticket/288567"
+  ],
+  "category": "other",
+  "kinds": [
+    "theme"
+  ],
+  "tags": [
+    "wporg"
+  ],
+  "status": "caught",
+  "expect": {
+    "engine": "review",
+    "rule": "placeholder-content",
+    "level": 5
+  },
+  "checked": "2026-11-27"
+}

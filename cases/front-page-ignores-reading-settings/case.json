@@ -1,0 +1,22 @@
+{
+  "id": "front-page-ignores-reading-settings",
+  "title": "The front page ignores the Reading settings",
+  "summary": "The reviewer asks that the front page shows the latest posts or the chosen static page, following Settings, Reading.",
+  "sources": [
+    "https://themes.trac.wordpress.org/ticket/292767"
+  ],
+  "category": "settings",
+  "kinds": [
+    "theme"
+  ],
+  "tags": [
+    "wporg"
+  ],
+  "status": "assistant",
+  "assistant": "reading-settings",
+  "run": {
+    "level": 7,
+    "directory": "wporg"
+  },
+  "checked": "2026-11-27"
+}

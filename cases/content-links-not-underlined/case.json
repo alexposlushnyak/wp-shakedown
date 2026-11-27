@@ -1,0 +1,23 @@
+{
+  "id": "content-links-not-underlined",
+  "title": "Links in content are not underlined",
+  "summary": "The reviewer asks that links inside post content stand out from the text by more than color, usually with an underline.",
+  "sources": [
+    "https://themes.trac.wordpress.org/ticket/269429"
+  ],
+  "category": "accessibility",
+  "kinds": [
+    "theme"
+  ],
+  "tags": [
+    "wporg"
+  ],
+  "status": "caught",
+  "expect": {
+    "engine": "review",
+    "rule": "link-underline",
+    "level": 7,
+    "directory": "wporg"
+  },
+  "checked": "2026-11-27"
+}

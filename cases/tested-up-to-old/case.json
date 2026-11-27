@@ -1,0 +1,23 @@
+{
+  "id": "tested-up-to-old",
+  "title": "Tested up to is not the latest WordPress version",
+  "summary": "The reviewer asks the author to test the theme with the newest WordPress release and raise the Tested up to value.",
+  "sources": [
+    "https://themes.trac.wordpress.org/ticket/271224"
+  ],
+  "category": "readme",
+  "kinds": [
+    "theme"
+  ],
+  "tags": [
+    "wporg"
+  ],
+  "status": "caught",
+  "expect": {
+    "engine": "review",
+    "rule": "tested-up-to",
+    "level": 7,
+    "directory": "wporg"
+  },
+  "checked": "2026-11-27"
+}

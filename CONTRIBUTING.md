@@ -8,6 +8,7 @@ Everyone taking part follows the [code of conduct](CODE_OF_CONDUCT.md).
 
 - Something is wrong: open a [bug report](https://github.com/alexposlushnyak/wp-shakedown/issues/new?template=bug_report.yml).
 - You want a check or a feature: open a [feature request](https://github.com/alexposlushnyak/wp-shakedown/issues/new?template=feature_request.yml).
+- A reviewer asked you for something the tool did not catch: link the ticket in a feature request, or [add a review case](docs/how-to/add-a-case.md) yourself.
 - You have a question: start a [discussion](https://github.com/alexposlushnyak/wp-shakedown/discussions).
 - You found a security issue: follow [SECURITY.md](SECURITY.md). Do not open a public issue.
 

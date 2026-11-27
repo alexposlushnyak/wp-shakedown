@@ -1,0 +1,23 @@
+{
+  "id": "activation-redirect",
+  "title": "The theme redirects after activation",
+  "summary": "The reviewer asks that activating the theme does not send the user to another screen.",
+  "sources": [
+    "https://themes.trac.wordpress.org/ticket/278299"
+  ],
+  "category": "settings",
+  "kinds": [
+    "theme"
+  ],
+  "tags": [
+    "wporg"
+  ],
+  "status": "caught",
+  "expect": {
+    "engine": "review",
+    "rule": "activation-redirect",
+    "level": 7,
+    "directory": "wporg"
+  },
+  "checked": "2026-11-27"
+}

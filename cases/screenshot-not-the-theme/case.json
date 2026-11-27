@@ -1,0 +1,19 @@
+{
+  "id": "screenshot-not-the-theme",
+  "title": "The screenshot does not show the theme",
+  "summary": "The reviewer asks that the screenshot shows the theme as it looks with its demo content.",
+  "sources": [
+    "https://themes.trac.wordpress.org/ticket/270367",
+    "https://themes.trac.wordpress.org/ticket/283972"
+  ],
+  "category": "assets",
+  "kinds": [
+    "theme"
+  ],
+  "tags": [
+    "wporg"
+  ],
+  "status": "open",
+  "note": "A person or a vision model has to compare the screenshot with the running theme.",
+  "checked": "2026-11-27"
+}

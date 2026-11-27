@@ -1,0 +1,18 @@
+{
+  "id": "author-site-gpl-statement",
+  "title": "The author site contradicts the GPL license",
+  "summary": "The reviewer asks that the author site does not put extra terms on a theme that is licensed under the GPL.",
+  "sources": [
+    "https://themes.trac.wordpress.org/ticket/293727"
+  ],
+  "category": "licensing",
+  "kinds": [
+    "theme"
+  ],
+  "tags": [
+    "wporg"
+  ],
+  "status": "open",
+  "note": "The tool reads the theme, not the website of its author.",
+  "checked": "2026-11-27"
+}

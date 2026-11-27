@@ -1,0 +1,22 @@
+{
+  "id": "fonts-privacy",
+  "title": "Remote fonts without a privacy note",
+  "summary": "The reviewer asks that a theme that loads fonts from another server says what is sent, or bundles the fonts instead.",
+  "sources": [
+    "https://themes.trac.wordpress.org/ticket/274522"
+  ],
+  "category": "other",
+  "kinds": [
+    "theme"
+  ],
+  "tags": [
+    "wporg"
+  ],
+  "status": "assistant",
+  "assistant": "outgoing-data",
+  "run": {
+    "level": 7,
+    "directory": "wporg"
+  },
+  "checked": "2026-11-27"
+}

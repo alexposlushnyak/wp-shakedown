@@ -1,0 +1,23 @@
+{
+  "id": "font-without-license",
+  "title": "A bundled font has no license",
+  "summary": "The reviewer asks that a bundled font comes with its license and is named in the readme.",
+  "sources": [
+    "https://themes.trac.wordpress.org/ticket/290380"
+  ],
+  "category": "licensing",
+  "kinds": [
+    "theme"
+  ],
+  "tags": [
+    "wporg"
+  ],
+  "status": "caught",
+  "expect": {
+    "engine": "review",
+    "rule": "asset-licenses",
+    "level": 7,
+    "directory": "wporg"
+  },
+  "checked": "2026-11-27"
+}

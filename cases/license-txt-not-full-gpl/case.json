@@ -1,0 +1,23 @@
+{
+  "id": "license-txt-not-full-gpl",
+  "title": "license.txt does not hold the full GPL",
+  "summary": "The reviewer asks that the license file holds the complete license text.",
+  "sources": [
+    "https://themes.trac.wordpress.org/ticket/299385"
+  ],
+  "category": "licensing",
+  "kinds": [
+    "theme"
+  ],
+  "tags": [
+    "wporg"
+  ],
+  "status": "caught",
+  "expect": {
+    "engine": "review",
+    "rule": "readme-copyright",
+    "level": 7,
+    "directory": "wporg"
+  },
+  "checked": "2026-11-27"
+}

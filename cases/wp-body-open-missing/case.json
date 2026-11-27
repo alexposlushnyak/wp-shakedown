@@ -1,0 +1,20 @@
+{
+  "id": "wp-body-open-missing",
+  "title": "The header does not call wp_body_open()",
+  "summary": "The reviewer asks that header.php calls wp_body_open() right after the opening body tag.",
+  "sources": [
+    "https://themes.trac.wordpress.org/ticket/275005"
+  ],
+  "category": "compatibility",
+  "kinds": [
+    "theme"
+  ],
+  "tags": [],
+  "status": "caught",
+  "expect": {
+    "engine": "theme-check",
+    "rule": "basic",
+    "level": 3
+  },
+  "checked": "2026-11-27"
+}

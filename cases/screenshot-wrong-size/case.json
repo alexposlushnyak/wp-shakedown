@@ -1,0 +1,20 @@
+{
+  "id": "screenshot-wrong-size",
+  "title": "The screenshot does not have a 4:3 ratio",
+  "summary": "The reviewer asks for a screenshot with the 4:3 ratio the theme directory expects.",
+  "sources": [
+    "https://themes.trac.wordpress.org/ticket/270147"
+  ],
+  "category": "assets",
+  "kinds": [
+    "theme"
+  ],
+  "tags": [],
+  "status": "caught",
+  "expect": {
+    "engine": "theme-check",
+    "rule": "screenshot",
+    "level": 3
+  },
+  "checked": "2026-11-27"
+}

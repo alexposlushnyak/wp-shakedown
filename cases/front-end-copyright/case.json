@@ -1,0 +1,23 @@
+{
+  "id": "front-end-copyright",
+  "title": "The footer copyright names the theme",
+  "summary": "The reviewer asks that the copyright line on the site belongs to the site owner, not to the theme or its author.",
+  "sources": [
+    "https://themes.trac.wordpress.org/ticket/291460"
+  ],
+  "category": "other",
+  "kinds": [
+    "theme"
+  ],
+  "tags": [
+    "wporg"
+  ],
+  "status": "caught",
+  "expect": {
+    "engine": "review",
+    "rule": "footer-copyright",
+    "level": 7,
+    "directory": "wporg"
+  },
+  "checked": "2026-11-27"
+}
