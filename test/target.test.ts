@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import { test } from 'node:test';
-import { detectTarget, unitLabel } from '../src/target.ts';
+import { detectTarget } from '../src/target.ts';
 import { makeInstall, makePlugin, makeTheme, tmp, write } from './helpers.ts';
 
 test('detects a theme by its style.css header', (t) => {
@@ -33,7 +33,6 @@ test('detects an install and lists themes then plugins in order', (t) => {
       ['plugin', 'Single', path.join('wp-content', 'plugins', 'single.php')],
     ],
   );
-  assert.deepEqual(target.units.map((u) => unitLabel(u)), ['theme:a', 'theme:b', 'plugin:folder-plugin', 'plugin:single']);
 });
 
 test('treats a URL as a url target', () => {

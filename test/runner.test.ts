@@ -13,16 +13,16 @@ const ok = (id: string, kinds: ('theme' | 'plugin' | 'install')[], findings = [r
 test('an engine sees the preset, and its variant goes into the run', async (t) => {
   const target = detectTarget(makeTheme(tmp(t)));
   const seen: (string | undefined)[] = [];
-  const themeChecks: (string | undefined)[] = [];
+  const directories: (string | undefined)[] = [];
   const engine = {
-    ...fakeEngine('e', ['theme'], async (ctx) => (seen.push(ctx.preset), themeChecks.push(ctx.themeCheck), [])),
-    variant: ({ themeCheck }: { themeCheck?: 'envato' }) => themeCheck,
+    ...fakeEngine('e', ['theme'], async (ctx) => (seen.push(ctx.preset), directories.push(ctx.directory), [])),
+    variant: ({ directory }: { directory?: 'wporg' | 'envato' }) => directory,
   };
-  const withPreset = await run(target, { engines: [engine], only: ['e'], preset: 'envato-copy', themeCheck: 'envato' });
+  const withPreset = await run(target, { engines: [engine], only: ['e'], preset: 'envato-copy', directory: 'envato' });
   assert.equal(withPreset.engines[0]!.variant, 'envato');
   assert.ok(!('variant' in (await run(target, { engines: [engine] })).engines[0]!));
   assert.deepEqual(seen, ['envato-copy', undefined]);
-  assert.deepEqual(themeChecks, ['envato', undefined]);
+  assert.deepEqual(directories, ['envato', undefined]);
 });
 
 test('the preset goes into the result only when given', async (t) => {
@@ -52,30 +52,29 @@ test('records ok, skipped and failed with reasons', async (t) => {
   assert.equal(r.engines[0]!.unit, undefined);
 });
 
-test('fans out over install units with labels and root-relative files', async (t) => {
+test('a WordPress folder runs the install engines and no code engine', async (t) => {
   const dir = makeInstall(tmp(t));
   const target = detectTarget(dir);
   const seen: string[] = [];
-  const themeEngine = fakeEngine('th', ['theme'], async ({ target: tg }) => {
-    seen.push(tg.path);
-    return [raw({ location: { file: 'functions.php', line: 1 } })];
-  });
-  const pluginEngine = fakeEngine('pl', ['plugin'], async ({ target: tg }) => [
-    raw({ location: { file: path.join(tg.path, 'whatever.php') } }),
-  ]);
-  const r = await run(target, { engines: [themeEngine, pluginEngine] });
-  assert.equal(seen.length, 2);
-  assert.deepEqual(r.engines.map((e) => [e.engine, e.unit]), [
-    ['th', 'theme:a'], ['th', 'theme:b'], ['pl', 'plugin:folder-plugin'], ['pl', 'plugin:single'],
-  ]);
-  const byUnit = Object.fromEntries(r.findings.map((f) => [f.unit, f.location.file]));
-  assert.equal(byUnit['theme:a'], 'wp-content/themes/a/functions.php');
-  assert.equal(byUnit['plugin:folder-plugin'], 'wp-content/plugins/folder-plugin/whatever.php');
-  assert.equal(byUnit['plugin:single'], 'wp-content/plugins/single.php');
+  const themeEngine = fakeEngine('th', ['theme'], async ({ target: tg }) => (seen.push(tg.path), [raw()]));
+  const pluginEngine = fakeEngine('pl', ['plugin'], async ({ target: tg }) => (seen.push(tg.path), [raw()]));
+  const installEngine = fakeEngine('in', ['install'], async ({ target: tg }) => (seen.push(tg.path), [raw({ location: { file: path.join(tg.path, 'wp-config.php') } })]));
+  const events: string[] = [];
+  const r = await run(target, { engines: [themeEngine, pluginEngine, installEngine], onEvent: (e) => e.type === 'run:start' && events.push(...e.jobs.map((j) => j.engine)) });
+  assert.deepEqual(seen, [target.path]);
+  assert.deepEqual(events, ['in']);
+  assert.deepEqual(r.engines.map((e) => e.engine), ['in']);
+  assert.equal(r.findings[0]!.location.file, 'wp-config.php');
+  assert.equal(r.findings[0]!.unit, undefined);
   assert.deepEqual(r.target.units.map((u) => u.path), [
     'wp-content/themes/a', 'wp-content/themes/b', 'wp-content/plugins/folder-plugin', 'wp-content/plugins/single.php',
   ]);
-  assert.match(r.findings[0]!.rerun, /^wp-shakedown run ".*" --engine (th|pl)$/);
+  assert.match(r.findings[0]!.rerun, /^wp-shakedown run ".*" --engine in$/);
+  // The rerun keeps the level, and a run with a directory reruns at level 10, where the directory rules run.
+  const at8 = await run(detectTarget(makeTheme(tmp(t))), { engines: [ok('in', ['theme'])], level: 8 });
+  assert.match(at8.findings[0]!.rerun, /--engine in --level 8$/);
+  const withDir = await run(detectTarget(makeTheme(tmp(t))), { engines: [ok('in', ['theme'])], directory: 'wporg' });
+  assert.match(withDir.findings[0]!.rerun, /--engine in --level 10$/);
 });
 
 test('an absolute file inside the target becomes relative', async (t) => {
@@ -219,27 +218,4 @@ test('a level that left out a fitting engine keeps stale baseline entries quiet'
   assert.deepEqual((await run(target, { engines: [a, withLevel('d', 8)], baseline, level: 8 })).staleBaseline, ['gone']);
   const other = { ...withLevel('p', 8), kinds: ['plugin' as const] };
   assert.deepEqual((await run(target, { engines: [a, other], baseline })).staleBaseline, ['gone']);
-});
-
-const experimental = (id: string, level = 6) => ({ ...withLevel(id, level), experimental: true as const });
-
-test('experimental engines run only on request or by name', async (t) => {
-  const target = detectTarget(makeTheme(tmp(t)));
-  const engines = [withLevel('s'), experimental('x', 7)];
-  const ids = async (o: Omit<Parameters<typeof run>[1], 'engines'>) => (await run(target, { engines, ...o })).engines.map((e) => e.engine);
-  assert.deepEqual(await ids({}), ['s']);
-  assert.deepEqual(await ids({ experimental: true }), ['s', 'x']);
-  assert.deepEqual(await ids({ only: ['x'] }), ['x']);
-  assert.deepEqual(await ids({ only: ['x'], preset: 'wporg-theme' }), []);
-  assert.deepEqual(await ids({ only: ['x'], preset: 'wporg-theme', experimental: true }), ['x']);
-  assert.equal((await run(target, { engines, experimental: true })).experimental, true);
-  assert.ok(!('experimental' in (await run(target, { engines }))));
-});
-
-test('an experimental engine that was left out keeps stale baseline entries quiet', async (t) => {
-  const target = detectTarget(makeTheme(tmp(t)));
-  const baseline = { schema: 1 as const, entries: [{ id: 'gone', reason: 'accepted' }] };
-  const a = withLevel('a');
-  assert.deepEqual((await run(target, { engines: [a, experimental('x', 7)], baseline })).staleBaseline, []);
-  assert.deepEqual((await run(target, { engines: [a, experimental('x', 7)], baseline, experimental: true })).staleBaseline, ['gone']);
 });

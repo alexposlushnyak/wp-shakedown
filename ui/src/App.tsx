@@ -64,9 +64,13 @@ export default function App() {
 		// A screen change is a short cross-fade where the browser supports view transitions.
 		const onHash = () => {
 			const next = location.hash;
-			const doc = document as Document & { startViewTransition?: (update: () => void) => unknown };
-			if (doc.startViewTransition) doc.startViewTransition(() => flushSync(() => setHash(next)));
-			else setHash(next);
+			const doc = document as Document & { startViewTransition?: (update: () => void) => { ready: Promise<void>; finished: Promise<void> } };
+			// A hidden tab aborts the transition. The screen still changes, so the rejection means nothing.
+			if (doc.startViewTransition && !document.hidden) {
+				const t = doc.startViewTransition(() => flushSync(() => setHash(next)));
+				t.ready.catch(() => {});
+				t.finished.catch(() => {});
+			} else setHash(next);
 		};
 		addEventListener('hashchange', onHash);
 		return () => removeEventListener('hashchange', onHash);
@@ -96,9 +100,9 @@ export default function App() {
 		}
 	}
 
-	function run(ids: string[], preset?: string, experimental?: boolean) {
+	function run(ids: string[], preset?: string) {
 		setError('');
-		api('/api/run', { ids, level, ...(preset ? { preset } : {}), ...(experimental ? { experimental: true } : {}) }).then(loadProjects, fail);
+		api('/api/run', { ids, level, ...(preset ? { preset } : {}) }).then(loadProjects, fail);
 	}
 
 	const loadState = () => api<ServerState>('/api/state').then(setInfo, fail);
@@ -215,7 +219,7 @@ export default function App() {
 						presets={info?.presets ?? []}
 						level={level}
 						onLevel={setLevel}
-						onRun={(preset, experimental) => run([open.id], preset, experimental)}
+						onRun={(preset) => run([open.id], preset)}
 						onStop={() => stop(open.id)}
 						onRemove={() => {
 							api('/api/projects/remove', { id: open.id }).then(() => {

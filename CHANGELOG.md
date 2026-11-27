@@ -6,6 +6,11 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ### Added
 
+- `wpcs` passes the prefix most global names of a theme or plugin share, so WPCS reports functions, classes, constants and hooks without it.
+- `wpcs` reports the phpcs comments that switch off the escaping check on output, as `escaping-suppressed`: a warning without a reason, a note with one. See [ADR 0029](docs/adr/0029-no-taint-engine-yet.md).
+- `review`, one engine for the rules of wp-shakedown on themes and plugins. Each rule has its own level, and the rules a directory requires run when the preset sets `directory` to `wporg` or `envato`. New rules: font files in `theme.json` that do not exist, fonts a theme selects but never loads, fonts the readme names without a source URL, features locked until a purchase code or license key is entered, a theme that creates content or settings when it is activated, a redirect after activation, admin notices that cannot be dismissed, and a readme that is not in English. Every `.min.js` and `.min.css` of a theme or plugin needs its unminified file. See [ADR 0031](docs/adr/0031-one-review-engine-and-directory-rules.md).
+- `suspicious-files`, an engine for a WordPress folder: obfuscated code, request input fed to `eval` or a shell, file names of known web shells, PHP hidden in images or dot files, long encoded strings and unknown PHP files in the root.
+- `npm run tools:check` and a weekly workflow keep Theme Check, Envato Theme Check, the Plugin Check rules and the bundled PHP current. See [Update the tools](docs/how-to/update-tools.md).
 - The web page opens the folder dialog of your system to add a project: Finder on macOS, the folder browser on Windows, zenity or kdialog on Linux. The folder list and the path field stay as a second way.
 - ZIP files of themes, plugins and WordPress sites: upload one or several on the web page, or drop them on it, and their runs start in the queue. `wp-shakedown add` and `run` take a ZIP file too. A newer archive of the same theme replaces the old one and the runs compare.
 - The web page and `wp-shakedown list` group projects into themes, plugins and WordPress folders.
@@ -14,7 +19,6 @@ All notable changes to this project are recorded here. The format follows [Keep 
 - Presets replace profiles and carry a level and an exit threshold. `wp-shakedown presets` lists them. You can write your own as JSON files in `~/.wp-shakedown/presets`. The web page and the local server create and remove them. See [ADR 0028](docs/adr/0028-presets-are-files.md).
 - The `client` preset, for a theme or a plugin made for a client or sold outside the directories: the WordPress standards, PHP versions, `phpstan`, ESLint and Stylelint.
 - The web page has a Presets screen: it lists the built-in presets and yours, copies a built-in one, and edits the engines, the level and the exit threshold of your own.
-- `activation-lock`, an engine at level 7 for themes and plugins: it reports code that keeps features off until a purchase code or a license key is entered. The wordpress.org and ThemeForest presets include it.
 - The web page sets the level with a slider from 0 to 10.
 
 ### Changed
@@ -23,9 +27,10 @@ All notable changes to this project are recorded here. The format follows [Keep 
 - `--fail-on` takes `critical`, `important`, `recommended` or `never`, and still takes `error`, `warning` and `info`.
 - `--preset` replaces `--profile`, and `--level` replaces `--depth`. The old options, the `profile` and `depth` arguments of `run_checks` and of the local server, and the `profile` and `depth` fields of old reports still work. The reports and `wp-shakedown list` show the level and the preset.
 - `wporg-theme`, `envato` and `wporg-plugin` run at level 7, `site` at level 6. A preset sets the level and the exit threshold of a run unless you pass `--level` or `--fail-on`.
-- `theme-review` runs at level 7 and above without `--experimental`. A preset that lists an engine that does not exist ignores it.
+- A WordPress folder is tested as an install: `integrity`, `updates`, `vulnerabilities`, `config`, `site-health` and `suspicious-files`. The code engines no longer run on every theme and plugin inside it. Test a theme or plugin by giving its own folder. See [ADR 0030](docs/adr/0030-a-wordpress-folder-is-tested-as-an-install.md).
+- `theme-review` is now part of `review`, and its findings get new IDs once. `--experimental` and the `experimental` argument of `run_checks` are old names: they raise the level to at least 7 and, without a preset, turn on the review rules of wordpress.org, as `theme-review` ran before. The page has no experimental switch. A preset that lists an engine that does not exist ignores it.
+- The preset field `themeCheck` is now `directory`. A preset file with `themeCheck: "envato"` still works.
 - `phpstan` runs at level 8, the old `deep`.
-
 - The web page is dark only, set in Inter, with neutral greys and larger type.
 
 ## [0.3.0] - 2026-11-25

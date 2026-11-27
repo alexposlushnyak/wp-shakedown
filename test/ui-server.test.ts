@@ -497,8 +497,8 @@ test('preset routes create, list, replace and remove a user preset', async (t) =
   assert.equal(again.presets.find((p) => p.id === 'mine')!.title, 'Mine again');
 
   // A copy of the ThemeForest preset keeps Envato's Theme Check when the page saves it.
-  const copy = await post('/api/presets', { ...mine, id: 'my-envato', themeCheck: 'envato' });
-  assert.equal(((await copy.json()) as { preset: { themeCheck?: string } }).preset.themeCheck, 'envato');
+  const copy = await post('/api/presets', { ...mine, id: 'my-envato', directory: 'envato' });
+  assert.equal(((await copy.json()) as { preset: { directory?: string } }).preset.directory, 'envato');
   assert.equal((await post('/api/presets/remove', { id: 'my-envato' })).status, 200);
 
   assert.equal((await post('/api/presets/remove', { id: 'mine' })).status, 200);

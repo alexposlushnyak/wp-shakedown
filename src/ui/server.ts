@@ -25,7 +25,7 @@ export interface UiServer {
 }
 
 type WireEvent =
-  | { type: 'run:start'; target: { kind: string; name: string; path: string; units: number }; jobs: { engine: string; unit?: string }[] }
+  | { type: 'run:start'; target: { kind: string; name: string; path: string; units: number }; jobs: { engine: string }[] }
   | Exclude<RunEvent, { type: 'run:start' | 'run:end' }>
   | { type: 'run:end'; summary: unknown; finishedAt: string }
   | { type: 'run:error'; message: string };
@@ -98,7 +98,6 @@ export function startUi(opts: {
     events: WireEvent[];
     level?: number;
     preset?: string;
-    experimental?: boolean;
   }
   const active = new Map<string, Active>();
   const queue: string[] = [];
@@ -149,7 +148,6 @@ export function startUi(opts: {
       input: a.path,
       ...(a.preset ? { preset: a.preset } : {}),
       ...(a.level !== undefined ? { level: a.level } : {}),
-      ...(a.experimental ? { experimental: true } : {}),
       engines: opts.engines,
       signal: ctl.signal,
       onEvent: (e) => {
@@ -278,7 +276,7 @@ export function startUi(opts: {
           home: os.homedir(),
           startDir,
           picker: pick !== null,
-          engines: [...opts.engines, ...customEngines()].map(({ id, title, kinds, level, experimental }) => ({ id, title, kinds, level, ...(experimental ? { experimental } : {}) })),
+          engines: [...opts.engines, ...customEngines()].map(({ id, title, kinds, level }) => ({ id, title, kinds, level })),
           presets: listPresets().presets,
         });
 
@@ -288,7 +286,7 @@ export function startUi(opts: {
         if (!body) return;
         if (typeof body.id !== 'string') return send(res, 400, { error: 'Send the ID of the preset.' });
         try {
-          const { id, title, summary, kinds, engines, level, failOn, themeCheck } = body as unknown as Preset;
+          const { id, title, summary, kinds, engines, level, failOn, directory } = body as unknown as Preset;
           savePreset({
             id,
             title,
@@ -297,7 +295,7 @@ export function startUi(opts: {
             engines,
             ...(level !== undefined ? { level } : {}),
             ...(failOn !== undefined ? { failOn } : {}),
-            ...(themeCheck !== undefined ? { themeCheck } : {}),
+            ...(directory !== undefined ? { directory } : {}),
           });
         } catch (err) {
           return send(res, 400, { error: err instanceof Error ? err.message : String(err) });
@@ -455,7 +453,6 @@ export function startUi(opts: {
             events: [],
             ...(level !== undefined ? { level } : {}),
             ...(preset ? { preset: preset as string } : {}),
-            ...(body.experimental === true ? { experimental: true } : {}),
           });
           queue.push(p.id);
           started.push(p.id);
@@ -495,7 +492,6 @@ export function startUi(opts: {
           finishedAt: result.finishedAt,
           ...(result.preset ? { preset: result.preset } : {}),
           ...(result.level !== undefined ? { level: result.level } : {}),
-          ...(result.experimental ? { experimental: true } : {}),
           ...(diff ? { diff: { fixed: diff.fixed.length, added: diff.added.length, open: diff.open.length } } : {}),
           files: found.session?.files ?? REPORT_FILES.map((f) => path.join(found.dir, f)),
           dir: found.dir,

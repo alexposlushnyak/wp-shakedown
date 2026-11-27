@@ -3,52 +3,54 @@ import path from 'node:path';
 import { Ajv } from 'ajv';
 import { home } from './home.ts';
 import { MAX_LEVEL } from './types.ts';
-import type { Preset, Target, TargetKind } from './types.ts';
+import type { Directory, Preset, Target, TargetKind } from './types.ts';
 
 export const builtInPresets: Preset[] = [
   {
     id: 'wporg-theme',
     title: 'WordPress.org theme directory',
-    summary: 'What the theme directory of wordpress.org checks before a review: Theme Check, PHP that parses, the WordPress standards and theme.json, the points reviewers raise most, and features locked behind activation.',
+    summary: 'What the theme directory of wordpress.org checks before a review: Theme Check, PHP that parses, the WordPress standards and theme.json, and the review rules of wp-shakedown for that directory.',
     kinds: ['theme'],
-    engines: ['php-lint', 'theme-check', 'theme-review', 'wpcs', 'php-compat', 'wp-json', 'activation-lock'],
+    engines: ['php-lint', 'theme-check', 'review', 'wpcs', 'php-compat', 'wp-json'],
     level: 7,
+    directory: 'wporg',
     builtIn: true,
   },
   {
     id: 'envato',
     title: 'ThemeForest',
-    summary: 'What Envato checks on a theme for ThemeForest: its own version of Theme Check, PHP that parses, the WordPress standards and theme.json.',
+    summary: 'What Envato checks on a theme for ThemeForest: its own version of Theme Check, PHP that parses, the WordPress standards, theme.json and the review rules of wp-shakedown for that directory.',
     kinds: ['theme'],
-    engines: ['php-lint', 'theme-check', 'wpcs', 'php-compat', 'wp-json', 'activation-lock'],
+    engines: ['php-lint', 'theme-check', 'review', 'wpcs', 'php-compat', 'wp-json'],
     level: 7,
-    themeCheck: 'envato',
+    directory: 'envato',
     builtIn: true,
   },
   {
     id: 'wporg-plugin',
     title: 'WordPress.org plugin directory',
-    summary: 'What the plugin directory of wordpress.org checks in code: PHP that parses, the Plugin Check review rules and PHP versions.',
+    summary: 'What the plugin directory of wordpress.org checks in code: PHP that parses, the Plugin Check review rules, PHP versions and the review rules of wp-shakedown for that directory.',
     kinds: ['plugin'],
-    engines: ['php-lint', 'wpcs', 'php-compat', 'activation-lock'],
+    engines: ['php-lint', 'wpcs', 'php-compat', 'review'],
     level: 7,
+    directory: 'wporg',
     builtIn: true,
   },
   {
     id: 'client',
     title: 'Client or commercial project',
-    summary: 'A theme or plugin made for a client or sold outside the directories: the WordPress standards, PHP versions, static analysis and the JS and CSS linters, without the rules of the directories.',
+    summary: 'A theme or plugin made for a client or sold outside the directories: the WordPress standards, PHP versions, static analysis, the JS and CSS linters and the review rules that apply everywhere, without the rules of the directories.',
     kinds: ['theme', 'plugin'],
-    engines: ['php-lint', 'wp-json', 'wpcs', 'php-compat', 'phpstan', 'eslint', 'stylelint'],
+    engines: ['php-lint', 'wp-json', 'review', 'wpcs', 'php-compat', 'phpstan', 'eslint', 'stylelint'],
     level: 8,
     builtIn: true,
   },
   {
     id: 'site',
     title: 'WordPress site',
-    summary: 'Whether a WordPress folder is intact, current and safe to run. Leaves out code style in themes and plugins.',
+    summary: 'Whether a WordPress folder is intact, current and safe to run. It tests the install. To test a theme or plugin inside it, give the folder of that theme or plugin.',
     kinds: ['install'],
-    engines: ['integrity', 'updates', 'vulnerabilities', 'config', 'site-health', 'php-lint', 'php-compat'],
+    engines: ['integrity', 'updates', 'vulnerabilities', 'config', 'site-health', 'suspicious-files'],
     level: 6,
     builtIn: true,
   },
@@ -70,6 +72,8 @@ const validate = new Ajv({ strict: false }).compile({
     engines: { type: 'array', items: { type: 'string', pattern: '^[a-z0-9][a-z0-9:-]*$' }, minItems: 1 },
     level: { type: 'integer', minimum: 0, maximum: MAX_LEVEL },
     failOn: { enum: ['error', 'warning', 'info', 'never'] },
+    directory: { enum: ['wporg', 'envato'] },
+    // The name before directory. A file that has it still reads.
     themeCheck: { const: 'envato' },
   },
   required: ['schema', 'title', 'summary', 'kinds', 'engines'],
@@ -85,7 +89,7 @@ function check(id: string, data: unknown): Preset {
     const unknown = e.keyword === 'additionalProperties' ? (e.params as { additionalProperty?: string }).additionalProperty : undefined;
     throw new Error(unknown ? `it has a field the format does not know, "${unknown}"` : `${e.instancePath || 'the file'} ${e.message}`);
   }
-  const d = data as { title: string; summary: string; kinds: TargetKind[]; engines: string[]; level?: number; failOn?: Preset['failOn']; themeCheck?: 'envato' };
+  const d = data as { title: string; summary: string; kinds: TargetKind[]; engines: string[]; level?: number; failOn?: Preset['failOn']; directory?: Directory; themeCheck?: 'envato' };
   return {
     id,
     title: d.title,
@@ -94,7 +98,7 @@ function check(id: string, data: unknown): Preset {
     engines: d.engines,
     ...(d.level !== undefined ? { level: d.level } : {}),
     ...(d.failOn !== undefined ? { failOn: d.failOn } : {}),
-    ...(d.themeCheck !== undefined ? { themeCheck: d.themeCheck } : {}),
+    ...(d.directory !== undefined || d.themeCheck !== undefined ? { directory: d.directory ?? d.themeCheck! } : {}),
   };
 }
 

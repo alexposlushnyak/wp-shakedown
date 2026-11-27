@@ -32,6 +32,9 @@ export function parseLevel(v: string | number): number {
   throw new Error('Level must be a number from 0 to 10, or quick, standard or deep.');
 }
 
+/** A directory whose requirements a preset can switch on: wordpress.org or ThemeForest. */
+export type Directory = 'wporg' | 'envato';
+
 export type TargetKind = 'theme' | 'plugin' | 'install' | 'url';
 
 export interface Target {
@@ -68,7 +71,7 @@ export interface Finding extends RawFinding {
   /** Stable between runs. The line is not part of it, so edits above a finding keep its ID. */
   id: string;
   engine: string;
-  /** Set when the finding belongs to a theme or plugin inside an install, as `theme:<folder>` or `plugin:<folder>`. */
+  /** Written only by versions before a WordPress folder ran install engines alone. Old reports still carry it. */
   unit?: string;
   /** Command that runs the engine that produced this finding again. */
   rerun: string;
@@ -81,8 +84,8 @@ export interface EngineContext {
   preset?: string;
   /** The level of the run. An engine can skip its own rules that sit above it. */
   level: number;
-  /** Set by a preset that runs Envato's fork of Theme Check, such as envato and its copies. */
-  themeCheck?: 'envato';
+  /** The directory whose rules the run applies. Set by a preset that names one, such as wporg-theme or envato. */
+  directory?: Directory;
   signal?: AbortSignal;
   /** Tells the user something while the engine runs, for example that tools are being installed. */
   note(message: string): void;
@@ -94,10 +97,8 @@ export interface Engine {
   kinds: readonly TargetKind[];
   /** The lowest level that runs the engine. */
   level: number;
-  /** Runs only when the user turns experimental checks on, or names the engine. */
-  experimental?: true;
   /** Names the variant of its tool the engine runs with these settings. Two runs are compared only when the variants match. */
-  variant?(settings: { preset?: string; themeCheck?: 'envato' }): string | undefined;
+  variant?(settings: { preset?: string; directory?: Directory; level: number }): string | undefined;
   run(ctx: EngineContext): Promise<RawFinding[]>;
 }
 
@@ -118,8 +119,8 @@ export interface Preset {
   failOn?: Severity | 'never';
   /** Set on the presets that ship with wp-shakedown. */
   builtIn?: true;
-  /** Runs Envato's fork of Theme Check in place of the wordpress.org one. A copy of the preset keeps it. */
-  themeCheck?: 'envato';
+  /** The directory whose rules the run applies. Envato's fork of Theme Check runs for `envato`. A copy of the preset keeps it. */
+  directory?: Directory;
 }
 
 /** An engine throws this when it cannot run here, for example when PHP is missing. The run continues. */
@@ -129,6 +130,7 @@ export type EngineStatus = 'ok' | 'skipped' | 'failed';
 
 export interface EngineRun {
   engine: string;
+  /** Written only by versions before a WordPress folder ran install engines alone. */
   unit?: string;
   status: EngineStatus;
   durationMs: number;
@@ -160,7 +162,9 @@ export interface RunResult {
   preset?: string;
   /** The level of the run. A report written before levels has `depth` and `profile` instead, and readPreviousRun maps them. */
   level?: number;
-  /** True when the run had experimental checks on. */
+  /** The directory whose rules the run applied. Absent when the preset names none. */
+  directory?: Directory;
+  /** Written only by versions that had experimental engines. Old reports still carry it. */
   experimental?: true;
   startedAt: string;
   finishedAt: string;
@@ -172,9 +176,9 @@ export interface RunResult {
 }
 
 export type RunEvent =
-  | { type: 'run:start'; target: Target; jobs: { engine: string; unit?: string }[] }
-  | { type: 'engine:start'; engine: string; unit?: string }
-  | { type: 'engine:note'; engine: string; unit?: string; message: string }
+  | { type: 'run:start'; target: Target; jobs: { engine: string }[] }
+  | { type: 'engine:start'; engine: string }
+  | { type: 'engine:note'; engine: string; message: string }
   | { type: 'engine:end'; run: EngineRun }
   | { type: 'run:end'; result: RunResult };
 

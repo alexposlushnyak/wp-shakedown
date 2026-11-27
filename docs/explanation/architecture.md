@@ -1,6 +1,6 @@
 # Architecture
 
-This document describes the design. The core, the report writers, fourteen engines, the presets and all three ways in exist: the `run` command, the local web page and the MCP server. The engines for a site URL are not built. The version is below 1.0, so the command line and the report format may still change between minor versions.
+This document describes the design. The core, the report writers, sixteen engines, the presets and all three ways in exist: the `run` command, the local web page and the MCP server. The engines for a site URL are not built. The version is below 1.0, so the command line and the report format may still change between minor versions.
 
 ## Principles
 
@@ -27,7 +27,7 @@ flowchart LR
 | Target | How it is tested |
 |---|---|
 | Theme or plugin folder | Code checks that need no running WordPress |
-| WordPress folder | The same code checks on every theme and plugin inside it, plus health checks of the install. The tool only reads. |
+| WordPress folder | Health checks of the install. The tool does not run the code checks on the themes and plugins inside it: test a theme or plugin by giving its own folder. The tool only reads. |
 | Site, by URL | Checks from the outside, in a browser. This is a separate module. |
 
 A WordPress folder is tested the same way as a single theme or plugin, on your machine. The tool finds the themes and plugins in `wp-content` and runs the code checks on each, then adds the checks that only make sense for a whole install.
@@ -40,7 +40,7 @@ Each external tool sits behind an adapter that knows how to run it and how to re
 |---|---|---|
 | PHP code | `php -l`, PHP_CodeSniffer with WordPress Coding Standards and the Plugin Check review rules, PHPCompatibilityWP, PHPStan with the WordPress extension | Built. See [Engines](../reference/engines.md) |
 | Theme rules | Theme Check, run with plain PHP. Under the `envato` preset, the fork Envato keeps for ThemeForest | Built. See [ADR 0017](../adr/0017-theme-check-without-wordpress.md) and [ADR 0023](../adr/0023-the-envato-profile-swaps-the-theme-check-release.md) |
-| Theme review | Rules from a study of theme reviews. Experimental, off by default | Built. See [ADR 0022](../adr/0022-experimental-engines.md) |
+| Review rules | One engine, `review`, with our own rules. Each rule has a level and, when it states the requirements of wordpress.org or ThemeForest, a directory that a preset switches on | Built. See [Engines](../reference/engines.md#review) |
 | JSON | JSON Schema validation of `theme.json` and `block.json` | Built |
 | JS, CSS | ESLint and Stylelint with the WordPress configs | Built |
 | Install health | Official checksums for core and plugins, current versions from wordpress.org, `wp-config.php` and risky files | Built. See [ADR 0015](../adr/0015-install-health-without-a-running-site.md) |

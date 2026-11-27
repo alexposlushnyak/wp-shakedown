@@ -25,13 +25,16 @@ Each record states one decision, the options that were considered, and the reaso
 | [0019](0019-depth-is-a-filter-on-engines.md) | Depth is a filter on engines | Superseded by 0027 |
 | [0020](0020-user-checks-live-in-the-home-folder.md) | Checks the user writes live in the home folder | Accepted |
 | [0021](0021-the-hub-keeps-projects-in-a-file.md) | The hub keeps its projects in a file | Accepted |
-| [0022](0022-experimental-engines.md) | Experimental engines are off until the user turns them on | Accepted |
+| [0022](0022-experimental-engines.md) | Experimental engines are off until the user turns them on | Superseded by 0031 |
 | [0023](0023-the-envato-profile-swaps-the-theme-check-release.md) | The envato profile runs Envato's fork inside the theme-check engine | Accepted |
 | [0024](0024-site-health-through-wp-cli.md) | Site Health runs through WP-CLI and leaves the database as it was | Accepted |
 | [0025](0025-bundled-php-is-opt-in.md) | The bundled PHP is opt-in, through WP_SHAKEDOWN_PHP | Accepted |
 | [0026](0026-folders-from-the-system-dialog-and-zip-files.md) | Projects come from the folder dialog of the system and from ZIP files | Accepted |
 | [0027](0027-levels-0-to-10.md) | A run has a level from 0 to 10 | Accepted |
 | [0028](0028-presets-are-files.md) | Presets are a list of engines, a level and a threshold, and user presets are files | Accepted |
+| [0029](0029-no-taint-engine-yet.md) | No taint engine yet: WPCS finds the output, wp-shakedown finds where it is hidden | Accepted |
+| [0030](0030-a-wordpress-folder-is-tested-as-an-install.md) | A WordPress folder is tested as an install, not as the code of every theme and plugin in it | Accepted |
+| [0031](0031-one-review-engine-and-directory-rules.md) | One review engine holds the rules of wp-shakedown, and a preset switches on the rules of a directory | Accepted |
 
 ## Adding a record
 

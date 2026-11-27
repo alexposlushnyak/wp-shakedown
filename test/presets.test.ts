@@ -4,6 +4,7 @@ import path from 'node:path';
 import { test } from 'node:test';
 import type { TestContext } from 'node:test';
 import { engines } from '../src/engines/index.ts';
+import { themeCheck } from '../src/engines/theme-check.ts';
 import { builtInPresets, findPreset, listPresets, presetEngines, presetTable, removePreset, savePreset } from '../src/presets.ts';
 import { runSession } from '../src/session.ts';
 import { detectTarget } from '../src/target.ts';
@@ -25,9 +26,8 @@ function home(t: TestContext): string {
 const mine = (over: Partial<Preset> = {}): Preset => ({ id: 'mine', title: 'Mine', summary: 'My own gate.', kinds: ['theme'], engines: ['php-lint', 'wpcs'], level: 7, failOn: 'warning', ...over });
 const known = engines.map((e) => e.id);
 
-test('every engine of a built-in preset exists, except the ones another module adds', () => {
-  const later = new Set(['activation-lock']);
-  for (const p of builtInPresets) for (const id of p.engines) assert.ok(known.includes(id) || later.has(id), `${p.id} names ${id}`);
+test('every engine of a built-in preset exists', () => {
+  for (const p of builtInPresets) for (const id of p.engines) assert.ok(known.includes(id), `${p.id} names ${id}`);
 });
 
 test('the built-in presets have the levels of the plan', () => {
@@ -36,7 +36,7 @@ test('the built-in presets have the levels of the plan', () => {
   const client = builtInPresets.find((p) => p.id === 'client')!;
   assert.equal(client.title, 'Client or commercial project');
   assert.deepEqual(client.kinds, ['theme', 'plugin']);
-  assert.deepEqual(client.engines, ['php-lint', 'wp-json', 'wpcs', 'php-compat', 'phpstan', 'eslint', 'stylelint']);
+  assert.deepEqual(client.engines, ['php-lint', 'wp-json', 'review', 'wpcs', 'php-compat', 'phpstan', 'eslint', 'stylelint']);
 });
 
 test('presetEngines returns the known engines and rejects a wrong preset', (t) => {
@@ -126,7 +126,7 @@ test('presetTable lists id, title, kinds, level, engine count and source', (t) =
   savePreset(mine());
   const lines = presetTable(listPresets().presets).split('\n');
   assert.match(lines[0]!, /^ID +Title +Kinds +Level +Engines +Source$/);
-  assert.match(lines.find((l) => l.startsWith('client'))!, /^client +Client or commercial project +theme, plugin +8 +7 +built-in$/);
+  assert.match(lines.find((l) => l.startsWith('client'))!, /^client +Client or commercial project +theme, plugin +8 +8 +built-in$/);
   assert.match(lines.find((l) => l.startsWith('mine'))!, new RegExp(`^mine +Mine +theme +7 +2 +${path.join(dir, 'presets', 'mine.json').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`));
 });
 
@@ -150,10 +150,33 @@ test('a session takes the level of its preset unless it is given one, and accept
   await assert.rejects(runSession({ input: dir, preset: 'mine', only: ['wpcs'], engines, out: out() }), /Use a preset or a list of engines, not both\./);
 });
 
+test('the built-in presets name their directory and the site preset runs install engines only', () => {
+  const dirs = Object.fromEntries(builtInPresets.map((p) => [p.id, p.directory]));
+  assert.deepEqual(dirs, { 'wporg-theme': 'wporg', envato: 'envato', 'wporg-plugin': 'wporg', client: undefined, site: undefined });
+  const site = builtInPresets.find((p) => p.id === 'site')!;
+  assert.deepEqual(site.engines, ['integrity', 'updates', 'vulnerabilities', 'config', 'site-health', 'suspicious-files']);
+  for (const id of site.engines) assert.ok(known.includes(id) && engines.find((e) => e.id === id)!.kinds.includes('install'), id);
+  assert.equal(builtInPresets.find((p) => p.id === 'envato')!.engines.includes('review'), true);
+});
+
+test('the envato preset makes theme check run the Envato variant', () => {
+  const dir = findPreset('envato')!.directory;
+  assert.equal(themeCheck.variant!({ preset: 'envato', ...(dir ? { directory: dir } : {}), level: 7 }), 'envato');
+  assert.equal(themeCheck.variant!({ directory: findPreset('wporg-theme')!.directory!, level: 7 }), undefined);
+});
+
+test('an old preset file with themeCheck reads as directory envato', (t) => {
+  home(t);
+  const file = path.join(home(t), 'presets', 'old.json');
+  write(file, JSON.stringify({ schema: 1, title: 'Old', summary: 'Old file.', kinds: ['theme'], engines: ['php-lint'], themeCheck: 'envato' }));
+  assert.equal(findPreset('old')!.directory, 'envato');
+  assert.ok(!('themeCheck' in findPreset('old')!));
+});
+
 test("a copy of the envato preset keeps Envato's Theme Check", (t) => {
   home(t);
   const { builtIn: _, ...envato } = findPreset('envato')!;
   savePreset({ ...envato, id: 'my-envato', title: 'My ThemeForest' });
-  assert.equal(findPreset('my-envato')!.themeCheck, 'envato');
-  assert.equal(findPreset('wporg-theme')!.themeCheck, undefined);
+  assert.equal(findPreset('my-envato')!.directory, 'envato');
+  assert.equal(findPreset('wporg-theme')!.directory, 'wporg');
 });

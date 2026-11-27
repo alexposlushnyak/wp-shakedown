@@ -264,12 +264,12 @@ test('run_checks lists a preset that was saved after the server started', async 
   assert.match(r.result.content[0].text, /- Preset: late\n/);
 });
 
-test('run_checks offers experimental and list_engines marks the engines that need it', async (t) => {
-  const x = { ...fakeEngine('x', ['theme'], async () => []), experimental: true as const };
-  const s = boot(t, [one, x]);
+test('run_checks still accepts experimental as an old name, and list_engines does not mark engines', async (t) => {
+  const s = boot(t, [one, fakeEngine('x', ['theme'], async () => [])]);
   const { tools } = (await s.request(1, 'tools/list')).result;
-  assert.equal(tools.find((y: Msg) => y.name === 'run_checks').inputSchema.properties.experimental.type, 'boolean');
+  const prop = tools.find((y: Msg) => y.name === 'run_checks').inputSchema.properties.experimental;
+  assert.equal(prop.type, 'boolean');
+  assert.match(prop.description, /at least 7/);
   const list = JSON.parse((await s.callTool(2, 'list_engines')).result.content[0].text);
-  assert.equal(list[1].experimental, true);
-  assert.ok(!('experimental' in list[0]));
+  assert.ok(!('experimental' in list[0]) && !('experimental' in list[1]));
 });

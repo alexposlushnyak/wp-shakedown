@@ -1,6 +1,6 @@
 export type * from './types.ts';
 export { SEVERITIES, SEVERITY_NAMES, MAX_LEVEL, LEVEL_NAMES, DEFAULT_LEVEL, parseLevel, parseFailOn, EngineSkipped } from './types.ts';
-export { detectTarget, unitLabel } from './target.ts';
+export { detectTarget } from './target.ts';
 export { run, exitCode } from './runner.ts';
 export type { RunOptions } from './runner.ts';
 export { runSession } from './session.ts';
@@ -25,7 +25,7 @@ export { builtInPresets, builtInPresets as profiles, listPresets, findPreset, pr
 export { home } from './home.ts';
 export { phpLint } from './engines/php-lint.ts';
 export { themeCheck } from './engines/theme-check.ts';
-export { themeReview } from './engines/theme-review.ts';
+export { review } from './engines/review.ts';
 export { wpcs } from './engines/wpcs.ts';
 export { phpCompat } from './engines/php-compat.ts';
 export { phpstan } from './engines/phpstan.ts';

@@ -144,7 +144,7 @@ test('--preset runs only the engines of that preset', { timeout: 180000, ...(has
   const report = JSON.parse(readFileSync(path.join(out, 'report.json'), 'utf8')) as { preset: string; level: number; engines: { engine: string }[] };
   assert.equal(report.preset, 'wporg-theme');
   assert.equal(report.level, 7);
-  const allowed = ['php-lint', 'theme-check', 'theme-review', 'wpcs', 'php-compat', 'wp-json', 'activation-lock'];
+  const allowed = ['php-lint', 'theme-check', 'review', 'wpcs', 'php-compat', 'wp-json'];
   assert.ok(report.engines.length > 0 && report.engines.every((e) => allowed.includes(e.engine)));
 });
 
@@ -203,6 +203,15 @@ test('a preset sets the level and the exit threshold unless the flags are given'
   assert.deepEqual(run('--depth', 'quick'), { status: 1, level: 3 });
 });
 
-test('--help lists --experimental', () => {
-  assert.match(cli('--help').stdout, /--experimental {6}Also run the experimental engines/);
+test('--experimental is an old name: level 7 or more with the wordpress.org rules', (t) => {
+  const theme = makeTheme(tmp(t));
+  const report = (...flags: string[]) => {
+    const out = path.join(tmp(t), 'out');
+    cli('run', theme, '--engine', 'php-lint', '--out', out, '--fail-on', 'never', ...flags);
+    return JSON.parse(readFileSync(path.join(out, 'report.json'), 'utf8')) as { level: number; directory?: string };
+  };
+  assert.deepEqual([report().level, report().directory], [6, undefined]);
+  assert.deepEqual([report('--experimental').level, report('--experimental').directory], [7, 'wporg']);
+  assert.equal(report('--experimental', '--level', '9').level, 9);
+  assert.match(cli('--help').stdout, /--experimental is an old name: level 7 or more, with the wordpress.org rules/);
 });

@@ -70,7 +70,7 @@ The finding carries the last lines of the output as its hint. The command gets t
 |---|---|---|
 | `type` | required | `pattern`, `files` or `command` |
 | `title` | the file name | Name shown in the progress output |
-| `kinds` | `["theme", "plugin"]` | What the check runs on: `theme`, `plugin`, `install`. In a WordPress folder a `theme` check runs on every theme |
+| `kinds` | `["theme", "plugin"]` | What the check runs on: `theme`, `plugin`, `install`. A WordPress folder runs only the checks of kind `install` |
 | `paths` | every path | Glob patterns for the absolute path of the folder you run the tool on. The check runs only where one matches |
 | `level` | `6` | The lowest [level](cli.md#levels) that runs the check, an integer from 0 to 10 |
 | `depth` | none | The old name of `level`: `quick`, `standard` or `deep`, which are 3, 6 and 8. `level` wins when a file has both |

@@ -39,7 +39,7 @@ Options:
   --engine <id>       Run only this engine. Repeat for more than one
   --preset <id>       Run the engines of one preset: ${presetList}
   --level <n>         How thorough the run is, from 0 to 10. The default is 6. quick, standard and deep work as 3, 6 and 8
-  --experimental      Also run the experimental engines
+                      --experimental is an old name: level 7 or more, with the wordpress.org rules
   --out <dir>         Write the report here
   --baseline <file>   Use this baseline file
   --fail-on <name>    Exit 1 at this severity or above: critical, important, recommended or never. A preset can set it

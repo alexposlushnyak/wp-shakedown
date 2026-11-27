@@ -12,6 +12,12 @@ import { Switch } from '@/components/ui/switch';
 import type { EngineInfo, FailOn, PresetInfo } from '@/lib/api';
 import { DEFAULT_LEVEL, freeId, levelLabel, plural, presetId } from '@/lib/run';
 
+const DIRECTORIES = [
+	['none', 'None'],
+	['wporg', 'WordPress.org'],
+	['envato', 'ThemeForest'],
+] as const;
+
 const KINDS = [
 	['theme', 'Themes'],
 	['plugin', 'Plugins'],
@@ -178,6 +184,28 @@ function Editor({ start, isNew, taken, engines, onSave, onRemove }: EditorProps)
 				<div className="flex flex-col gap-3">
 					<p className="text-sm font-medium">Level</p>
 					<LevelControl value={draft.level ?? DEFAULT_LEVEL} onChange={(level) => set({ level })} disabled={readOnly} className="flex items-center gap-3" />
+				</div>
+				<div className="flex flex-col gap-2">
+					<Label htmlFor="preset-directory">Directory rules</Label>
+					<Select
+						value={draft.directory ?? 'none'}
+						disabled={readOnly}
+						onValueChange={(v) => {
+							const { directory: _drop, ...rest } = draft;
+							setDraft(v === 'none' ? rest : { ...rest, directory: v as 'wporg' | 'envato' });
+						}}
+					>
+						<SelectTrigger id="preset-directory" className="w-full">
+							<SelectValue />
+						</SelectTrigger>
+						<SelectContent>
+							{DIRECTORIES.map(([value, label]) => (
+								<SelectItem key={value} value={value}>
+									{label}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
 				</div>
 				<div className="flex flex-col gap-2">
 					<Label htmlFor="preset-fail">The command fails at</Label>
