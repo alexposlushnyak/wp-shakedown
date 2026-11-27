@@ -1,0 +1,13 @@
+node_modules
+ui/node_modules
+e2e
+.git
+.cache
+dist
+ui/dist
+.dev
+test
+cases
+docs
+coverage
+*.log

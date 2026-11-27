@@ -52,7 +52,6 @@ async function install(spec: NpmToolsSpec, note: (m: string) => void): Promise<s
   rmSync(tmp, { recursive: true, force: true });
   mkdirSync(tmp, { recursive: true });
   for (const f of spec.files) copyFileSync(path.join(bundled, f), path.join(tmp, f));
-  // shortcut: npm runs without a shell, so npm.cmd on Windows is not found. Spawn through a shell there when Windows support is tested.
   const r = await exec(npm, ['ci', '--ignore-scripts', '--no-audit', '--no-fund'], { cwd: tmp });
   if (r.code !== 0) {
     rmSync(tmp, { recursive: true, force: true });
@@ -64,7 +63,7 @@ async function install(spec: NpmToolsSpec, note: (m: string) => void): Promise<s
     // Another process installed it first.
     rmSync(tmp, { recursive: true, force: true });
   }
-  if (!existsSync(ready)) throw new Error(`npm finished, but ${spec.what} is not in "${dir}".`);
+  if (!existsSync(ready)) throw new Error(`npm finished, but "${dir}" does not hold ${spec.what}.`);
   return dir;
 }
 

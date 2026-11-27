@@ -11,6 +11,7 @@ The command starts a server on your machine and opens a page in your browser. Th
 | Option | What it does |
 |---|---|
 | `--port <n>` | Uses this port. The default is a free port |
+| `--bind <address>` | The address the page listens on. The default is 127.0.0.1. Use 0.0.0.0 only in a container, with the port published to 127.0.0.1. See [Docker](../how-to/docker.md) |
 | `--no-open` | Does not open the browser. The command prints the link |
 
 Press Ctrl+C in the terminal to stop the server.

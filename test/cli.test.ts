@@ -121,6 +121,14 @@ test('run on a plugin shows progress on stderr', { timeout: 180000, ...(hasPhp ?
   assert.match(r.stdout, /Report:/);
 });
 
+test('install-tools installs the PHP and the JavaScript tools', { timeout: 180000, ...(hasPhp ? {} : { skip: 'PHP and Composer are needed' }) }, () => {
+  const r = cli('install-tools');
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /The PHP tools and the JavaScript and CSS tools are installed\./);
+  assert.ok(cli('--help').stdout.includes('install-tools'));
+  assert.ok(cli('--help').stdout.includes('--bind <address>'));
+});
+
 test('--preset checks its input, and --profile is the old name', (t) => {
   const theme = makeTheme(tmp(t));
   const unknown = cli('run', theme, '--preset', 'nope');
@@ -263,7 +271,9 @@ test('assist answers the checks of the last run through the assistant', (t) => {
   const bin = tmp(t);
   fakeBin(bin, 'claude', `process.stdin.resume(); process.stdin.on('end', () => console.log(JSON.stringify({ structured_output: ${FAIL_ANSWER} })));`);
   const theme = makeTheme(tmp(t), 'Alpha');
-  const env = { ...process.env, WP_SHAKEDOWN_HOME: home, PATH: `${bin}${path.delimiter}${process.env.PATH}` };
+  // Windows names the variable Path, and a second PATH key would leave the child to pick one of them.
+  const key = Object.keys(process.env).find((k) => k.toUpperCase() === 'PATH') ?? 'PATH';
+  const env = { ...process.env, WP_SHAKEDOWN_HOME: home, [key]: `${bin}${path.delimiter}${process.env[key]}` };
   const run = (...args: string[]) => spawnSync(process.execPath, ['src/cli.ts', ...args], { cwd: root, encoding: 'utf8', env });
   assert.match(run('assist', theme).stderr, /No report yet\. Run the checks first\./);
   const old = process.env.WP_SHAKEDOWN_HOME;

@@ -5,6 +5,7 @@ import path from 'node:path';
 import { createRequire } from 'node:module';
 import type Anthropic from '@anthropic-ai/sdk';
 import { npmTools } from '../npm-tools.ts';
+import { resolveCommand } from '../command.ts';
 import type { AssistantAnswer, AssistantProvider, AssistantTask, Target } from '../types.ts';
 import { anthropicKey } from './keys.ts';
 import { ANSWER_SCHEMA, assistantPrompt, parseAnswer } from './prompt.ts';
@@ -28,7 +29,8 @@ interface Ran {
 /** Runs a command without a shell, writes `input` to its stdin and stops it after the timeout or on the signal. */
 function run(cmd: string, args: string[], cwd: string, input: string, signal?: AbortSignal): Promise<Ran> {
   return new Promise((resolve, reject) => {
-    const child = spawn(cmd, args, { cwd, stdio: ['pipe', 'pipe', 'pipe'], signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(TIMEOUT_MS)]) : AbortSignal.timeout(TIMEOUT_MS) });
+    const [program, argv] = resolveCommand(cmd, args);
+    const child = spawn(program, argv, { cwd, stdio: ['pipe', 'pipe', 'pipe'], signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(TIMEOUT_MS)]) : AbortSignal.timeout(TIMEOUT_MS) });
     let stdout = '';
     let stderr = '';
     child.stdout.on('data', (c: Buffer) => (stdout += c));

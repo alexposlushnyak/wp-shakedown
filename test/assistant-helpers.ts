@@ -17,6 +17,12 @@ export const tasks: AssistantTask[] = [
 
 /** A Node script named `name` in `dir`, which the test puts first on PATH. */
 export function fakeBin(dir: string, name: string, body: string): void {
+  if (process.platform === 'win32') {
+    // On Windows npm installs a command as a .cmd shim that runs a script, and the tool runs that script with Node.
+    write(path.join(dir, `${name}.js`), `${body}\n`);
+    write(path.join(dir, `${name}.cmd`), `@node "%~dp0\\${name}.js" %*\r\n`);
+    return;
+  }
   const file = path.join(dir, name);
   write(file, `#!/usr/bin/env node\n${body}\n`);
   chmodSync(file, 0o755);

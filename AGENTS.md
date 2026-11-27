@@ -21,6 +21,7 @@ You need Node.js 22.18 or newer. The engine tests also need PHP and Composer. Wi
 | `npm run build:core` | Compiles `src` only |
 | `npm run dev --prefix ui` | Starts Vite for work on the page. Run `wp-shakedown ui` next to it for the API |
 | `npm test` | Runs the tests with the Node test runner |
+| `npm run e2e` | Runs the Playwright tests of the page. Run `npm ci --prefix e2e` and `npx --prefix e2e playwright install chromium` once first |
 
 Node runs the TypeScript sources directly, so tests need no build. Write TypeScript that Node can strip: no enums, no namespaces, no parameter properties, and `.ts` in relative imports.
 
@@ -60,6 +61,8 @@ To add an engine: write the adapter in `src/engines/`, add it to `src/engines/in
 | `src/mcp/` | The MCP server and its tools |
 | `ui/` | The web page: React, Tailwind and shadcn/ui, built with Vite |
 | `test/` | Tests, one file per source file |
+| `e2e/` | Playwright tests of the web page, with their own package.json. `npm run e2e` runs them after `npm run build` |
+| `Dockerfile` | The image with PHP, Composer, Node and every tool. `.github/workflows/docker.yml` builds and checks it, and publishes it on a release |
 | `cases/` | Review cases from trac, each with a fixture. `test/cases.test.ts` runs them. See [Add a review case](docs/how-to/add-a-case.md) |
 
 ## Before you start

@@ -4,17 +4,24 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
+        os: [ubuntu-latest]
         node: [22, 24, 26]
+        include:
+          - os: macos-latest
+            node: 24
+          - os: windows-latest
+            node: 24
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -26,6 +33,29 @@ jobs:
       - run: npm run typecheck
       - run: npm run build
       - run: npm test
+
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm ci --prefix ui
+      - run: npm run build
+      - run: npm ci --prefix e2e
+      - run: npx --prefix e2e playwright install --with-deps chromium
+      - run: npm run e2e
+        env:
+          CI: 'true'
+      - if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-traces
+          path: e2e/test-results
+          if-no-files-found: ignore
 
   action:
     runs-on: ubuntu-latest

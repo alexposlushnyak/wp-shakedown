@@ -160,6 +160,7 @@ function runCommand(check: Check, target: Target, cwd: string, signal: AbortSign
       done();
       if (timedOut || signal?.aborted) return;
       const n = code ?? 1;
+      // shortcut: cmd.exe exits with 1 for a command it does not know, so on Windows that is a finding with its output, not a failed check.
       if (n === 126 || n === 127) return reject(new CheckError(`The command was not found or could not run (exit code ${n}).`));
       resolve({ code: n, output });
     });

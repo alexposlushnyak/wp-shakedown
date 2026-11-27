@@ -73,7 +73,7 @@ test('a files check requires and forbids', async (t) => {
   ]);
 });
 
-test('a command check reports its exit code and output', async (t) => {
+test('a command check reports its exit code and output', { skip: process.platform === 'win32' && 'The commands use POSIX shell syntax' }, async (t) => {
   const bad = await setup(t, { cmd: { type: 'command', run: 'echo first; echo oops >&2; exit 3', title: 'Lint' } }).go();
   assert.equal(bad.findings.length, 1);
   assert.equal(bad.findings[0]!.message, 'Lint failed with exit code 3.');
@@ -94,8 +94,11 @@ test('onError decides what a check that cannot run does', async (t) => {
   assert.equal(warn.engines[0]!.status, 'ok');
   assert.equal(warn.findings[0]!.severity, 'warning');
   assert.match(warn.findings[0]!.message, /^The check could not run: /);
-  const cmd = await setup(t, { c: { type: 'command', run: 'no-such-command-xyz' } }).go();
-  assert.match(cmd.engines[0]!.reason!, /not found or could not run \(exit code 127\)/);
+  // cmd.exe exits with 1 for an unknown command, so only a POSIX shell tells it apart.
+  if (process.platform !== 'win32') {
+    const cmd = await setup(t, { c: { type: 'command', run: 'no-such-command-xyz' } }).go();
+    assert.match(cmd.engines[0]!.reason!, /not found or could not run \(exit code 127\)/);
+  }
 });
 
 test('a check file that is not valid shows as a failed engine', async (t) => {
