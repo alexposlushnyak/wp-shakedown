@@ -6,7 +6,7 @@ Instructions for AI coding agents working in this repository. Humans should star
 
 wp-shakedown is a local test runner for WordPress themes, plugins and installs. It orchestrates existing tools, runs outside WordPress, and produces one report. Stack: Node.js and TypeScript, one npm package.
 
-The core, the report writers, the `run`, `ui` and `mcp` commands and sixteen engines exist. Presets select the engines for one purpose, and a level from 0 to 10 sets how thorough a run is.
+The core, the report writers, the `run`, `ui` and `mcp` commands and fifteen engines exist. Presets select the engines for one purpose, and a level from 0 to 10 sets how thorough a run is.
 
 ## Commands
 
