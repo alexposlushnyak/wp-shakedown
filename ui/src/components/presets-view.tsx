@@ -9,13 +9,20 @@ import { Item, ItemActions, ItemContent, ItemDescription, ItemGroup, ItemTitle }
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import type { EngineInfo, FailOn, PresetInfo } from '@/lib/api';
-import { DEFAULT_LEVEL, freeId, levelLabel, plural, presetId } from '@/lib/run';
+import type { EngineInfo, FailOn, PresetInfo, Provider } from '@/lib/api';
+import { DEFAULT_LEVEL, assistantNote, freeId, levelLabel, plural, presetId } from '@/lib/run';
 
 const DIRECTORIES = [
 	['none', 'None'],
 	['wporg', 'WordPress.org'],
 	['envato', 'ThemeForest'],
+] as const;
+
+const ASSISTANTS = [
+	['none', 'None'],
+	['claude', 'Claude Code'],
+	['codex', 'Codex'],
+	['api', 'Anthropic API key'],
 ] as const;
 
 const KINDS = [
@@ -222,6 +229,30 @@ function Editor({ start, isNew, taken, engines, onSave, onRemove }: EditorProps)
 						</SelectContent>
 					</Select>
 				</div>
+			</div>
+
+			<div className="flex flex-col gap-2">
+				<Label htmlFor="preset-assistant">Assistant</Label>
+				<Select
+					value={draft.assistant ?? 'none'}
+					disabled={readOnly}
+					onValueChange={(v) => {
+						const { assistant: _drop, ...rest } = draft;
+						setDraft(v === 'none' ? rest : { ...rest, assistant: v as Provider });
+					}}
+				>
+					<SelectTrigger id="preset-assistant" className="w-full sm:w-1/2">
+						<SelectValue />
+					</SelectTrigger>
+					<SelectContent>
+						{ASSISTANTS.map(([value, label]) => (
+							<SelectItem key={value} value={value}>
+								{label}
+							</SelectItem>
+						))}
+					</SelectContent>
+				</Select>
+				<p className="text-muted-foreground text-sm">{assistantNote(draft.assistant)}</p>
 			</div>
 
 			<div className="flex flex-col gap-1">

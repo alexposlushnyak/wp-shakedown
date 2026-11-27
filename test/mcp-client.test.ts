@@ -19,7 +19,7 @@ test('the official client talks to wp-shakedown mcp', { timeout: 60000 }, async 
   );
   try {
     const { tools } = await client.listTools();
-    assert.deepEqual(tools.map((x) => x.name), ['detect_target', 'list_engines', 'run_checks', 'list_findings']);
+    assert.deepEqual(tools.map((x) => x.name), ['detect_target', 'list_engines', 'run_checks', 'list_findings', 'list_presets', 'list_runs', 'get_run', 'get_assistant_checks']);
     const text = (r: any): string => r.content[0].text;
     const detect = await client.callTool({ name: 'detect_target', arguments: { path: plugin } });
     assert.match(text(detect), /plugin/);

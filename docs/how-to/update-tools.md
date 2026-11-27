@@ -6,7 +6,7 @@ wp-shakedown runs other tools: PHPCS, PHPStan, Theme Check, ESLint, Stylelint an
 
 Two things keep the pins current.
 
-Dependabot opens one grouped pull request per month for each manifest it understands: `php-tools` (Composer), `js-tools`, `php-wasm`, `ui` and the root (npm), and the GitHub Actions.
+Dependabot opens one grouped pull request per month for each manifest it understands: `php-tools` (Composer), `js-tools`, `php-wasm`, `ai-tools`, `ui` and the root (npm), and the GitHub Actions.
 
 Four pins are by hand, because they are not normal Composer or npm dependencies. Dependabot cannot see them.
 

@@ -4,7 +4,7 @@ import { Ajv } from 'ajv';
 import { home } from './home.ts';
 import { textTable } from './table.ts';
 import { MAX_LEVEL } from './types.ts';
-import type { Directory, Preset, Target, TargetKind } from './types.ts';
+import type { AssistantProvider, Directory, Preset, Target, TargetKind } from './types.ts';
 
 export const builtInPresets: Preset[] = [
   {
@@ -74,6 +74,7 @@ const validate = new Ajv({ strict: false }).compile({
     level: { type: 'integer', minimum: 0, maximum: MAX_LEVEL },
     failOn: { enum: ['error', 'warning', 'info', 'never'] },
     directory: { enum: ['wporg', 'envato'] },
+    assistant: { enum: ['claude', 'codex', 'api'] },
     // The name before directory. A file that has it still reads.
     themeCheck: { const: 'envato' },
   },
@@ -90,7 +91,7 @@ function check(id: string, data: unknown): Preset {
     const unknown = e.keyword === 'additionalProperties' ? (e.params as { additionalProperty?: string }).additionalProperty : undefined;
     throw new Error(unknown ? `it has a field the format does not know, "${unknown}"` : `${e.instancePath || 'the file'} ${e.message}`);
   }
-  const d = data as { title: string; summary: string; kinds: TargetKind[]; engines: string[]; level?: number; failOn?: Preset['failOn']; directory?: Directory; themeCheck?: 'envato' };
+  const d = data as { title: string; summary: string; kinds: TargetKind[]; engines: string[]; level?: number; failOn?: Preset['failOn']; directory?: Directory; themeCheck?: 'envato'; assistant?: AssistantProvider };
   return {
     id,
     title: d.title,
@@ -99,6 +100,7 @@ function check(id: string, data: unknown): Preset {
     engines: d.engines,
     ...(d.level !== undefined ? { level: d.level } : {}),
     ...(d.failOn !== undefined ? { failOn: d.failOn } : {}),
+    ...(d.assistant !== undefined ? { assistant: d.assistant } : {}),
     ...(d.directory !== undefined || d.themeCheck !== undefined ? { directory: d.directory ?? d.themeCheck! } : {}),
   };
 }

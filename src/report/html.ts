@@ -129,6 +129,15 @@ ${s.suppressed > 0 ? `<p class="muted small">${e(summaryLine(result))}</p>\n` : 
     body += `<h3>${e(name)}</h3>\n<ul class="findings">\n${li}\n</ul>\n`;
   }
 
+  if (result.assistant?.length) {
+    body += '<h2>For an assistant</h2>\n<p>No tool can check these from the files. Give each one to an AI assistant, or run wp-shakedown assist with a preset that allows one.</p>\n';
+    for (const a of result.assistant) {
+      body += `<h3>${e(a.title)}</h3>\n<p>${e(oneLine(a.prompt))}</p>\n`;
+      if (a.files.length) body += `<p class="muted small">Start with: ${e(a.files.join(', '))}</p>\n`;
+      if (a.docs) body += `<p class="muted small">Docs: ${docsLink(oneLine(a.docs))}</p>\n`;
+    }
+  }
+
   const suppressed = result.findings.filter((f) => f.suppressed);
   if (suppressed.length) {
     const li = suppressed

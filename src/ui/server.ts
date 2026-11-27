@@ -4,6 +4,7 @@ import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { counts, runAssist } from '../assistant/assist.ts';
 import { customEngines } from '../engines/custom.ts';
 import { findPreset, listPresets, removePreset, savePreset } from '../presets.ts';
 import { addProject, listProjects, projectId, removeProject } from '../projects.ts';
@@ -17,7 +18,7 @@ import { detectTarget } from '../target.ts';
 import { importZip } from '../uploads.ts';
 import { pickerCommand, pickFolder } from './picker.ts';
 import { parseLevel } from '../types.ts';
-import type { Engine, Preset, RunEvent } from '../types.ts';
+import type { AssistantReport, Engine, Preset, RunEvent } from '../types.ts';
 import { VERSION } from '../version.ts';
 
 export interface UiServer {
@@ -85,6 +86,8 @@ export function startUi(opts: {
   token?: string;
   /** Opens the folder dialog. Tests replace it. Null means the system has none. */
   pick?: ((start: string, signal: AbortSignal) => Promise<string | null>) | null;
+  /** Answers one assistant check. Tests replace it. */
+  ask?: typeof import('../assistant/providers.ts').ask;
 }): Promise<UiServer> {
   const token = opts.token ?? randomBytes(24).toString('base64url');
   const startDir = path.resolve(opts.startDir ?? process.cwd());
@@ -93,6 +96,7 @@ export function startUi(opts: {
   const pick = opts.pick === undefined ? (pickerCommand(startDir) ? pickFolder : null) : opts.pick;
   const closing = new AbortController();
   let picking = false;
+  const assisting = new Set<string>();
 
   interface Active {
     path: string;
@@ -277,6 +281,7 @@ export function startUi(opts: {
       '/api/presets/remove': 'POST',
       '/api/run': 'POST',
       '/api/cancel': 'POST',
+      '/api/assist': 'POST',
       '/api/report': 'GET',
       '/api/report.html': 'GET',
       '/api/history': 'GET',
@@ -303,7 +308,7 @@ export function startUi(opts: {
         if (!body) return;
         if (typeof body.id !== 'string') return send(res, 400, { error: 'Send the ID of the preset.' });
         try {
-          const { id, title, summary, kinds, engines, level, failOn, directory } = body as unknown as Preset;
+          const { id, title, summary, kinds, engines, level, failOn, directory, assistant } = body as unknown as Preset;
           savePreset({
             id,
             title,
@@ -313,6 +318,7 @@ export function startUi(opts: {
             ...(level !== undefined ? { level } : {}),
             ...(failOn !== undefined ? { failOn } : {}),
             ...(directory !== undefined ? { directory } : {}),
+            ...(assistant !== undefined ? { assistant } : {}),
           });
         } catch (err) {
           return send(res, 400, { error: err instanceof Error ? err.message : String(err) });
@@ -503,7 +509,16 @@ export function startUi(opts: {
         const result = found.session?.result ?? readPreviousRun(found.dir);
         if (!result) return send(res, 404, { error: 'No report yet.' });
         const diff = found.session?.diff;
+        let answers: { pass: number; fail: number; unsure: number; file: string } | undefined;
+        try {
+          const a = JSON.parse(readFileSync(path.join(found.dir, 'assistant.json'), 'utf8')) as AssistantReport;
+          if (a.run === result.finishedAt) answers = { ...counts(a.answers), file: path.join(found.dir, 'assistant.md') };
+        } catch {
+          // No answers yet.
+        }
+        const provider = result.preset !== undefined ? findPreset(result.preset)?.assistant : undefined;
         return send(res, 200, {
+          assistant: { checks: result.assistant?.length ?? 0, ...(provider ? { provider } : {}), ...(answers ? { answers } : {}) },
           summary: result.summary,
           engines: result.engines,
           finishedAt: result.finishedAt,
@@ -514,6 +529,27 @@ export function startUi(opts: {
           files: found.session?.files ?? REPORT_FILES.map((f) => path.join(found.dir, f)).filter((f) => existsSync(f)),
           dir: found.dir,
         });
+      }
+
+      case '/api/assist': {
+        const body = await jsonBody(req, res);
+        if (!body) return;
+        const id = typeof body.id === 'string' ? body.id : '';
+        const p = listProjects().find((x) => x.id === id);
+        const dir = historyDir(id);
+        if (!p?.kind || !dir) return send(res, 404, { error: 'No such project.' });
+        if (assisting.has(id)) return send(res, 409, { error: 'The assistant is already running for this project.' });
+        // The answers belong to the last finished run, so wait for a run that is queued or going.
+        if (active.has(id)) return send(res, 409, { error: 'The checks are running. Wait for them to finish.' });
+        assisting.add(id);
+        try {
+          const { report, files } = await runAssist({ dir, target: detectTarget(p.path), signal: closing.signal, ...(opts.ask ? { ask: opts.ask } : {}) });
+          return send(res, 200, { ...counts(report.answers), file: files[0] });
+        } catch (err) {
+          return send(res, 400, { error: err instanceof Error ? err.message : String(err) });
+        } finally {
+          assisting.delete(id);
+        }
       }
 
       case '/api/history': {

@@ -52,6 +52,8 @@ After the run the page shows three numbers: critical, important and recommended 
 
 The page does not list the findings. Open the report shows the full HTML report in a new tab. Two buttons copy text for you: the path of `report.md`, and a short prompt that tells an AI assistant to read that report and fix the findings.
 
+When the run lists [checks for an assistant](assistant.md), the page says how many. With a preset that names an assistant, Run the assistant checks answers them and shows how many pass, fail and stay unsure.
+
 Once a project has two runs or more, the history under the numbers lists them, newest first. Each run opens its own report in a new tab. Compare picks two runs and opens the report of the newer one with what changed since the older one.
 
 Remove from the list takes the project off the list and deletes the unpacked folder of a ZIP upload. Its reports stay.

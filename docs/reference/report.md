@@ -19,6 +19,8 @@ When one rule has three findings or more across two files or more, `report.md` a
 
 `report.csv` has one row per finding, suppressed ones included, with the columns `id`, `severity`, `category`, `engine`, `rule`, `file`, `line`, `column`, `url`, `message`, `hint`, `docs` and `suppressed`. A value that starts with `=`, `+`, `-` or `@` gets a `'` in front, so a spreadsheet does not run a message from the tested code as a formula.
 
+A run on a theme or plugin also lists the [checks for an assistant](assistant.md) under "For an assistant" in `report.md` and `report.html`, and in `assistant` in `report.json`. `wp-shakedown assist` writes the answers to `assistant.json` and `assistant.md` in the same folder.
+
 The same folder keeps `runs/<run>/report.json` for the 20 newest runs. See [`wp-shakedown history`](cli.md#history).
 
 The types below are in [`src/types.ts`](../../src/types.ts).

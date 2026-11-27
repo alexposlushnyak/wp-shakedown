@@ -44,6 +44,7 @@ export function toShort(result: RunResult, diff?: RunDiff, since?: string): stri
     out.push(lines.join('\n'));
   }
 
+  if (result.assistant?.length) out.push(`${plural(result.assistant.length, 'check', 'checks')} for an assistant ${result.assistant.length === 1 ? 'is' : 'are'} in report.md.`);
   const style = active.filter((f) => f.category === 'standards').length;
   const recommended = active.filter((f) => f.severity === 'info' && f.category !== 'standards').length;
   if (recommended + style > 0) {

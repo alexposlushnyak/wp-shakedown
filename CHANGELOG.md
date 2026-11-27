@@ -6,6 +6,8 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ### Added
 
+- Checks for an assistant: a run on a theme or plugin lists the checks no tool can make, such as whether escaping fits its context or a request handler checks the nonce, each with a prompt and the files to start from. `wp-shakedown assist` and the web page answer them through Claude Code, Codex or an Anthropic API key, when the preset names one in its new `assistant` field. Without it nothing leaves your machine. `wp-shakedown key set anthropic` saves the key. See [ADR 0033](docs/adr/0033-assistant-checks-and-providers.md).
+- The MCP server has `list_presets`, `list_runs`, `get_run` and `get_assistant_checks`.
 - The report folder keeps the 20 newest runs. `wp-shakedown history <project>` lists them, prints the report of any one and compares any two. The web page lists the runs of a project, opens the report of each and compares two. See [ADR 0032](docs/adr/0032-run-history-is-a-folder-per-run.md).
 - `report-short.md` with the summary and the critical and important findings grouped by rule, and `report.csv` with one row per finding.
 - `report.md` and `report.html` list a rule that repeats across files once, with its fix, and then every place it was found.

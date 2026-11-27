@@ -55,6 +55,7 @@ A preset you write is one JSON file in `~/.wp-shakedown/presets/`. The file name
 | `level` | Optional. An integer from 0 to 10 |
 | `failOn` | Optional. `error`, `warning`, `info` or `never`. These are the values of the JSON report. The command line also takes `critical`, `important` and `recommended` |
 | `directory` | Optional. `wporg` or `envato`. See [Directory rules](#directory-rules). A file with the old field `themeCheck: "envato"` reads as `directory: "envato"` |
+| `assistant` | Optional. `claude`, `codex` or `api`: the provider that answers the [checks for an assistant](assistant.md). It sends the files of the project to that provider. Without it nothing leaves your machine |
 
 A field the format does not know makes the file invalid. `wp-shakedown presets` lists a file that is not valid after the table, with the reason. Such a file stops only a run that asks for that preset.
 

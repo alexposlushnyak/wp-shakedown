@@ -271,3 +271,14 @@ export function runLink(id: string, run: string, token: string, against?: string
 export function runStamp(iso: string): string {
 	return `${iso.slice(0, 10)} ${iso.slice(11, 16)} UTC`;
 }
+
+/** The note under the assistant setting of a preset. */
+export function assistantNote(provider: string | undefined): string {
+	if (!provider) return 'No code leaves your machine.';
+	return `The assistant checks send the files of the project to ${provider === 'codex' ? 'OpenAI' : 'Anthropic'}.`;
+}
+
+/** The result of the assistant checks, for example `2 pass, 1 fail, 0 unsure`. */
+export function answersText(a: { pass: number; fail: number; unsure: number }): string {
+	return `${a.pass} pass, ${a.fail} fail, ${a.unsure} unsure`;
+}

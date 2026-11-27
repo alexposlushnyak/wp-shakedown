@@ -39,6 +39,10 @@ To use Wordfence Intelligence, add the key to the `env` of that entry as `WP_SHA
 | `list_engines` | Lists the engines with their IDs and levels, your own checks included | No |
 | `run_checks` | Runs the engines on a folder and returns the report as Markdown | Writes report files. Never changes the target |
 | `list_findings` | Returns findings of the last run on a folder, filtered and paged, as JSON | No |
+| `list_presets` | Lists the built-in presets and your own, with their engines, level and settings, as JSON | No |
+| `list_runs` | Lists the kept runs of a folder, newest first, with a number, the time and the counts, as JSON | No |
+| `get_run` | Returns the short report of one run, compared with the run before it, as Markdown. `run` is a number from `list_runs` or a run ID, `against` picks another run to compare with, `full` returns the full report | No |
+| `get_assistant_checks` | Returns the [checks for an assistant](assistant.md) of the last run, or of `run`, each with a full prompt, as Markdown. The assistant then answers them itself | No |
 
 ### run_checks
 

@@ -1,6 +1,9 @@
 import { mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+import { diffRuns } from './diff.ts';
 import { toJson } from './report/json.ts';
+import { toMarkdown } from './report/markdown.ts';
+import { toShort } from './report/short.ts';
 import { readPreviousRun } from './report/write.ts';
 import type { RunResult, Summary } from './types.ts';
 
@@ -94,4 +97,19 @@ export function resolveRun(entries: RunEntry[], ref: string): RunEntry | undefin
 export function previousOf(entries: RunEntry[], run: string): RunEntry | undefined {
   const i = entries.findIndex((e) => e.run === run);
   return i >= 0 ? entries[i + 1] : undefined;
+}
+
+/** The short or full Markdown of one run, compared with `against` or with the run before it. Throws when a run is unknown. */
+export function runText(dir: string, ref: string, opts: { against?: string; full?: boolean; hint: string }): string {
+  const entries = listRuns(dir);
+  const missing = (r: string): Error => new Error(`No run "${r}". ${opts.hint} lists them.`);
+  const entry = resolveRun(entries, ref);
+  const result = entry ? readRun(dir, entry.run) : undefined;
+  if (!entry || !result) throw missing(ref);
+  const baseEntry = opts.against !== undefined ? resolveRun(entries, opts.against) : previousOf(entries, entry.run);
+  if (opts.against !== undefined && !baseEntry) throw missing(opts.against);
+  const base = baseEntry ? readRun(dir, baseEntry.run) : undefined;
+  const diff = base ? diffRuns(base, result) : undefined;
+  const since = base?.finishedAt;
+  return opts.full ? toMarkdown(result, diff, since) : toShort(result, diff, since);
 }

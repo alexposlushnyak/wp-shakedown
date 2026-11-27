@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
+  answersText,
+  assistantNote,
   groupProjects,
   queueText,
   shortPath,
@@ -232,4 +234,15 @@ test('newerFirst opens the newer run whichever way the two were picked', () => {
   const runs = [{ run: 'c' }, { run: 'b' }, { run: 'a' }];
   assert.deepEqual(newerFirst(runs, 'c', 'a'), ['c', 'a']);
   assert.deepEqual(newerFirst(runs, 'a', 'c'), ['c', 'a']);
+});
+
+test('assistantNote says where the files go', () => {
+  assert.equal(assistantNote(undefined), 'No code leaves your machine.');
+  assert.equal(assistantNote('claude'), 'The assistant checks send the files of the project to Anthropic.');
+  assert.equal(assistantNote('api'), 'The assistant checks send the files of the project to Anthropic.');
+  assert.equal(assistantNote('codex'), 'The assistant checks send the files of the project to OpenAI.');
+});
+
+test('answersText lists the three counts', () => {
+  assert.equal(answersText({ pass: 3, fail: 1, unsure: 0 }), '3 pass, 1 fail, 0 unsure');
 });
