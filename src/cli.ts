@@ -4,16 +4,22 @@ import { readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
 import { engines } from './engines/index.ts';
+import { listRuns, previousOf, readRun, resolveRun } from './history.ts';
 import { findPreset, listPresets, presetTable } from './presets.ts';
 import { hubExitCode, hubLines, projectTable, runMany } from './hub.ts';
 import type { HubRow } from './hub.ts';
-import { addProject, listProjects, removeProject } from './projects.ts';
+import { addProject, findProject, listProjects, removeProject } from './projects.ts';
 import { progressLine } from './progress.ts';
-import { noEngineLine, summaryLine } from './report/markdown.ts';
+import { noEngineLine, runLabel, summaryLine, toMarkdown } from './report/markdown.ts';
+import { toShort } from './report/short.ts';
+import { defaultReportDir } from './report/write.ts';
+import { detectTarget } from './target.ts';
+import { diffRuns } from './diff.ts';
 import { exitCode } from './runner.ts';
 import { runSession } from './session.ts';
 import { startMcp } from './mcp/server.ts';
 import { startUi } from './ui/server.ts';
+import { textTable } from './table.ts';
 import { importZip } from './uploads.ts';
 import { VERSION } from './version.ts';
 import { parseFailOn, parseLevel } from './types.ts';
@@ -31,6 +37,7 @@ Usage:
   wp-shakedown remove <project>...
   wp-shakedown list
   wp-shakedown presets
+  wp-shakedown history <project> [run] [--against <run>] [--full]
   wp-shakedown ui [path] [options]
   wp-shakedown mcp
 
@@ -43,6 +50,8 @@ Options:
   --out <dir>         Write the report here
   --baseline <file>   Use this baseline file
   --fail-on <name>    Exit 1 at this severity or above: critical, important, recommended or never. A preset can set it
+  --against <run>     With history: compare the run with this one instead of the run before it
+  --full              With history: print the full report instead of the short one
   --all               Run every project on the list
   --jobs <n>          How many projects run at once. The default is 3
   --port <n>          Port for the ui command. The default is a free port
@@ -107,6 +116,59 @@ function presets(): number {
     console.log('');
     for (const p of problems) console.log(`${p.file} is not a valid preset: ${p.error}.`);
   }
+  return 0;
+}
+
+/** Lists the runs kept for a project, or prints one of them. A run is a number from the list or a run id. */
+function history(args: string[], flags: { out?: string; against?: string; full?: boolean }): number {
+  let [project, ref] = args;
+  // With --out the project can be left out, so one argument that looks like a run is the run.
+  if (flags.out && args.length === 1 && /^(\d{1,4}|\d{4}-\d{2}-\d{2}T.*)$/.test(project!)) [project, ref] = [undefined, project];
+  let dir: string;
+  let name: string;
+  if (flags.out) {
+    dir = flags.out;
+    name = project ?? path.basename(path.resolve(flags.out));
+  } else {
+    if (!project) throw new Error('Name a project, for example: wp-shakedown history my-theme');
+    const target = detectTarget(findProject(project)?.path ?? project);
+    dir = defaultReportDir(target);
+    name = target.name;
+  }
+  const entries = listRuns(dir);
+  if (ref === undefined) {
+    if (entries.length === 0) {
+      console.log(`No runs yet for "${name}". Run wp-shakedown run <path> first.`);
+      return 0;
+    }
+    const rows = entries.map((e, i) => [
+      String(i + 1),
+      runLabel(e.finishedAt),
+      String(e.summary.error),
+      String(e.summary.warning),
+      String(e.summary.info),
+      e.level !== undefined ? String(e.level) : '-',
+      e.preset ?? '-',
+      e.failed > 0 ? `failed engines: ${e.failed}` : '',
+    ]);
+    console.log(textTable([['#', 'Run', 'Critical', 'Important', 'Recommended', 'Level', 'Preset', ''], ...rows]).join('\n'));
+    return 0;
+  }
+  const entry = resolveRun(entries, ref);
+  const result = entry ? readRun(dir, entry.run) : undefined;
+  if (!entry || !result) {
+    console.error(`wp-shakedown: No run "${ref}". wp-shakedown history ${project ?? `--out ${dir}`} lists them.`);
+    return 2;
+  }
+  const baseEntry = flags.against !== undefined ? resolveRun(entries, flags.against) : previousOf(entries, entry.run);
+  if (flags.against !== undefined && !baseEntry) {
+    console.error(`wp-shakedown: No run "${flags.against}". wp-shakedown history ${project ?? `--out ${dir}`} lists them.`);
+    return 2;
+  }
+  const base = baseEntry ? readRun(dir, baseEntry.run) : undefined;
+  const diff = base ? diffRuns(base, result) : undefined;
+  const since = base?.finishedAt;
+  process.stdout.write(flags.full ? toMarkdown(result, diff, since) : toShort(result, diff, since));
   return 0;
 }
 
@@ -219,6 +281,8 @@ async function main(argv: string[]): Promise<number> {
         depth: { type: 'string' },
         experimental: { type: 'boolean' },
         out: { type: 'string' },
+        against: { type: 'string' },
+        full: { type: 'boolean' },
         baseline: { type: 'string' },
         'fail-on': { type: 'string' },
         all: { type: 'boolean' },
@@ -242,6 +306,13 @@ async function main(argv: string[]): Promise<number> {
     if (command === 'remove') return remove(positionals.slice(1));
     if (command === 'list') return list();
     if (command === 'presets') return presets();
+    if (command === 'history') {
+      return history(positionals.slice(1), {
+        ...(values.out ? { out: values.out } : {}),
+        ...(values.against ? { against: values.against } : {}),
+        ...(values.full ? { full: true } : {}),
+      });
+    }
     if (command === 'mcp') {
       await startMcp({ engines, input: process.stdin, output: process.stdout }).closed;
       return 0;

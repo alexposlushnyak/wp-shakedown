@@ -67,6 +67,15 @@ export interface Project {
 	run?: 'queued' | 'running';
 }
 
+export interface RunEntry {
+	run: string;
+	finishedAt: string;
+	summary: Summary;
+	preset?: string;
+	level?: number;
+	failed: number;
+}
+
 export interface ProjectReport {
 	summary: Summary;
 	engines: { engine: string; status: Exclude<JobStatus, 'waiting' | 'running'>; durationMs: number; findings: number; reason?: string }[];

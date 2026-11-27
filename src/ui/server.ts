@@ -1,5 +1,5 @@
 import { randomBytes, timingSafeEqual } from 'node:crypto';
-import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
@@ -7,7 +7,10 @@ import { fileURLToPath } from 'node:url';
 import { customEngines } from '../engines/custom.ts';
 import { findPreset, listPresets, removePreset, savePreset } from '../presets.ts';
 import { addProject, listProjects, projectId, removeProject } from '../projects.ts';
-import { readPreviousRun } from '../report/write.ts';
+import { diffRuns } from '../diff.ts';
+import { listRuns, previousOf, readRun } from '../history.ts';
+import { toHtml } from '../report/html.ts';
+import { defaultReportDir, readPreviousRun } from '../report/write.ts';
 import { runSession } from '../session.ts';
 import type { SessionResult } from '../session.ts';
 import { detectTarget } from '../target.ts';
@@ -58,7 +61,7 @@ const MAX_BODY = 65536;
 const MAX_UPLOAD = 256 * 1024 ** 2;
 const MAX_RUNNING = 3;
 const REPORT_CSP = "default-src 'none'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'";
-const REPORT_FILES = ['report.md', 'report.json', 'report.sarif', 'report.html'];
+const REPORT_FILES = ['report.md', 'report.json', 'report.sarif', 'report.html', 'report-short.md', 'report.csv'];
 
 function toWire(e: RunEvent): WireEvent {
   if (e.type === 'run:start') {
@@ -219,6 +222,19 @@ export function startUi(opts: {
     return dir ? { dir } : undefined;
   }
 
+  /** The report folder of a project, also before its first run. */
+  function historyDir(id: string): string | undefined {
+    const found = reportOf(id);
+    if (found) return found.dir;
+    const p = listProjects().find((x) => x.id === id);
+    if (!p?.kind) return undefined;
+    try {
+      return defaultReportDir(detectTarget(p.path));
+    } catch {
+      return undefined;
+    }
+  }
+
   const handle = async (req: http.IncomingMessage, res: http.ServerResponse): Promise<void> => {
     const url = new URL(req.url ?? '/', `http://127.0.0.1:${port}`);
     const route = url.pathname;
@@ -263,6 +279,7 @@ export function startUi(opts: {
       '/api/cancel': 'POST',
       '/api/report': 'GET',
       '/api/report.html': 'GET',
+      '/api/history': 'GET',
       '/api/events': 'GET',
     };
     const want = methods[route];
@@ -493,13 +510,33 @@ export function startUi(opts: {
           ...(result.preset ? { preset: result.preset } : {}),
           ...(result.level !== undefined ? { level: result.level } : {}),
           ...(diff ? { diff: { fixed: diff.fixed.length, added: diff.added.length, open: diff.open.length } } : {}),
-          files: found.session?.files ?? REPORT_FILES.map((f) => path.join(found.dir, f)),
+          // A folder written by an older version lacks the newer formats.
+          files: found.session?.files ?? REPORT_FILES.map((f) => path.join(found.dir, f)).filter((f) => existsSync(f)),
           dir: found.dir,
         });
       }
 
+      case '/api/history': {
+        const dir = historyDir(url.searchParams.get('id') ?? '');
+        return send(res, 200, { runs: dir ? listRuns(dir) : [] });
+      }
+
       case '/api/report.html': {
         const found = reportOf(url.searchParams.get('id') ?? '');
+        const run = url.searchParams.get('run');
+        if (run !== null) {
+          const against = url.searchParams.get('against');
+          const result = found ? readRun(found.dir, run) : undefined;
+          if (!found || !result) return send(res, 404, { error: 'No such run.' });
+          const entries = listRuns(found.dir);
+          const base = against !== null ? readRun(found.dir, against) : (() => {
+            const prev = previousOf(entries, run);
+            return prev ? readRun(found.dir, prev.run) : undefined;
+          })();
+          if (against !== null && !base) return send(res, 404, { error: 'No such run.' });
+          res.writeHead(200, { ...HEADERS, 'Content-Security-Policy': REPORT_CSP, 'Content-Type': TYPES['.html']! });
+          return void res.end(toHtml(result, base ? diffRuns(base, result) : undefined, base?.finishedAt));
+        }
         try {
           const body = readFileSync(path.join(found?.dir ?? '', 'report.html'));
           if (!found) throw new Error('none');

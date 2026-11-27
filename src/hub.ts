@@ -3,6 +3,7 @@ import { summaryLine } from './report/markdown.ts';
 import type { Project } from './projects.ts';
 import { exitCode } from './runner.ts';
 import { runSession } from './session.ts';
+import { textTable } from './table.ts';
 import type { SessionOptions } from './session.ts';
 import type { RunEvent, RunResult, Severity } from './types.ts';
 
@@ -127,7 +128,7 @@ export function projectTable(projects: Project[]): string {
   const fits = (p: Project, kind: string | undefined): boolean => (kind === undefined ? !known.includes(p.kind) : p.kind === kind);
   const groups = PROJECT_GROUPS.map((g) => ({ title: g.title, rows: projects.filter((p) => fits(p, g.kind)).map(row) })).filter((g) => g.rows.length > 0);
   const all = [head, ...groups.flatMap((g) => g.rows)];
-  const widths = head.map((_, c) => Math.max(...all.map((r) => r[c]!.length)));
-  const line = (r: string[]): string => r.map((cell, c) => (c === r.length - 1 ? cell : cell.padEnd(widths[c]!))).join('  ').trimEnd();
-  return [line(head), ...groups.flatMap((g) => ['', g.title, ...g.rows.map(line)])].join('\n');
+  const lines = textTable(all);
+  let next = 1;
+  return [lines[0]!, ...groups.flatMap((g) => ['', g.title, ...lines.slice(next, (next += g.rows.length))])].join('\n');
 }

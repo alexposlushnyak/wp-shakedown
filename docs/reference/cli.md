@@ -77,6 +77,18 @@ If the report folder already holds a report, the tool compares the new run with 
 
 The comparison covers only the engines that ran in both runs. After `--engine phpcs`, the findings of every other engine are left out. They are not counted as fixed.
 
+## history
+
+```
+wp-shakedown history <project> [run] [--against <run>] [--full]
+```
+
+The report folder keeps the 20 newest runs of a target in `runs/`. `<project>` is a project from the list, by ID, path or name, or the path of a folder. With `--out <dir>`, the command reads that report folder instead.
+
+Without `run`, the command lists the runs, newest first, with a number, the time, the three counts, the level and the preset. A run where an engine failed says so.
+
+With `run`, the number from the list or the run ID, it prints the short report of that run, compared with the run before it. `--against <run>` compares it with another run instead. `--full` prints the full Markdown report. See [ADR 0032](../adr/0032-run-history-is-a-folder-per-run.md).
+
 ### Exit codes
 
 | Code | Meaning |

@@ -5,7 +5,12 @@ import {
   queueText,
   shortPath,
   aiPrompt,
+  countsText,
+  newerFirst,
   crumbs,
+  defaultPair,
+  runLink,
+  runStamp,
   detectedText,
   fromSnapshot,
   jobStatusText,
@@ -209,4 +214,22 @@ test('parseView tells the list of presets, one preset, a project and the hub apa
 test('freeId adds a number until the ID is free', () => {
   assert.equal(freeId('client-copy', ['client']), 'client-copy');
   assert.equal(freeId('client-copy', ['client-copy', 'client-copy-2']), 'client-copy-3');
+});
+
+test('the compare row starts with the two newest runs', () => {
+  assert.equal(defaultPair([{ run: 'a' }]), undefined);
+  assert.deepEqual(defaultPair([{ run: 'c' }, { run: 'b' }, { run: 'a' }]), { b: 'c', a: 'b' });
+});
+
+test('run labels and links', () => {
+  assert.equal(countsText({ error: 1, warning: 2, info: 3, suppressed: 0 }), '1 / 2 / 3');
+  assert.equal(runStamp('2026-11-27T10:41:03.123Z'), '2026-11-27 10:41 UTC');
+  assert.equal(runLink('p1', 'r1', 't k'), '/api/report.html?id=p1&run=r1&t=t%20k');
+  assert.equal(runLink('p1', 'r1', 'tk', 'r0'), '/api/report.html?id=p1&run=r1&against=r0&t=tk');
+});
+
+test('newerFirst opens the newer run whichever way the two were picked', () => {
+  const runs = [{ run: 'c' }, { run: 'b' }, { run: 'a' }];
+  assert.deepEqual(newerFirst(runs, 'c', 'a'), ['c', 'a']);
+  assert.deepEqual(newerFirst(runs, 'a', 'c'), ['c', 'a']);
 });

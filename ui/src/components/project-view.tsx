@@ -1,15 +1,16 @@
 import { useEffect, useState } from 'react';
-import { ArrowLeftIcon, ChevronsUpDownIcon, ClipboardIcon, ExternalLinkIcon, PlayIcon, SparklesIcon, SquareIcon } from 'lucide-react';
+import { ArrowLeftIcon, ChevronsUpDownIcon, ClipboardIcon, ExternalLinkIcon, HistoryIcon, PlayIcon, SparklesIcon, SquareIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { LevelControl } from '@/components/level-control';
 import { EngineList } from '@/components/engine-line';
 import { Button } from '@/components/ui/button';
+import { Item, ItemActions, ItemContent, ItemDescription, ItemGroup, ItemTitle } from '@/components/ui/item';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { api, q, token } from '@/lib/api';
-import type { PresetInfo, Project, ProjectReport } from '@/lib/api';
-import { aiPrompt, levelLabel, plural, presetsFor, progress, runModel, timeAgo } from '@/lib/run';
+import type { PresetInfo, Project, ProjectReport, RunEntry } from '@/lib/api';
+import { aiPrompt, countsText, defaultPair, levelLabel, newerFirst, plural, presetsFor, progress, runLink, runModel, runStamp, timeAgo } from '@/lib/run';
 import type { Job, WireEvent } from '@/lib/run';
 
 async function copy(text: string, done: string) {
@@ -30,7 +31,109 @@ function Tile({ label, value, tone }: { label: string; value: number; tone?: str
 	);
 }
 
-function Report({ report, id }: { report: ProjectReport; id: string }) {
+function RunOption({ run }: { run: RunEntry }) {
+	return (
+		<>
+			{runStamp(run.finishedAt)} <span className="text-muted-foreground tabular-nums">{countsText(run.summary)}</span>
+		</>
+	);
+}
+
+function History({ runs, id }: { runs: RunEntry[]; id: string }) {
+	const pair = defaultPair(runs);
+	const [b, setB] = useState(pair?.b ?? '');
+	const [a, setA] = useState(pair?.a ?? '');
+	const [newer, older] = newerFirst(runs, b, a);
+	// A new run changes the list. Start the comparison over from the two newest.
+	useEffect(() => {
+		const next = defaultPair(runs);
+		if (next) {
+			setB(next.b);
+			setA(next.a);
+		}
+	}, [runs]);
+	return (
+		<Collapsible>
+			<CollapsibleTrigger asChild>
+				<Button variant="ghost" size="sm" className="-ml-2">
+					<HistoryIcon />
+					{plural(runs.length, 'run', 'runs')}
+				</Button>
+			</CollapsibleTrigger>
+			<CollapsibleContent className="flex flex-col gap-4 pt-2">
+				<div className="flex flex-wrap items-center gap-2">
+					<span className="text-muted-foreground text-sm">Compare</span>
+					<Select value={b} onValueChange={setB}>
+						<SelectTrigger className="w-auto" aria-label="Newer run">
+							<SelectValue />
+						</SelectTrigger>
+						<SelectContent>
+							{runs.map((r) => (
+								<SelectItem key={r.run} value={r.run}>
+									<RunOption run={r} />
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+					<span className="text-muted-foreground text-sm">with</span>
+					<Select value={a} onValueChange={setA}>
+						<SelectTrigger className="w-auto" aria-label="Older run">
+							<SelectValue />
+						</SelectTrigger>
+						<SelectContent>
+							{runs.map((r) => (
+								<SelectItem key={r.run} value={r.run}>
+									<RunOption run={r} />
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+					<Button variant="outline" asChild={a !== b} disabled={a === b}>
+						{a === b ? (
+							<span>Open the comparison</span>
+						) : (
+							<a href={runLink(id, newer, token, older)} target="_blank" rel="noreferrer">
+								Open the comparison
+							</a>
+						)}
+					</Button>
+				</div>
+				<ItemGroup className="gap-0">
+					{runs.map((r, i) => {
+						const detail = [runStamp(r.finishedAt), r.level !== undefined ? levelLabel(r.level).toLowerCase() : '', r.preset ? `preset ${r.preset}` : ''].filter(Boolean);
+						return (
+							<Item key={r.run} className="-mx-3 rounded-xl px-3 py-2">
+								<ItemContent className="min-w-0">
+									<ItemTitle>
+										{timeAgo(r.finishedAt, Date.now())}
+										{i === 0 && <span className="text-muted-foreground text-xs font-normal">Latest</span>}
+									</ItemTitle>
+									{detail.length > 0 && <ItemDescription>{detail.join(', ')}</ItemDescription>}
+								</ItemContent>
+								<ItemActions>
+									<span className="text-sm tabular-nums">
+										<span className={r.summary.error > 0 ? 'text-destructive' : 'text-muted-foreground'}>{r.summary.error}</span>
+										{' / '}
+										<span className={r.summary.warning > 0 ? 'text-warning' : 'text-muted-foreground'}>{r.summary.warning}</span>
+										{' / '}
+										<span className="text-muted-foreground">{r.summary.info}</span>
+									</span>
+									<Button variant="ghost" size="icon" asChild aria-label={`Open the report of ${runStamp(r.finishedAt)}`}>
+										<a href={runLink(id, r.run, token)} target="_blank" rel="noreferrer">
+											<ExternalLinkIcon />
+										</a>
+									</Button>
+								</ItemActions>
+							</Item>
+						);
+					})}
+				</ItemGroup>
+			</CollapsibleContent>
+		</Collapsible>
+	);
+}
+
+function Report({ report, id, runs }: { report: ProjectReport; id: string; runs: RunEntry[] }) {
 	const { summary } = report;
 	const failed = report.engines.filter((e) => e.status === 'failed').length;
 	const jobs: Job[] = report.engines.map((e) => ({ ...e, reason: e.reason ?? '', notes: [] }));
@@ -68,6 +171,7 @@ function Report({ report, id }: { report: ProjectReport; id: string }) {
 					<EngineList jobs={jobs} />
 				</CollapsibleContent>
 			</Collapsible>
+			{runs.length >= 2 && <History runs={runs} id={id} />}
 			<div className="flex flex-wrap gap-2">
 				<Button variant="outline" asChild>
 					<a href={`/api/report.html?id=${id}&t=${q(token)}`} target="_blank" rel="noreferrer">
@@ -102,6 +206,7 @@ interface Props {
 export function ProjectView({ project, events, presets, level, onLevel, onRun, onStop, onRemove }: Props) {
 	const [preset, setPreset] = useState('all');
 	const [report, setReport] = useState<ProjectReport | null>(null);
+	const [runs, setRuns] = useState<RunEntry[]>([]);
 	const active = project.run !== undefined;
 	const model = runModel(events);
 	const fitting = presetsFor(presets, project.kind);
@@ -111,9 +216,11 @@ export function ProjectView({ project, events, presets, level, onLevel, onRun, o
 	useEffect(() => {
 		if (active || !finishedAt) {
 			setReport(null);
+			setRuns([]);
 			return;
 		}
 		api<ProjectReport>(`/api/report?id=${project.id}`).then(setReport, () => setReport(null));
+		api<{ runs: RunEntry[] }>(`/api/history?id=${project.id}`).then((h) => setRuns(h.runs), () => setRuns([]));
 	}, [project.id, active, finishedAt]);
 
 	useEffect(() => setPreset('all'), [project.id]);
@@ -188,7 +295,7 @@ export function ProjectView({ project, events, presets, level, onLevel, onRun, o
 					</div>
 				)
 			) : report ? (
-				<Report report={report} id={project.id} />
+				<Report report={report} id={project.id} runs={runs} />
 			) : (
 				<p className="text-muted-foreground text-sm">No run yet.</p>
 			)}

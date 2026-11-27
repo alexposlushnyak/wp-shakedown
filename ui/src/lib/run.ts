@@ -244,3 +244,30 @@ export function withEvent(runs: RunEvents, id: string, event: WireEvent): RunEve
 export function fromSnapshot(snapshot: { id: string; events: WireEvent[] }[]): RunEvents {
 	return Object.fromEntries(snapshot.map((r) => [r.id, r.events]));
 }
+
+/** The two runs the compare row starts with: the newest, and the one before it. Runs come newest first. */
+export function defaultPair(runs: { run: string }[]): { b: string; a: string } | undefined {
+	return runs.length >= 2 ? { b: runs[0]!.run, a: runs[1]!.run } : undefined;
+}
+
+/** The two picked runs as newer and older. Runs come newest first, so whichever way they were picked, the report opens the newer one. */
+export function newerFirst(runs: { run: string }[], x: string, y: string): [string, string] {
+	const i = runs.findIndex((r) => r.run === x);
+	const j = runs.findIndex((r) => r.run === y);
+	return i <= j ? [x, y] : [y, x];
+}
+
+/** The three counts of a run, critical first, for a short label. */
+export function countsText(s: Summary): string {
+	return `${s.error} / ${s.warning} / ${s.info}`;
+}
+
+/** The link of one run, or of a comparison when `against` is given. */
+export function runLink(id: string, run: string, token: string, against?: string): string {
+	return `/api/report.html?id=${encodeURIComponent(id)}&run=${encodeURIComponent(run)}${against ? `&against=${encodeURIComponent(against)}` : ''}&t=${encodeURIComponent(token)}`;
+}
+
+/** The finish time of a run as it reads in the reports, for example `2026-11-27 10:41 UTC`. */
+export function runStamp(iso: string): string {
+	return `${iso.slice(0, 10)} ${iso.slice(11, 16)} UTC`;
+}

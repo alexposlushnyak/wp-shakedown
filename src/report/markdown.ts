@@ -1,9 +1,13 @@
 import { LEVEL_NAMES, SEVERITY_NAMES } from '../types.ts';
 import type { Finding, RunDiff, RunResult } from '../types.ts';
+import { groupName, splitRepeated } from './group.ts';
+import type { RuleGroup } from './group.ts';
+
+export { groupName };
 
 const oneLine = (s: string): string => s.replace(/\s*\r?\n\s*/g, ' ');
 const cell = (s: string): string => oneLine(s).replace(/\|/g, '\\|');
-const plural = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`;
+export const plural = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`;
 
 /** The level with its name where it has one: `6 (standard)` or `7`. */
 export function levelLabel(level: number): string {
@@ -17,13 +21,32 @@ export function summaryLine(result: RunResult): string {
   return s.suppressed > 0 ? `${base} ${s.suppressed} suppressed.` : base;
 }
 
-export function noEngineLine(result: RunResult): string {
-  const label = { theme: 'theme', plugin: 'plugin', install: 'WordPress folder', url: 'site URL' }[result.target.kind];
-  return `No engine ran. This version has no engine for a ${label} yet.`;
+/** The kind of a target in words people read. */
+export function kindLabel(kind: RunResult['target']['kind']): string {
+  return { theme: 'theme', plugin: 'plugin', install: 'WordPress folder', url: 'site URL' }[kind];
 }
 
-export function groupName(f: Finding): string {
-  return f.location.file ?? f.location.url ?? '(no file)';
+export function noEngineLine(result: RunResult): string {
+  return `No engine ran. This version has no engine for a ${kindLabel(result.target.kind)} yet.`;
+}
+
+/** `2026-11-27 10:41 UTC`. An ISO string that is not a date comes back unchanged. */
+export function runLabel(iso: string): string {
+  return Number.isNaN(Date.parse(iso)) ? iso : `${iso.slice(0, 16).replace('T', ' ')} UTC`;
+}
+
+/** Markdown for a rule that repeats across files: one heading, the fix once, then every place. */
+function repeatedBlock(g: RuleGroup): string[] {
+  const first = (key: 'hint' | 'docs'): string | undefined => g.findings.find((f) => f[key])?.[key];
+  const hint = first('hint');
+  const docs = first('docs');
+  const head = [`${SEVERITY_NAMES[g.severity]}. ${plural(g.findings.length, 'finding', 'findings')} in ${plural(g.files, 'file', 'files')}.`];
+  if (hint) head.push(`Fix: ${oneLine(hint)}`);
+  if (docs) head.push(`Docs: ${oneLine(docs)}`);
+  const items = g.findings.map(
+    (f) => `- ${groupName(f)}${f.location.line !== undefined ? ` line ${f.location.line}` : ''}: ${oneLine(f.message)} \`${f.id}\``,
+  );
+  return [`### ${g.engine}: ${g.rule}`, head.join('\n\n'), items.join('\n')];
 }
 
 function findingText(f: Finding): string {
@@ -31,7 +54,7 @@ function findingText(f: Finding): string {
   return `${SEVERITY_NAMES[f.severity]} \`${f.id}\`${line}: ${oneLine(f.message)} (${f.engine}: ${f.rule})`;
 }
 
-export function toMarkdown(result: RunResult, diff?: RunDiff): string {
+export function toMarkdown(result: RunResult, diff?: RunDiff, since?: string): string {
   const out: string[] = [];
   out.push('# wp-shakedown report');
   out.push(
@@ -51,7 +74,7 @@ export function toMarkdown(result: RunResult, diff?: RunDiff): string {
   out.push(...summary);
 
   if (diff) {
-    out.push('## Since the last run', `${diff.fixed.length} fixed, ${diff.added.length} new, ${diff.open.length} still open.`);
+    out.push(since ? `## Since the run of ${runLabel(since)}` : '## Since the last run', `${diff.fixed.length} fixed, ${diff.added.length} new, ${diff.open.length} still open.`);
     const list = (title: string, all: Finding[]): void => {
       const items = all.filter((f) => f.category !== 'standards');
       if (items.length) out.push(`${title}\n\n${items.map((f) => `- ${groupName(f)}: ${findingText(f)}`).join('\n')}`);
@@ -67,8 +90,10 @@ export function toMarkdown(result: RunResult, diff?: RunDiff): string {
   const style = active.filter((f) => f.category === 'standards');
   if (active.length === 0) out.push('No findings.');
   else if (detail.length === 0) out.push('No findings apart from code style.');
+  const { repeated, rest } = splitRepeated(detail);
+  for (const g of repeated) out.push(...repeatedBlock(g));
   const groups = new Map<string, Finding[]>();
-  for (const f of detail) {
+  for (const f of rest) {
     const g = groups.get(groupName(f));
     if (g) g.push(f);
     else groups.set(groupName(f), [f]);

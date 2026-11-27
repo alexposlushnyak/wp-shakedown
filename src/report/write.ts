@@ -4,10 +4,12 @@ import path from 'node:path';
 import { home } from '../home.ts';
 import { DEFAULT_LEVEL, LEVEL_NAMES } from '../types.ts';
 import type { RunDiff, RunResult, Target } from '../types.ts';
+import { toCsv } from './csv.ts';
 import { toHtml } from './html.ts';
 import { toJson } from './json.ts';
 import { toMarkdown } from './markdown.ts';
 import { toSarif } from './sarif.ts';
+import { toShort } from './short.ts';
 
 export function defaultReportDir(target: Target): string {
   const slug = target.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40).replace(/-+$/, '') || 'target';
@@ -54,6 +56,8 @@ export function writeReports(result: RunResult, dir: string, diff?: RunDiff): st
     ['report.json', toJson(result)],
     ['report.sarif', toSarif(result)],
     ['report.html', toHtml(result, diff)],
+    ['report-short.md', toShort(result, diff)],
+    ['report.csv', toCsv(result)],
   ];
   return files.map(([name, text]) => {
     const p = path.join(out, name);

@@ -1,15 +1,25 @@
 # Report format
 
-Each run writes four files with the same content:
+Each run writes six files to the [report folder](cli.md#where-the-report-goes):
 
 | File | For |
 |---|---|
-| `report.md` | People and AI assistants |
+| `report.md` | People and AI assistants. The full report |
+| `report-short.md` | A quick look, a pull request comment or a chat |
 | `report.json` | Programs. This is the full result |
 | `report.sarif` | Tools that read SARIF 2.1.0, such as code scanning |
 | `report.html` | Reading in a browser |
+| `report.csv` | Spreadsheets |
 
-`report.md` lists every finding except code style. A theme of ordinary size has thousands of style findings, so the Markdown report counts them per rule under "Code style". The other three files hold each one with its file and line.
+`report.md` lists every finding except code style. A theme of ordinary size has thousands of style findings, so the Markdown report counts them per rule under "Code style". `report.json`, `report.sarif`, `report.html` and `report.csv` hold each one with its file and line.
+
+When one rule has three findings or more across two files or more, `report.md` and `report.html` list that rule once, with its fix and docs, and then every place it was found. The other findings stay grouped by file.
+
+`report-short.md` gives the summary, the engines that failed or were skipped, and the critical and important findings grouped by rule, with five places per rule at most. It counts the recommended and code style findings and leaves them to `report.md`.
+
+`report.csv` has one row per finding, suppressed ones included, with the columns `id`, `severity`, `category`, `engine`, `rule`, `file`, `line`, `column`, `url`, `message`, `hint`, `docs` and `suppressed`. A value that starts with `=`, `+`, `-` or `@` gets a `'` in front, so a spreadsheet does not run a message from the tested code as a formula.
+
+The same folder keeps `runs/<run>/report.json` for the 20 newest runs. See [`wp-shakedown history`](cli.md#history).
 
 The types below are in [`src/types.ts`](../../src/types.ts).
 
@@ -36,7 +46,7 @@ Only `id`, `engine`, `rule`, `severity`, `category`, `message`, `location` and `
 
 ### Severity names
 
-`report.json` and `report.sarif` write the severity as `error`, `warning` or `info`. Everything meant for people uses a name instead: the summary line, `report.md`, `report.html`, the table of `wp-shakedown list`, the progress lines and the text the MCP server returns.
+`report.json` and `report.sarif` write the severity as `error`, `warning` or `info`. Everything meant for people uses a name instead: the summary line, `report.md`, `report-short.md`, `report.html`, `report.csv`, the table of `wp-shakedown list`, the progress lines and the text the MCP server returns.
 
 | In JSON and SARIF | Shown as |
 |---|---|

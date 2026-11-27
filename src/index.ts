@@ -14,6 +14,8 @@ export type { UiServer } from './ui/server.ts';
 export { loadBaseline, applyBaseline } from './baseline.ts';
 export { diffRuns } from './diff.ts';
 export { assignIds } from './fingerprint.ts';
+export { saveRun, listRuns, readRun, resolveRun } from './history.ts';
+export type { RunEntry } from './history.ts';
 export { toMarkdown } from './report/markdown.ts';
 export { toJson } from './report/json.ts';
 export { toSarif } from './report/sarif.ts';
