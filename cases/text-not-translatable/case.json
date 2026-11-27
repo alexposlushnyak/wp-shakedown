@@ -1,0 +1,24 @@
+{
+  "id": "text-not-translatable",
+  "title": "Text in a template is not translatable",
+  "summary": "The reviewer asks that every visible string in a PHP template goes through a translation function with the theme text domain.",
+  "sources": [
+    "https://themes.trac.wordpress.org/ticket/270141",
+    "https://themes.trac.wordpress.org/ticket/300068"
+  ],
+  "category": "i18n",
+  "kinds": [
+    "theme"
+  ],
+  "tags": [
+    "wporg"
+  ],
+  "status": "caught",
+  "expect": {
+    "engine": "review",
+    "rule": "untranslated-text",
+    "level": 7,
+    "directory": "wporg"
+  },
+  "checked": "2026-11-27"
+}

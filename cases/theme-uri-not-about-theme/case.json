@@ -1,0 +1,19 @@
+{
+  "id": "theme-uri-not-about-theme",
+  "title": "The Theme URI is not a page about the theme",
+  "summary": "The reviewer asks that the Theme URI leads to a page about this theme, not to the home page of the author.",
+  "sources": [
+    "https://themes.trac.wordpress.org/ticket/294574",
+    "https://themes.trac.wordpress.org/ticket/279707"
+  ],
+  "category": "review-process",
+  "kinds": [
+    "theme"
+  ],
+  "tags": [
+    "wporg"
+  ],
+  "status": "open",
+  "note": "The tool does not open the Theme URI, which needs a network check of what the page says.",
+  "checked": "2026-11-27"
+}

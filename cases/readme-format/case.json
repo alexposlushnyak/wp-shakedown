@@ -1,0 +1,24 @@
+{
+  "id": "readme-format",
+  "title": "The readme does not follow the standard format",
+  "summary": "The reviewer asks for a readme.txt that starts with the theme name between === signs and has the usual header lines and sections.",
+  "sources": [
+    "https://themes.trac.wordpress.org/ticket/299573",
+    "https://themes.trac.wordpress.org/ticket/300068"
+  ],
+  "category": "readme",
+  "kinds": [
+    "theme"
+  ],
+  "tags": [
+    "wporg"
+  ],
+  "status": "caught",
+  "expect": {
+    "engine": "review",
+    "rule": "readme-headers",
+    "level": 7,
+    "directory": "wporg"
+  },
+  "checked": "2026-11-27"
+}

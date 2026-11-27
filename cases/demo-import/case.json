@@ -1,0 +1,23 @@
+{
+  "id": "demo-import",
+  "title": "The theme imports demo content",
+  "summary": "The reviewer asks that demo import code leaves the theme and moves to a plugin.",
+  "sources": [
+    "https://themes.trac.wordpress.org/ticket/269398"
+  ],
+  "category": "plugin-territory",
+  "kinds": [
+    "theme"
+  ],
+  "tags": [
+    "wporg"
+  ],
+  "status": "caught",
+  "expect": {
+    "engine": "review",
+    "rule": "demo-content",
+    "level": 7,
+    "directory": "wporg"
+  },
+  "checked": "2026-11-27"
+}

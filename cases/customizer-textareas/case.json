@@ -1,0 +1,23 @@
+{
+  "id": "customizer-textareas",
+  "title": "Too many textarea controls in the Customizer",
+  "summary": "The reviewer asks for at most three textarea controls and wants long content kept out of the Customizer.",
+  "sources": [
+    "https://themes.trac.wordpress.org/ticket/274503"
+  ],
+  "category": "settings",
+  "kinds": [
+    "theme"
+  ],
+  "tags": [
+    "wporg"
+  ],
+  "status": "caught",
+  "expect": {
+    "engine": "review",
+    "rule": "customizer-textareas",
+    "level": 7,
+    "directory": "wporg"
+  },
+  "checked": "2026-11-27"
+}

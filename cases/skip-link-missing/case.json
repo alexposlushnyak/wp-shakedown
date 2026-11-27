@@ -1,0 +1,24 @@
+{
+  "id": "skip-link-missing",
+  "title": "No skip link to the main content",
+  "summary": "The reviewer asks for a link at the top of the page that lets keyboard users jump to the main content.",
+  "sources": [
+    "https://themes.trac.wordpress.org/ticket/273559",
+    "https://themes.trac.wordpress.org/ticket/273954"
+  ],
+  "category": "accessibility",
+  "kinds": [
+    "theme"
+  ],
+  "tags": [
+    "wporg"
+  ],
+  "status": "caught",
+  "expect": {
+    "engine": "review",
+    "rule": "skip-link",
+    "level": 7,
+    "directory": "wporg"
+  },
+  "checked": "2026-11-27"
+}

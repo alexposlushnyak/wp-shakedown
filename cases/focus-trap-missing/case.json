@@ -1,0 +1,23 @@
+{
+  "id": "focus-trap-missing",
+  "title": "Focus is not kept inside an open modal or menu",
+  "summary": "The reviewer asks that keyboard focus stays inside the mobile menu or a modal while it is open and returns to the button on close.",
+  "sources": [
+    "https://themes.trac.wordpress.org/ticket/298694",
+    "https://themes.trac.wordpress.org/ticket/278646"
+  ],
+  "category": "accessibility",
+  "kinds": [
+    "theme"
+  ],
+  "tags": [
+    "wporg"
+  ],
+  "status": "assistant",
+  "assistant": "keyboard-and-focus",
+  "run": {
+    "level": 7,
+    "directory": "wporg"
+  },
+  "checked": "2026-11-27"
+}

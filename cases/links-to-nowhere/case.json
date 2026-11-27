@@ -1,0 +1,22 @@
+{
+  "id": "links-to-nowhere",
+  "title": "A pattern has links that go nowhere",
+  "summary": "The reviewer asks that links in demo content lead to a real page instead of \"#\".",
+  "sources": [
+    "https://themes.trac.wordpress.org/ticket/299791"
+  ],
+  "category": "other",
+  "kinds": [
+    "theme"
+  ],
+  "tags": [
+    "wporg"
+  ],
+  "status": "caught",
+  "expect": {
+    "engine": "review",
+    "rule": "placeholder-content",
+    "level": 5
+  },
+  "checked": "2026-11-27"
+}

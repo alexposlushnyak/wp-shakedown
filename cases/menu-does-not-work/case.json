@@ -1,0 +1,18 @@
+{
+  "id": "menu-does-not-work",
+  "title": "The menu does not work",
+  "summary": "The reviewer asks that the navigation menu opens, closes and works with the keyboard.",
+  "sources": [
+    "https://themes.trac.wordpress.org/ticket/270062"
+  ],
+  "category": "accessibility",
+  "kinds": [
+    "theme"
+  ],
+  "tags": [
+    "wporg"
+  ],
+  "status": "open",
+  "note": "This needs a running WordPress and a browser to use the menu.",
+  "checked": "2026-11-27"
+}

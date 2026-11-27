@@ -1,0 +1,24 @@
+{
+  "id": "resources-without-license",
+  "title": "Bundled images are not listed in the readme",
+  "summary": "The reviewer asks that the readme lists every bundled image with its license and source.",
+  "sources": [
+    "https://themes.trac.wordpress.org/ticket/282662",
+    "https://themes.trac.wordpress.org/ticket/272689"
+  ],
+  "category": "licensing",
+  "kinds": [
+    "theme"
+  ],
+  "tags": [
+    "wporg"
+  ],
+  "status": "caught",
+  "expect": {
+    "engine": "review",
+    "rule": "asset-licenses",
+    "level": 7,
+    "directory": "wporg"
+  },
+  "checked": "2026-11-27"
+}

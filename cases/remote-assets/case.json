@@ -1,0 +1,23 @@
+{
+  "id": "remote-assets",
+  "title": "Fonts load from a remote server",
+  "summary": "The reviewer asks that fonts are bundled in the theme instead of loaded from Google Fonts.",
+  "sources": [
+    "https://themes.trac.wordpress.org/ticket/269429"
+  ],
+  "category": "assets",
+  "kinds": [
+    "theme"
+  ],
+  "tags": [
+    "wporg"
+  ],
+  "status": "caught",
+  "expect": {
+    "engine": "review",
+    "rule": "remote-fonts",
+    "level": 7,
+    "directory": "wporg"
+  },
+  "checked": "2026-11-27"
+}

@@ -1,0 +1,18 @@
+{
+  "id": "javascript-errors",
+  "title": "The theme causes JavaScript errors",
+  "summary": "The reviewer asks that the theme runs without errors in the browser console.",
+  "sources": [
+    "https://themes.trac.wordpress.org/ticket/299573"
+  ],
+  "category": "compatibility",
+  "kinds": [
+    "theme"
+  ],
+  "tags": [
+    "wporg"
+  ],
+  "status": "open",
+  "note": "This needs a running WordPress and a browser to collect console errors.",
+  "checked": "2026-11-27"
+}

@@ -1,0 +1,21 @@
+{
+  "id": "several-text-domains",
+  "title": "The theme uses more than one text domain",
+  "summary": "The reviewer asks that every translation function uses the one text domain named in style.css.",
+  "sources": [
+    "https://themes.trac.wordpress.org/ticket/271416"
+  ],
+  "category": "i18n",
+  "kinds": [
+    "theme",
+    "plugin"
+  ],
+  "tags": [],
+  "status": "caught",
+  "expect": {
+    "engine": "wpcs",
+    "rule": "WordPress.WP.I18n.TextDomainMismatch",
+    "level": 5
+  },
+  "checked": "2026-11-27"
+}

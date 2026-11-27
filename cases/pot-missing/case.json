@@ -1,0 +1,23 @@
+{
+  "id": "pot-missing",
+  "title": "Tagged translation-ready without a .pot file",
+  "summary": "The reviewer asks for a .pot file when the theme claims to be translation-ready.",
+  "sources": [
+    "https://themes.trac.wordpress.org/ticket/297228"
+  ],
+  "category": "i18n",
+  "kinds": [
+    "theme"
+  ],
+  "tags": [
+    "wporg"
+  ],
+  "status": "caught",
+  "expect": {
+    "engine": "review",
+    "rule": "pot-missing",
+    "level": 7,
+    "directory": "wporg"
+  },
+  "checked": "2026-11-27"
+}

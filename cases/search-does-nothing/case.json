@@ -1,0 +1,22 @@
+{
+  "id": "search-does-nothing",
+  "title": "The search form does not work",
+  "summary": "The reviewer asks that the search form submits to the site search and shows results.",
+  "sources": [
+    "https://themes.trac.wordpress.org/ticket/272050"
+  ],
+  "category": "other",
+  "kinds": [
+    "theme"
+  ],
+  "tags": [
+    "wporg"
+  ],
+  "status": "assistant",
+  "assistant": "working-features",
+  "run": {
+    "level": 8,
+    "directory": "wporg"
+  },
+  "checked": "2026-11-27"
+}

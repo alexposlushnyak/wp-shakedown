@@ -60,6 +60,7 @@ To add an engine: write the adapter in `src/engines/`, add it to `src/engines/in
 | `src/mcp/` | The MCP server and its tools |
 | `ui/` | The web page: React, Tailwind and shadcn/ui, built with Vite |
 | `test/` | Tests, one file per source file |
+| `cases/` | Review cases from trac, each with a fixture. `test/cases.test.ts` runs them. See [Add a review case](docs/how-to/add-a-case.md) |
 
 ## Before you start
 

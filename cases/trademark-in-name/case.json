@@ -1,0 +1,18 @@
+{
+  "id": "trademark-in-name",
+  "title": "The theme name uses a trademark",
+  "summary": "The reviewer asks that the theme name does not use a brand name the author does not own.",
+  "sources": [
+    "https://themes.trac.wordpress.org/ticket/275614"
+  ],
+  "category": "other",
+  "kinds": [
+    "theme"
+  ],
+  "tags": [
+    "wporg"
+  ],
+  "status": "open",
+  "note": "Deciding whether a name is a trademark needs a person.",
+  "checked": "2026-11-27"
+}

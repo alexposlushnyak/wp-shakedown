@@ -1,0 +1,18 @@
+{
+  "id": "plugin-not-on-wordpress-org",
+  "title": "A required plugin is not in the plugin directory",
+  "summary": "The reviewer asks that the plugins a theme recommends or requires are in the wordpress.org directory.",
+  "sources": [
+    "https://themes.trac.wordpress.org/ticket/300068"
+  ],
+  "category": "review-process",
+  "kinds": [
+    "theme"
+  ],
+  "tags": [
+    "wporg"
+  ],
+  "status": "open",
+  "note": "The tool does not look up the plugins a theme names on wordpress.org.",
+  "checked": "2026-11-27"
+}

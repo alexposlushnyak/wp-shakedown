@@ -1,0 +1,21 @@
+{
+  "id": "notice-comes-back",
+  "title": "An admin notice cannot be dismissed",
+  "summary": "The reviewer asks that admin notices can be dismissed and stay dismissed.",
+  "sources": [
+    "https://themes.trac.wordpress.org/ticket/270367"
+  ],
+  "category": "review-process",
+  "kinds": [
+    "theme",
+    "plugin"
+  ],
+  "tags": [],
+  "status": "caught",
+  "expect": {
+    "engine": "review",
+    "rule": "notice-not-dismissible",
+    "level": 5
+  },
+  "checked": "2026-11-27"
+}

@@ -1,0 +1,12 @@
+{
+  "version": 3,
+  "styles": {
+    "elements": {
+      "link": {
+        "typography": {
+          "textDecoration": "none"
+        }
+      }
+    }
+  }
+}

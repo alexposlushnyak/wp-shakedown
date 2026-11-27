@@ -1,0 +1,24 @@
+{
+  "id": "upsell-in-admin",
+  "title": "Upgrade notices take over the admin",
+  "summary": "The reviewer asks that promotion of a paid version stays in one place and that admin notices can be dismissed for good.",
+  "sources": [
+    "https://themes.trac.wordpress.org/ticket/299349",
+    "https://themes.trac.wordpress.org/ticket/297277"
+  ],
+  "category": "review-process",
+  "kinds": [
+    "theme",
+    "plugin"
+  ],
+  "tags": [
+    "wporg"
+  ],
+  "status": "assistant",
+  "assistant": "upsell-and-notices",
+  "run": {
+    "level": 7,
+    "directory": "wporg"
+  },
+  "checked": "2026-11-27"
+}
