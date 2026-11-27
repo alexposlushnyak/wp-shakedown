@@ -1,6 +1,6 @@
 import { useId } from 'react';
 
-// The mark of wpshakedown.dev: a heavy lowercase w and the blue square, on a light tile.
+// The mark of wpshakedown.dev: a heavy lowercase w and the coral square, on a light tile.
 export function Mark({ className }: { className?: string }) {
 	const id = useId();
 	return (

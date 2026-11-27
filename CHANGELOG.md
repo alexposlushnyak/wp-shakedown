@@ -47,6 +47,7 @@ All notable changes to this project are recorded here. The format follows [Keep 
 - `phpstan` runs at level 8, the old `deep`.
 - The web page is dark only, set in Inter, with neutral greys and larger type.
 - `report.html` looks like the web page: dark, set in Inter, with the three counts at the top.
+- The square of the mark on the web page is coral, as on wpshakedown.dev.
 
 ### Fixed
 
