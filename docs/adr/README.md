@@ -36,6 +36,7 @@ Each record states one decision, the options that were considered, and the reaso
 | [0030](0030-a-wordpress-folder-is-tested-as-an-install.md) | A WordPress folder is tested as an install, not as the code of every theme and plugin in it | Accepted |
 | [0031](0031-one-review-engine-and-directory-rules.md) | One review engine holds the rules of wp-shakedown, and a preset switches on the rules of a directory | Accepted |
 | [0032](0032-run-history-is-a-folder-per-run.md) | Run history is a folder per run inside the report folder | Accepted |
+| [0033](0033-assistant-checks-and-providers.md) | Checks no tool can make go to an AI assistant, through a tool the user already has | Accepted |
 
 ## Adding a record
 

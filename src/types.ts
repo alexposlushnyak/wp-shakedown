@@ -121,6 +121,42 @@ export interface Preset {
   builtIn?: true;
   /** The directory whose rules the run applies. Envato's fork of Theme Check runs for `envato`. A copy of the preset keeps it. */
   directory?: Directory;
+  /** The AI provider that may read the target for the assistant checks. Without it no code leaves the machine. */
+  assistant?: AssistantProvider;
+}
+
+/** Who answers the assistant checks: Claude Code, Codex, or the Anthropic API with a key. */
+export type AssistantProvider = 'claude' | 'codex' | 'api';
+
+/** A check for an AI assistant as a run lists it. src/assistant/checks.ts holds the full list. */
+export interface AssistantTask {
+  id: string;
+  title: string;
+  /** What to verify. assistantPrompt() adds the shared opening and the answer format. */
+  prompt: string;
+  /** POSIX paths relative to the target where the check starts, at most 20. Empty when the check looks at the whole target. */
+  files: string[];
+  docs?: string;
+}
+
+/** One answer of the assistant to one check. */
+export interface AssistantAnswer {
+  check: string;
+  verdict: 'pass' | 'fail' | 'unsure';
+  findings: { file?: string; line?: number; severity: Severity; message: string; fix?: string }[];
+  /** Set when the provider failed on this check. verdict is then `unsure` and findings is empty. */
+  error?: string;
+}
+
+/** What `wp-shakedown assist` writes to assistant.json next to the report. */
+export interface AssistantReport {
+  schema: 1;
+  /** finishedAt of the run whose checks were answered. */
+  run: string;
+  provider: AssistantProvider;
+  startedAt: string;
+  finishedAt: string;
+  answers: AssistantAnswer[];
 }
 
 /** An engine throws this when it cannot run here, for example when PHP is missing. The run continues. */
@@ -173,6 +209,8 @@ export interface RunResult {
   summary: Summary;
   /** Baseline entries that matched no finding in this run. */
   staleBaseline: string[];
+  /** The checks this run leaves to an AI assistant. Absent in reports from versions before them. */
+  assistant?: AssistantTask[];
 }
 
 export type RunEvent =

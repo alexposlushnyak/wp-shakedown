@@ -1,0 +1,10 @@
+{
+  "name": "wp-shakedown-ai-tools",
+  "private": true,
+  "description": "The Anthropic SDK that the api provider of the assistant checks uses. Installed on first use. Not a library.",
+  "license": "GPL-2.0-or-later",
+  "type": "module",
+  "dependencies": {
+    "@anthropic-ai/sdk": "1.14.0"
+  }
+}

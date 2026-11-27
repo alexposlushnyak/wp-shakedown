@@ -6,11 +6,12 @@ import { EngineList } from '@/components/engine-line';
 import { Button } from '@/components/ui/button';
 import { Item, ItemActions, ItemContent, ItemDescription, ItemGroup, ItemTitle } from '@/components/ui/item';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Spinner } from '@/components/ui/spinner';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { api, q, token } from '@/lib/api';
 import type { PresetInfo, Project, ProjectReport, RunEntry } from '@/lib/api';
-import { aiPrompt, countsText, defaultPair, levelLabel, newerFirst, plural, presetsFor, progress, runLink, runModel, runStamp, timeAgo } from '@/lib/run';
+import { aiPrompt, answersText, countsText, defaultPair, levelLabel, newerFirst, plural, presetsFor, progress, runLink, runModel, runStamp, timeAgo } from '@/lib/run';
 import type { Job, WireEvent } from '@/lib/run';
 
 async function copy(text: string, done: string) {
@@ -133,7 +134,48 @@ function History({ runs, id }: { runs: RunEntry[]; id: string }) {
 	);
 }
 
-function Report({ report, id, runs }: { report: ProjectReport; id: string; runs: RunEntry[] }) {
+function Assistant({ report, id, onDone }: { report: ProjectReport; id: string; onDone: () => void }) {
+	const [busy, setBusy] = useState(false);
+	const { checks, provider, answers } = report.assistant;
+	if (checks === 0) return null;
+	async function go() {
+		setBusy(true);
+		try {
+			const r = await api<{ pass: number; fail: number; unsure: number }>('/api/assist', { id });
+			toast.success(`${r.pass} pass, ${r.fail} fail, ${r.unsure} unsure.`);
+			onDone();
+		} catch (err) {
+			toast.error(err instanceof Error ? err.message : String(err));
+		} finally {
+			setBusy(false);
+		}
+	}
+	return (
+		<div className="flex flex-col gap-2">
+			<p className="text-muted-foreground text-sm">
+				{plural(checks, 'check', 'checks')} for an assistant
+				{!provider && '. Set an assistant in a preset to run them here.'}
+				{answers && `. ${answersText(answers)}`}
+			</p>
+			<div className="flex flex-wrap gap-2">
+				{provider && (
+					<Button variant="outline" disabled={busy} onClick={() => void go()}>
+						{busy ? <Spinner /> : <SparklesIcon />}
+						Run the assistant checks
+					</Button>
+				)}
+				{answers && (
+					<Button variant="ghost" onClick={() => copy(answers.file, 'Path copied.')}>
+						<ClipboardIcon />
+						Copy the answers path
+					</Button>
+				)}
+			</div>
+		</div>
+	);
+}
+
+function Report({ report, id, runs, onAssist }: { report: ProjectReport; id: string; runs: RunEntry[]; onAssist: () => void }) {
 	const { summary } = report;
 	const failed = report.engines.filter((e) => e.status === 'failed').length;
 	const jobs: Job[] = report.engines.map((e) => ({ ...e, reason: e.reason ?? '', notes: [] }));
@@ -160,6 +202,7 @@ function Report({ report, id, runs }: { report: ProjectReport; id: string; runs:
 				)}
 				{report.diff && `. ${report.diff.fixed} fixed, ${report.diff.added} new, ${report.diff.open} still open`}
 			</p>
+			<Assistant report={report} id={id} onDone={onAssist} />
 			<Collapsible>
 				<CollapsibleTrigger asChild>
 					<Button variant="ghost" size="sm" className="-ml-2">
@@ -213,13 +256,15 @@ export function ProjectView({ project, events, presets, level, onLevel, onRun, o
 	const picked = fitting.find((p) => p.id === preset);
 	const finishedAt = project.last?.finishedAt;
 
+	const reload = () => api<ProjectReport>(`/api/report?id=${project.id}`).then(setReport, () => setReport(null));
+
 	useEffect(() => {
 		if (active || !finishedAt) {
 			setReport(null);
 			setRuns([]);
 			return;
 		}
-		api<ProjectReport>(`/api/report?id=${project.id}`).then(setReport, () => setReport(null));
+		reload();
 		api<{ runs: RunEntry[] }>(`/api/history?id=${project.id}`).then((h) => setRuns(h.runs), () => setRuns([]));
 	}, [project.id, active, finishedAt]);
 
@@ -295,7 +340,7 @@ export function ProjectView({ project, events, presets, level, onLevel, onRun, o
 					</div>
 				)
 			) : report ? (
-				<Report report={report} id={project.id} runs={runs} />
+				<Report report={report} id={project.id} runs={runs} onAssist={() => void reload()} />
 			) : (
 				<p className="text-muted-foreground text-sm">No run yet.</p>
 			)}

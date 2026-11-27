@@ -5,7 +5,7 @@ import { exitCode, run } from '../src/runner.ts';
 import { detectTarget } from '../src/target.ts';
 import { EngineSkipped, parseLevel } from '../src/types.ts';
 import type { RunEvent } from '../src/types.ts';
-import { fakeEngine, finding, makeInstall, makeTheme, raw, result, tmp } from './helpers.ts';
+import { fakeEngine, finding, makeInstall, makeTheme, raw, result, tmp, write } from './helpers.ts';
 
 const ok = (id: string, kinds: ('theme' | 'plugin' | 'install')[], findings = [raw()]) =>
   fakeEngine(id, kinds, async () => findings);
@@ -30,6 +30,19 @@ test('the preset goes into the result only when given', async (t) => {
   const engines = [fakeEngine('e', ['theme'], async () => [])];
   assert.equal((await run(target, { engines, preset: 'site' })).preset, 'site');
   assert.ok(!('preset' in (await run(target, { engines }))));
+});
+
+test('a theme run lists the assistant checks, and a run of hand-picked engines does not', async (t) => {
+  const dir = makeTheme(tmp(t));
+  write(path.join(dir, 'functions.php'), '<?php\necho $x;\n');
+  const target = detectTarget(dir);
+  const engines = [fakeEngine('e', ['theme'], async () => [])];
+  const listed = await run(target, { engines, level: 7 });
+  assert.deepEqual(listed.assistant?.map((a) => a.id), ['escaping-context']);
+  assert.ok(!('assistant' in (await run(target, { engines, level: 6 }))));
+  assert.ok(!('assistant' in (await run(target, { engines, only: ['e'], level: 7 }))));
+  assert.ok('assistant' in (await run(target, { engines, only: ['e'], preset: 'p', level: 7 })));
+  assert.ok(!('assistant' in (await run(detectTarget(makeInstall(tmp(t))), { engines, level: 7 }))));
 });
 
 test('records ok, skipped and failed with reasons', async (t) => {

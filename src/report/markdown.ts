@@ -121,6 +121,18 @@ export function toMarkdown(result: RunResult, diff?: RunDiff, since?: string): s
     );
   }
 
+  if (result.assistant?.length) {
+    out.push(
+      '## For an assistant',
+      'No tool can check these from the files. Give each one to an AI assistant, or run wp-shakedown assist with a preset that allows one.',
+    );
+    for (const a of result.assistant) {
+      out.push(`### ${a.title}`, a.prompt);
+      if (a.files.length) out.push(`Start with: ${a.files.join(', ')}`);
+      if (a.docs) out.push(`Docs: ${a.docs}`);
+    }
+  }
+
   const suppressed = result.findings.filter((f) => f.suppressed);
   if (suppressed.length) {
     out.push(

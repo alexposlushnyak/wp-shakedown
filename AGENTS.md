@@ -24,7 +24,7 @@ You need Node.js 22.18 or newer. The engine tests also need PHP and Composer. Wi
 
 Node runs the TypeScript sources directly, so tests need no build. Write TypeScript that Node can strip: no enums, no namespaces, no parameter properties, and `.ts` in relative imports.
 
-The package has one runtime dependency, `ajv`, which the `wp-json` engine uses to validate JSON against a schema. Add another only when an engine needs it, and say why in the pull request. The MCP SDK is a development dependency: the tests use its client to check our hand-written server.
+The package has one runtime dependency, `ajv`, which the `wp-json` engine uses to validate JSON against a schema. Add another only when an engine needs it, and say why in the pull request. Large tools that only some runs need are installed on first use from a folder with a pinned lock file: `js-tools/`, `php-wasm/`, and `ai-tools/` for the Anthropic SDK of the assistant checks. The MCP SDK is a development dependency: the tests use its client to check our hand-written server.
 
 Tests keep tools and reports in `.cache/` through `WP_SHAKEDOWN_HOME`. A test must not write to `~/.wp-shakedown`.
 
@@ -56,6 +56,7 @@ To add an engine: write the adapter in `src/engines/`, add it to `src/engines/in
 | `src/ui/picker.ts` | Opens the folder dialog of the system for the web page |
 | `src/zip.ts` | Unpacks a ZIP archive with `node:zlib`, within limits |
 | `src/uploads.ts` | Turns an uploaded or given ZIP file into a project folder under `~/.wp-shakedown/uploads` |
+| `src/assistant/` | The checks that need an AI assistant, the providers that answer them (Claude Code, Codex, the Anthropic API) and the key file |
 | `src/mcp/` | The MCP server and its tools |
 | `ui/` | The web page: React, Tailwind and shadcn/ui, built with Vite |
 | `test/` | Tests, one file per source file |

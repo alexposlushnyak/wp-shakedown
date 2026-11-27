@@ -19,6 +19,8 @@ export interface EngineInfo {
 
 export type FailOn = 'error' | 'warning' | 'info' | 'never';
 
+export type Provider = 'claude' | 'codex' | 'api';
+
 export interface PresetInfo {
 	id: string;
 	title: string;
@@ -29,6 +31,8 @@ export interface PresetInfo {
 	failOn?: FailOn;
 	/** The directory whose rules the preset applies. */
 	directory?: 'wporg' | 'envato';
+	/** Who may read the project for the assistant checks. Without it no code leaves the machine. */
+	assistant?: Provider;
 	/** Built-in presets come with the tool and cannot be changed. */
 	builtIn?: boolean;
 }
@@ -83,6 +87,7 @@ export interface ProjectReport {
 	preset?: string;
 	level?: number;
 	diff?: { fixed: number; added: number; open: number };
+	assistant: { checks: number; provider?: Provider; answers?: { pass: number; fail: number; unsure: number; file: string } };
 	files: string[];
 	dir: string;
 }

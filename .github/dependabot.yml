@@ -31,6 +31,10 @@ updates:
       - dependency-name: "stylelint"
         update-types: ["version-update:semver-major"]
   - package-ecosystem: npm
+    directory: /ai-tools
+    schedule:
+      interval: monthly
+  - package-ecosystem: npm
     directory: /php-wasm
     schedule:
       interval: monthly

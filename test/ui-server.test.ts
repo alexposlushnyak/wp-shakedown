@@ -8,6 +8,7 @@ import type { TestContext } from 'node:test';
 import { runSession } from '../src/session.ts';
 import { startUi } from '../src/ui/server.ts';
 import type { Engine } from '../src/types.ts';
+import { setupRun } from './assistant-helpers.ts';
 import { root, testHome } from './env.ts';
 import { fakeEngine, makeTheme, raw, tmp, write, zipOf } from './helpers.ts';
 
@@ -566,4 +567,35 @@ test('a run takes a preset and a level, by name or by number, and the report sho
   assert.equal((await post('/api/run', { ids: [id], profile: 'mine', level: 9 })).status, 202);
   const old = await report();
   assert.deepEqual([old.preset, old.level], ['mine', 9]);
+});
+
+test('/api/assist answers the checks, and /api/report carries the answers', async (t) => {
+  const asks: string[] = [];
+  const { post, api } = await boot(t, [found], {
+    ask: async (_p, task) => {
+      asks.push(task.id);
+      await new Promise((r) => setTimeout(r, 100));
+      return { check: task.id, verdict: 'pass', findings: [] };
+    },
+  });
+  const id = await addTheme(t, post, 'Beta');
+  assert.equal((await post('/api/assist', { id: 'nope' })).status, 404);
+  const project = (((await (await api('/api/projects')).json()) as { projects: { id: string; path: string }[] }).projects.find((p) => p.id === id))!;
+  const dir = setupRun(project.path, 'claude');
+  const first = post('/api/assist', { id });
+  await until(async () => (await post('/api/assist', { id })).status === 409);
+  const res = await first;
+  assert.equal(res.status, 200);
+  assert.deepEqual(await res.json(), { pass: 2, fail: 0, unsure: 0, file: path.join(dir, 'assistant.md') });
+  assert.equal(asks.length, 2);
+  const report = (await (await api(`/api/report?id=${id}`)).json()) as { assistant: unknown };
+  assert.deepEqual(report.assistant, { checks: 2, provider: 'claude', answers: { pass: 2, fail: 0, unsure: 0, file: path.join(dir, 'assistant.md') } });
+});
+
+test('/api/assist says what is missing', async (t) => {
+  const { post } = await boot(t);
+  const id = await addTheme(t, post, 'Gamma');
+  const res = await post('/api/assist', { id });
+  assert.equal(res.status, 400);
+  assert.match(((await res.json()) as { error: string }).error, /No report yet/);
 });

@@ -4,6 +4,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { test } from 'node:test';
 import { exec } from '../src/exec.ts';
+import { FAIL_ANSWER, fakeBin, setupRun } from './assistant-helpers.ts';
 import { VERSION } from '../src/version.ts';
 import { root, testHome } from './env.ts';
 import { makeSample, makeTheme, tmp, write, zipOf } from './helpers.ts';
@@ -233,4 +234,41 @@ test('history lists the runs and prints one', (t) => {
   const missing = cliHome(home, 'history', theme, '9');
   assert.equal(missing.status, 2);
   assert.match(missing.stderr, /No run "9"\. wp-shakedown history .* lists them\./);
+});
+
+test('assist answers the checks of the last run through the assistant', (t) => {
+  const home = tmp(t);
+  const bin = tmp(t);
+  fakeBin(bin, 'claude', `process.stdin.resume(); process.stdin.on('end', () => console.log(JSON.stringify({ structured_output: ${FAIL_ANSWER} })));`);
+  const theme = makeTheme(tmp(t), 'Alpha');
+  const env = { ...process.env, WP_SHAKEDOWN_HOME: home, PATH: `${bin}${path.delimiter}${process.env.PATH}` };
+  const run = (...args: string[]) => spawnSync(process.execPath, ['src/cli.ts', ...args], { cwd: root, encoding: 'utf8', env });
+  assert.match(run('assist', theme).stderr, /No report yet\. Run the checks first\./);
+  const old = process.env.WP_SHAKEDOWN_HOME;
+  process.env.WP_SHAKEDOWN_HOME = home;
+  const dir = setupRun(theme, 'claude');
+  process.env.WP_SHAKEDOWN_HOME = old;
+  const ok = run('assist', theme, '--check', 'one');
+  assert.equal(ok.status, 0, ok.stderr);
+  assert.match(ok.stderr, /^fail one: 1 finding\n$/);
+  assert.match(ok.stdout, /^0 pass, 1 fail, 0 unsure\.\nAnswers: .*assistant\.md\n$/);
+  assert.ok(existsSync(path.join(dir, 'assistant.md')));
+  const bad = run('assist', theme, '--check', 'nope');
+  assert.equal(bad.status, 2);
+  assert.match(bad.stderr, /No check "nope"/);
+});
+
+test('key set reads stdin, key remove deletes, other providers are refused', (t) => {
+  const home = tmp(t);
+  const run = (input: string | undefined, ...args: string[]) =>
+    spawnSync(process.execPath, ['src/cli.ts', ...args], { cwd: root, encoding: 'utf8', input, env: { ...process.env, WP_SHAKEDOWN_HOME: home } });
+  const set = run('sk-test\n', 'key', 'set', 'anthropic');
+  assert.equal(set.status, 0, set.stderr);
+  assert.equal(set.stdout, `Saved the key to ${path.join(home, 'keys', 'anthropic')}.\n`);
+  assert.equal(readFileSync(path.join(home, 'keys', 'anthropic'), 'utf8').trim(), 'sk-test');
+  assert.equal(run(undefined, 'key', 'remove', 'anthropic').stdout, 'Removed the key.\n');
+  assert.equal(run(undefined, 'key', 'remove', 'anthropic').stdout, 'No key saved.\n');
+  const other = run(undefined, 'key', 'set', 'openai');
+  assert.equal(other.status, 2);
+  assert.match(other.stderr, /Only anthropic keys are stored\. Claude Code and Codex use their own sign-in\./);
 });

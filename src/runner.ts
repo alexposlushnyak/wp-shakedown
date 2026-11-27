@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { assistantTasks } from './assistant/select.ts';
 import { applyBaseline } from './baseline.ts';
 import { assignIds } from './fingerprint.ts';
 import { VERSION } from './version.ts';
@@ -141,6 +142,9 @@ export async function run(target: Target, opts: RunOptions): Promise<RunResult> 
     else summary[f.severity]++;
   }
 
+  // A run of hand-picked engines is about those engines. Every other run of a theme or plugin lists what only an assistant can check.
+  const assistant = !byHand && (target.kind === 'theme' || target.kind === 'plugin') ? assistantTasks(target, { level, ...(opts.directory ? { directory: opts.directory } : {}) }) : [];
+
   const result: RunResult = {
     schema: 1,
     tool: { name: 'wp-shakedown', version: VERSION },
@@ -159,6 +163,7 @@ export async function run(target: Target, opts: RunOptions): Promise<RunResult> 
     findings,
     summary,
     staleBaseline,
+    ...(assistant.length > 0 ? { assistant } : {}),
   };
   emit({ type: 'run:end', result });
   return result;

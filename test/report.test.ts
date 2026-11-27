@@ -316,3 +316,22 @@ test('writeReports puts report.md first', (t) => {
   assert.equal(files.length, 6);
   assert.equal(path.basename(files[0]!), 'report.md');
 });
+
+test('the reports list the checks for an assistant', () => {
+  const task = { id: 'x', title: 'Check <one>', prompt: 'Verify "it" <b>.', files: ['a.php', 'b.php'], docs: 'https://example.com/d' };
+  const r = result([], { assistant: [task, { id: 'y', title: 'Two', prompt: 'P2', files: [] }] });
+  const md = toMarkdown(r);
+  assert.match(md, /## For an assistant\n\nNo tool can check these from the files\. Give each one to an AI assistant, or run wp-shakedown assist with a preset that allows one\.\n\n### Check <one>\n\nVerify "it" <b>\.\n\nStart with: a\.php, b\.php\n\nDocs: https:\/\/example\.com\/d\n\n### Two\n\nP2\n/);
+  const full = toMarkdown(result([finding({ id: 'sup', suppressed: { reason: 'x' } })], { assistant: r.assistant }));
+  assert.ok(full.indexOf('## For an assistant') < full.indexOf('## Suppressed'));
+  const html = toHtml(r);
+  assert.ok(html.includes('<h2>For an assistant</h2>'));
+  assert.ok(html.includes('<h3>Check &lt;one&gt;</h3>'));
+  assert.ok(html.includes('Verify &quot;it&quot; &lt;b&gt;.'));
+  assert.ok(html.includes('Start with: a.php, b.php'));
+  assert.ok(!html.includes('<b>'));
+  assert.match(toShort(r), /\n2 checks for an assistant are in report\.md\.\n/);
+  assert.match(toShort(result([], { assistant: [task] })), /1 check for an assistant is in report\.md\./);
+  assert.doesNotMatch(toShort(result([])), /assistant/);
+  assert.doesNotMatch(toMarkdown(result([])), /For an assistant/);
+});

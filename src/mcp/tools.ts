@@ -1,4 +1,6 @@
 import path from 'node:path';
+import { assistantPrompt } from '../assistant/prompt.ts';
+import { listRuns, readRun, resolveRun, runText } from '../history.ts';
 import { defaultReportDir, readPreviousRun } from '../report/write.ts';
 import { toMarkdown } from '../report/markdown.ts';
 import { customEngines } from '../engines/custom.ts';
@@ -52,6 +54,13 @@ export function selectFindings(findings: Finding[], f: FindingFilter): Finding[]
     if (file && !(x.location.file ?? x.location.url ?? '').toLowerCase().includes(file)) return false;
     return true;
   });
+}
+
+/** The text of a tool, cut at MAX_TEXT on a line break. */
+function clip(text: string, note: string): string {
+  if (text.length <= MAX_TEXT) return text;
+  const cut = text.lastIndexOf('\n', MAX_TEXT);
+  return `${text.slice(0, cut > 0 ? cut : MAX_TEXT)}\n\n${note}`;
 }
 
 let running = false;
@@ -195,6 +204,96 @@ export const tools: Tool[] = [
         null,
         2,
       );
+    },
+  },
+  {
+    name: 'list_presets',
+    title: 'List the presets',
+    description: 'Lists the presets: each one is a set of engines for one purpose, with its level. Pass an ID to run_checks as preset.',
+    inputSchema: schema({}, []),
+    annotations: { readOnlyHint: true },
+    handler: async () =>
+      JSON.stringify(
+        listPresets().presets.map(({ id, title, summary, kinds, level, engines, failOn, directory, assistant, builtIn }) => ({
+          id,
+          title,
+          summary,
+          kinds,
+          level,
+          engines,
+          failOn,
+          directory,
+          assistant,
+          builtIn,
+        })),
+        null,
+        2,
+      ),
+  },
+  {
+    name: 'list_runs',
+    title: 'List the past runs',
+    description: 'Lists the past runs on a folder, newest first, with their counts. Pass a number or a run ID to get_run.',
+    inputSchema: schema({ path: { type: 'string', description: 'Absolute path of the folder that was tested.' } }, ['path']),
+    annotations: { readOnlyHint: true },
+    handler: async (args) =>
+      JSON.stringify(
+        listRuns(defaultReportDir(detectTarget(args.path as string))).map((e, i) => ({ number: i + 1, ...e })),
+        null,
+        2,
+      ),
+  },
+  {
+    name: 'get_run',
+    title: 'Get a past run',
+    description:
+      'Returns one past run as a short Markdown report, compared with the run before it. Set full for the whole report. Set against to compare with another run.',
+    inputSchema: schema(
+      {
+        path: { type: 'string', description: 'Absolute path of the folder that was tested.' },
+        run: { type: 'string', description: 'A number from list_runs (1 is the newest) or a run ID.' },
+        against: { type: 'string', description: 'The run to compare with, as a number or a run ID. The default is the run before.' },
+        full: { type: 'boolean', description: 'Return the full report and not the short one.' },
+      },
+      ['path', 'run'],
+    ),
+    annotations: { readOnlyHint: true },
+    handler: async (args) => {
+      const dir = defaultReportDir(detectTarget(args.path as string));
+      const text = runText(dir, String(args.run), {
+        ...(args.against !== undefined ? { against: String(args.against) } : {}),
+        ...(args.full ? { full: true } : {}),
+        hint: 'list_runs',
+      });
+      return clip(text, `The report is cut here. Call list_findings to page through the findings of the last run.`);
+    },
+  },
+  {
+    name: 'get_assistant_checks',
+    title: 'Get the checks for an assistant',
+    description:
+      'Returns the checks the last run leaves to an assistant, each with a full prompt. Work through them yourself: read the files each one names, then answer each check.',
+    inputSchema: schema(
+      {
+        path: { type: 'string', description: 'Absolute path of the folder that was tested.' },
+        run: { type: 'string', description: 'A number from list_runs or a run ID. The default is the newest run.' },
+      },
+      ['path'],
+    ),
+    annotations: { readOnlyHint: true },
+    handler: async (args) => {
+      const dir = defaultReportDir(detectTarget(args.path as string));
+      const entries = listRuns(dir);
+      const ref = args.run !== undefined ? String(args.run) : '1';
+      const entry = resolveRun(entries, ref);
+      const result = entry ? readRun(dir, entry.run) : undefined;
+      if (!result) {
+        if (args.run !== undefined) throw new Error(`No run "${ref}". list_runs lists them.`);
+        throw new Error('No report for this folder yet. Call run_checks first.');
+      }
+      if (!result.assistant?.length) return 'The last run lists no checks for an assistant. Run run_checks at level 7 or higher on a theme or plugin.';
+      const parts = result.assistant.map((a) => `## ${a.id}: ${a.title}\n\n${assistantPrompt(a, result.target)}`);
+      return clip(`# Checks for an assistant: ${result.target.name}\n\n${parts.join('\n\n')}\n`, 'The list is cut here.');
     },
   },
 ];

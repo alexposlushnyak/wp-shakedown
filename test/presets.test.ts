@@ -180,3 +180,11 @@ test("a copy of the envato preset keeps Envato's Theme Check", (t) => {
   assert.equal(findPreset('my-envato')!.directory, 'envato');
   assert.equal(findPreset('wporg-theme')!.directory, 'wporg');
 });
+
+test('a preset keeps its assistant and rejects an unknown one', (t) => {
+  home(t);
+  savePreset({ id: 'ai', title: 'AI', summary: 'Test', kinds: ['theme'], engines: ['php-lint'], assistant: 'codex' });
+  assert.equal(findPreset('ai')?.assistant, 'codex');
+  assert.throws(() => savePreset({ id: 'bad', title: 'B', summary: 'B', kinds: ['theme'], engines: ['php-lint'], assistant: 'gpt' as 'api' }), /not valid/);
+  assert.ok(builtInPresets.every((p) => p.assistant === undefined));
+});

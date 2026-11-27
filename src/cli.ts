@@ -3,18 +3,18 @@ import { spawn } from 'node:child_process';
 import { readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
+import { runAssist, counts } from './assistant/assist.ts';
+import { removeAnthropicKey, saveAnthropicKey } from './assistant/keys.ts';
 import { engines } from './engines/index.ts';
-import { listRuns, previousOf, readRun, resolveRun } from './history.ts';
+import { listRuns, runText } from './history.ts';
 import { findPreset, listPresets, presetTable } from './presets.ts';
 import { hubExitCode, hubLines, projectTable, runMany } from './hub.ts';
 import type { HubRow } from './hub.ts';
 import { addProject, findProject, listProjects, removeProject } from './projects.ts';
 import { progressLine } from './progress.ts';
-import { noEngineLine, runLabel, summaryLine, toMarkdown } from './report/markdown.ts';
-import { toShort } from './report/short.ts';
+import { noEngineLine, plural, runLabel, summaryLine } from './report/markdown.ts';
 import { defaultReportDir } from './report/write.ts';
 import { detectTarget } from './target.ts';
-import { diffRuns } from './diff.ts';
 import { exitCode } from './runner.ts';
 import { runSession } from './session.ts';
 import { startMcp } from './mcp/server.ts';
@@ -38,12 +38,15 @@ Usage:
   wp-shakedown list
   wp-shakedown presets
   wp-shakedown history <project> [run] [--against <run>] [--full]
+  wp-shakedown assist <project> [--check <id>]... [--out <dir>]
+  wp-shakedown key set anthropic | remove anthropic
   wp-shakedown ui [path] [options]
   wp-shakedown mcp
 
 Options:
   --type <kind>       Treat the path as a theme, plugin or install
   --engine <id>       Run only this engine. Repeat for more than one
+  --check <id>        With assist: answer only this check. Repeat for more than one
   --preset <id>       Run the engines of one preset: ${presetList}
   --level <n>         How thorough the run is, from 0 to 10. The default is 6. quick, standard and deep work as 3, 6 and 8
                       --experimental is an old name: level 7 or more, with the wordpress.org rules
@@ -154,21 +157,81 @@ function history(args: string[], flags: { out?: string; against?: string; full?:
     console.log(textTable([['#', 'Run', 'Critical', 'Important', 'Recommended', 'Level', 'Preset', ''], ...rows]).join('\n'));
     return 0;
   }
-  const entry = resolveRun(entries, ref);
-  const result = entry ? readRun(dir, entry.run) : undefined;
-  if (!entry || !result) {
-    console.error(`wp-shakedown: No run "${ref}". wp-shakedown history ${project ?? `--out ${dir}`} lists them.`);
+  try {
+    process.stdout.write(runText(dir, ref, { ...(flags.against !== undefined ? { against: flags.against } : {}), ...(flags.full ? { full: true } : {}), hint: `wp-shakedown history ${project ?? `--out ${dir}`}` }));
+  } catch (err) {
+    console.error(`wp-shakedown: ${err instanceof Error ? err.message : String(err)}`);
     return 2;
   }
-  const baseEntry = flags.against !== undefined ? resolveRun(entries, flags.against) : previousOf(entries, entry.run);
-  if (flags.against !== undefined && !baseEntry) {
-    console.error(`wp-shakedown: No run "${flags.against}". wp-shakedown history ${project ?? `--out ${dir}`} lists them.`);
+  return 0;
+}
+
+/** Answers the assistant checks of the newest run of a project. */
+async function assist(project: string | undefined, flags: { out?: string; check?: string[] }): Promise<number> {
+  if (!project) throw new Error('Name a project, for example: wp-shakedown assist my-theme');
+  const target = detectTarget(findProject(project)?.path ?? project);
+  const dir = flags.out ?? defaultReportDir(target);
+  const { report, files } = await runAssist({
+    dir,
+    target,
+    ...(flags.check ? { checks: flags.check } : {}),
+    onAnswer: (a) => console.error(`${a.verdict} ${a.check}: ${plural(a.findings.length, 'finding', 'findings')}${a.error ? `: ${a.error}` : ''}`),
+  });
+  const c = counts(report.answers);
+  console.log(`${c.pass} pass, ${c.fail} fail, ${c.unsure} unsure.`);
+  console.log(`Answers: ${files[0]}`);
+  return 0;
+}
+
+/** Reads the key from stdin. On a terminal it prints a prompt and does not echo what is typed. */
+function readSecret(): Promise<string> {
+  const stdin = process.stdin;
+  return new Promise((resolve, reject) => {
+    if (!stdin.isTTY) {
+      let text = '';
+      stdin.setEncoding('utf8');
+      stdin.on('data', (c) => (text += c));
+      stdin.on('end', () => resolve(text.trim()));
+      stdin.on('error', reject);
+      return;
+    }
+    process.stderr.write('Paste the key and press Enter:');
+    let text = '';
+    stdin.setRawMode(true);
+    stdin.setEncoding('utf8');
+    stdin.resume();
+    const done = (fn: () => void): void => {
+      stdin.setRawMode(false);
+      stdin.pause();
+      stdin.off('data', onData);
+      process.stderr.write('\n');
+      fn();
+    };
+    const onData = (chunk: string): void => {
+      for (const ch of chunk) {
+        if (ch === '\r' || ch === '\n' || ch === '\x04') return done(() => resolve(text.trim()));
+        if (ch === '\x03') return done(() => reject(new Error('Cancelled.')));
+        if (ch === '\x7f' || ch === '\b') text = text.slice(0, -1);
+        else text += ch;
+      }
+    };
+    stdin.on('data', onData);
+  });
+}
+
+async function key(action: string | undefined, provider: string | undefined): Promise<number> {
+  if ((action !== 'set' && action !== 'remove') || !provider) throw new Error('Use wp-shakedown key set anthropic or wp-shakedown key remove anthropic.');
+  if (provider !== 'anthropic') {
+    console.error('wp-shakedown: Only anthropic keys are stored. Claude Code and Codex use their own sign-in.');
     return 2;
   }
-  const base = baseEntry ? readRun(dir, baseEntry.run) : undefined;
-  const diff = base ? diffRuns(base, result) : undefined;
-  const since = base?.finishedAt;
-  process.stdout.write(flags.full ? toMarkdown(result, diff, since) : toShort(result, diff, since));
+  if (action === 'remove') {
+    console.log(removeAnthropicKey() ? 'Removed the key.' : 'No key saved.');
+    return 0;
+  }
+  const value = await readSecret();
+  if (!value) throw new Error('No key given.');
+  console.log(`Saved the key to ${saveAnthropicKey(value)}.`);
   return 0;
 }
 
@@ -275,6 +338,7 @@ async function main(argv: string[]): Promise<number> {
       options: {
         type: { type: 'string' },
         engine: { type: 'string', multiple: true },
+        check: { type: 'string', multiple: true },
         preset: { type: 'string' },
         profile: { type: 'string' },
         level: { type: 'string' },
@@ -313,6 +377,8 @@ async function main(argv: string[]): Promise<number> {
         ...(values.full ? { full: true } : {}),
       });
     }
+    if (command === 'assist') return await assist(input, { ...(values.out ? { out: values.out } : {}), ...(values.check ? { check: values.check } : {}) });
+    if (command === 'key') return await key(positionals[1], positionals[2]);
     if (command === 'mcp') {
       await startMcp({ engines, input: process.stdin, output: process.stdout }).closed;
       return 0;
