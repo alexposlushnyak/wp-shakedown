@@ -42,11 +42,14 @@ From then on the Release workflow publishes, and no npm token is stored anywhere
    gh release create v0.2.0 --title "0.2.0" --notes-file notes.md
    ```
 
-7. The Release workflow runs the checks and publishes to npm with provenance. Watch it finish, then confirm:
+7. The Release workflow runs the checks and publishes to npm with provenance. The Docker workflow builds the image for amd64 and arm64 and pushes it to `ghcr.io/alexposlushnyak/wp-shakedown` with the version, the minor version and `latest` as tags. Watch both finish, then confirm:
 
    ```bash
    npm view wp-shakedown version
+   docker pull ghcr.io/alexposlushnyak/wp-shakedown:0.4.0
    ```
+
+   The first push creates the package on GitHub. If the package page shows it as private, make it public in its settings, so `docker pull` works without signing in.
 
 ## If something goes wrong
 

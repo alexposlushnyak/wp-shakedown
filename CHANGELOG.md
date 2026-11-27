@@ -4,6 +4,8 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-27
+
 ### Added
 
 - A Docker image with PHP, Composer, Node and every tool installed: `ghcr.io/alexposlushnyak/wp-shakedown`. See [Run wp-shakedown in Docker](docs/how-to/docker.md).
@@ -126,7 +128,8 @@ A WordPress folder gets the engines above for every theme and plugin in it, and 
 
 - The PHP tools install themselves with Composer on the first run, and the JavaScript and CSS tools with npm. Versions are pinned.
 
-[Unreleased]: https://github.com/alexposlushnyak/wp-shakedown/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/alexposlushnyak/wp-shakedown/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/alexposlushnyak/wp-shakedown/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/alexposlushnyak/wp-shakedown/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/alexposlushnyak/wp-shakedown/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/alexposlushnyak/wp-shakedown/releases/tag/v0.1.0
