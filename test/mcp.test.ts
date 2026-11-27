@@ -300,3 +300,15 @@ test('run_checks still accepts experimental as an old name, and list_engines doe
   const list = JSON.parse((await s.callTool(2, 'list_engines')).result.content[0].text);
   assert.ok(!('experimental' in list[0]) && !('experimental' in list[1]));
 });
+
+test('run_checks reads wp-shakedown.json unless use_config is false', async (t) => {
+  const s = boot(t, [one]);
+  const dir = makeTheme(tmp(t));
+  write(path.join(dir, 'wp-shakedown.json'), JSON.stringify({ level: 4 }));
+  const read = (await s.callTool(1, 'run_checks', { path: dir })).result.content[0].text as string;
+  assert.match(read, /- Level: 4\n/);
+  assert.match(read, /- Settings: wp-shakedown\.json\n/);
+  const ignored = (await s.callTool(2, 'run_checks', { path: dir, use_config: false })).result.content[0].text as string;
+  assert.doesNotMatch(ignored, /Settings: wp-shakedown\.json/);
+  assert.doesNotMatch(ignored, /- Level: 4\n/);
+});

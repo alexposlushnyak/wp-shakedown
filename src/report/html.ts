@@ -81,6 +81,7 @@ export function toHtml(result: RunResult, diff?: RunDiff, since?: string): strin
     result.level !== undefined ? `Level ${e(levelLabel(result.level))}` : '',
     result.preset ? `Preset ${e(result.preset)}` : '',
     result.experimental ? 'Experimental checks on' : '',
+    result.config ? `Settings from ${e(result.config)}` : '',
     `Run ${e(runLabel(result.finishedAt))}, wp-shakedown ${e(result.tool.version)}`,
   ].filter(Boolean);
   let body = `<h1>${e(t.name)}</h1>

@@ -7,7 +7,7 @@ import { runAssist, counts } from './assistant/assist.ts';
 import { removeAnthropicKey, saveAnthropicKey } from './assistant/keys.ts';
 import { engines } from './engines/index.ts';
 import { listRuns, runText } from './history.ts';
-import { findPreset, listPresets, presetTable } from './presets.ts';
+import { listPresets, presetTable } from './presets.ts';
 import { hubExitCode, hubLines, projectTable, runMany } from './hub.ts';
 import type { HubRow } from './hub.ts';
 import { addProject, findProject, listProjects, removeProject } from './projects.ts';
@@ -50,6 +50,7 @@ Options:
   --preset <id>       Run the engines of one preset: ${presetList}
   --level <n>         How thorough the run is, from 0 to 10. The default is 6. quick, standard and deep work as 3, 6 and 8
                       --experimental is an old name: level 7 or more, with the wordpress.org rules
+  --no-config         Ignore wp-shakedown.json in the target
   --out <dir>         Write the report here
   --baseline <file>   Use this baseline file
   --fail-on <name>    Exit 1 at this severity or above: critical, important, recommended or never. A preset can set it
@@ -241,7 +242,8 @@ interface RunFlags {
   preset?: string;
   level?: number;
   experimental?: boolean;
-  failOn: Severity | 'never';
+  failOn?: Severity | 'never';
+  noConfig?: boolean;
 }
 
 async function runHub(inputs: string[], jobs: number, f: RunFlags): Promise<number> {
@@ -268,6 +270,7 @@ async function runHub(inputs: string[], jobs: number, f: RunFlags): Promise<numb
       ...(f.preset ? { preset: f.preset } : {}),
       ...(f.experimental ? { experimental: true } : {}),
       ...(f.level !== undefined ? { level: f.level } : {}),
+      ...(f.noConfig ? { config: false } : {}),
     },
     onChange: (all, row, event) => {
       latest = all;
@@ -353,6 +356,7 @@ async function main(argv: string[]): Promise<number> {
         jobs: { type: 'string' },
         port: { type: 'string' },
         'no-open': { type: 'boolean' },
+        'no-config': { type: 'boolean' },
         help: { type: 'boolean', short: 'h' },
         version: { type: 'boolean', short: 'v' },
       },
@@ -404,8 +408,8 @@ async function main(argv: string[]): Promise<number> {
     const levelText = values.level ?? values.depth;
     const level = levelText !== undefined ? parseLevel(levelText) : undefined;
     const preset = values.preset ?? values.profile;
-    // A preset sets the exit threshold unless --fail-on is given.
-    const failOn: Severity | 'never' = values['fail-on'] !== undefined ? parseFailOn(values['fail-on']) : (preset ? findPreset(preset)?.failOn : undefined) ?? 'error';
+    // A preset or the settings of the project set the exit threshold unless --fail-on is given.
+    const failOn = values['fail-on'] !== undefined ? parseFailOn(values['fail-on']) : undefined;
 
     if (many) {
       // The same folder twice would write one report folder from two runs.
@@ -417,11 +421,12 @@ async function main(argv: string[]): Promise<number> {
         ...(preset ? { preset } : {}),
         ...(level !== undefined ? { level } : {}),
         ...(values.experimental ? { experimental: true } : {}),
-        failOn,
+        ...(failOn ? { failOn } : {}),
+        ...(values['no-config'] ? { noConfig: true } : {}),
       });
     }
 
-    const { result, diff, files } = await runSession({
+    const session = await runSession({
       input: paths[0]!,
       ...(type ? { type } : {}),
       ...(values.engine ? { only: values.engine } : {}),
@@ -430,6 +435,7 @@ async function main(argv: string[]): Promise<number> {
       ...(values.experimental ? { experimental: true } : {}),
       ...(values.out ? { out: values.out } : {}),
       ...(values.baseline ? { baselineFile: values.baseline } : {}),
+      ...(values['no-config'] ? { config: false } : {}),
       engines,
       onEvent: (e) => {
         const line = progressLine(e);
@@ -437,11 +443,13 @@ async function main(argv: string[]): Promise<number> {
       },
     });
 
+    const { result, diff, files } = session;
+    if (session.configFile) console.error(`Settings from ${session.configFile}.`);
     console.log(summaryLine(result));
     if (result.engines.length === 0) console.log(noEngineLine(result));
     if (diff) console.log(`${diff.fixed.length} fixed, ${diff.added.length} new, ${diff.open.length} still open.`);
     console.log(`Report: ${files[0]}`);
-    return exitCode(result, failOn);
+    return exitCode(result, failOn ?? session.failOn ?? 'error');
   } catch (err) {
     console.error(`wp-shakedown: ${err instanceof Error ? err.message : String(err)}`);
     return 2;

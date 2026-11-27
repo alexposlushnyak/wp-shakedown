@@ -6,6 +6,8 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ### Added
 
+- A GitHub Action: `uses: alexposlushnyak/wp-shakedown@<tag>` runs the checks, uploads the findings to code scanning, keeps the report as an artifact and writes the short report to the job summary. [Run wp-shakedown in CI](docs/how-to/ci.md) also shows GitLab CI and Bitbucket Pipelines.
+- `wp-shakedown.json` in a theme, plugin or WordPress folder sets the preset or engines, the level and the exit threshold for every run on it. It cannot hold checks or commands, or turn on an assistant. `--no-config` ignores it. See [ADR 0034](docs/adr/0034-settings-file-in-the-target.md).
 - Checks for an assistant: a run on a theme or plugin lists the checks no tool can make, such as whether escaping fits its context or a request handler checks the nonce, each with a prompt and the files to start from. `wp-shakedown assist` and the web page answer them through Claude Code, Codex or an Anthropic API key, when the preset names one in its new `assistant` field. Without it nothing leaves your machine. `wp-shakedown key set anthropic` saves the key. See [ADR 0033](docs/adr/0033-assistant-checks-and-providers.md).
 - The MCP server has `list_presets`, `list_runs`, `get_run` and `get_assistant_checks`.
 - The report folder keeps the 20 newest runs. `wp-shakedown history <project>` lists them, prints the report of any one and compares any two. The web page lists the runs of a project, opens the report of each and compares two. See [ADR 0032](docs/adr/0032-run-history-is-a-folder-per-run.md).

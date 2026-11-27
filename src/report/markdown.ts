@@ -58,7 +58,7 @@ export function toMarkdown(result: RunResult, diff?: RunDiff, since?: string): s
   const out: string[] = [];
   out.push('# wp-shakedown report');
   out.push(
-    `- Target: ${result.target.kind} "${result.target.name}" at ${result.target.path}${result.preset ? `\n- Preset: ${result.preset}` : ''}${result.level !== undefined ? `\n- Level: ${levelLabel(result.level)}` : ''}${result.experimental ? '\n- Experimental checks: on' : ''}\n- Run: ${result.finishedAt}, wp-shakedown ${result.tool.version}`,
+    `- Target: ${result.target.kind} "${result.target.name}" at ${result.target.path}${result.preset ? `\n- Preset: ${result.preset}` : ''}${result.level !== undefined ? `\n- Level: ${levelLabel(result.level)}` : ''}${result.experimental ? '\n- Experimental checks: on' : ''}${result.config ? `\n- Settings: ${result.config}` : ''}\n- Run: ${result.finishedAt}, wp-shakedown ${result.tool.version}`,
   );
 
   const summary = ['## Summary', summaryLine(result)];

@@ -196,6 +196,8 @@ export interface RunResult {
   };
   /** ID of the preset the run used. Absent when the run used none. */
   preset?: string;
+  /** The file name of the project settings the run read from the target, `wp-shakedown.json`. Absent when it read none. */
+  config?: string;
   /** The level of the run. A report written before levels has `depth` and `profile` instead, and readPreviousRun maps them. */
   level?: number;
   /** The directory whose rules the run applied. Absent when the preset names none. */

@@ -26,3 +26,32 @@ jobs:
       - run: npm run typecheck
       - run: npm run build
       - run: npm test
+
+  action:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - id: shakedown
+        uses: ./
+        with:
+          path: test/fixtures/ci-theme
+          sarif: 'false'
+          artifact: ''
+      - name: Check the result
+        env:
+          EXIT_CODE: ${{ steps.shakedown.outputs.exit-code }}
+          REPORT_DIR: ${{ steps.shakedown.outputs.report-dir }}
+        run: |
+          set -euo pipefail
+          test "$EXIT_CODE" = 0
+          node -e '
+            const fs = require("node:fs");
+            const dir = process.env.REPORT_DIR;
+            const report = JSON.parse(fs.readFileSync(dir + "/report.json", "utf8"));
+            const sarif = JSON.parse(fs.readFileSync(dir + "/report.sarif", "utf8"));
+            const uris = sarif.runs.flatMap((r) => r.results.flatMap((x) => (x.locations ?? []).map((l) => l.physicalLocation.artifactLocation.uri)));
+            const ok = report.config === "wp-shakedown.json" && report.level === 5 && uris.some((u) => u.startsWith("test/fixtures/ci-theme/"));
+            if (!ok) { console.error(JSON.stringify({ config: report.config, level: report.level, uris })); process.exit(1); }
+          '

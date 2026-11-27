@@ -204,6 +204,28 @@ test('a preset sets the level and the exit threshold unless the flags are given'
   assert.deepEqual(run('--depth', 'quick'), { status: 1, level: 3 });
 });
 
+test('wp-shakedown.json sets the exit code, --no-config ignores it, an invalid file exits 2', (t) => {
+  const home = tmp(t);
+  const theme = makeTheme(tmp(t));
+  write(path.join(home, 'checks', 'always.json'), JSON.stringify({ type: 'files', require: ['no-such-file.txt'], message: 'Missing file.', severity: 'warning', level: 2 }));
+  const out = () => path.join(tmp(t), 'out');
+  const go = (...flags: string[]) => cliHome(home, 'run', theme, '--engine', 'custom:always', '--out', out(), ...flags);
+  write(path.join(theme, 'wp-shakedown.json'), JSON.stringify({ failOn: 'important', level: 4 }));
+  const first = go();
+  assert.equal(first.status, 1);
+  assert.match(first.stderr, /Settings from .*wp-shakedown\.json\./);
+  assert.equal(go('--no-config').status, 0);
+  assert.equal(go('--fail-on', 'critical').status, 0);
+  write(path.join(theme, 'wp-shakedown.json'), JSON.stringify({ failOn: 'never' }));
+  assert.equal(go().status, 0);
+  write(path.join(theme, 'wp-shakedown.json'), JSON.stringify({ checks: [] }));
+  const bad = go();
+  assert.equal(bad.status, 2);
+  assert.match(bad.stderr, /wp-shakedown\.json is not valid: it cannot hold checks or commands/);
+  assert.equal(go('--no-config').status, 0);
+  assert.match(cli('--help').stdout, /--no-config {9}Ignore wp-shakedown\.json in the target/);
+});
+
 test('--experimental is an old name: level 7 or more with the wordpress.org rules', (t) => {
   const theme = makeTheme(tmp(t));
   const report = (...flags: string[]) => {
