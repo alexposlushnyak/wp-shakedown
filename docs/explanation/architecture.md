@@ -1,6 +1,6 @@
 # Architecture
 
-This document describes the design. The core, the report writers, sixteen engines, the presets and all three ways in exist: the `run` command, the local web page and the MCP server. The engines for a site URL are not built. The version is below 1.0, so the command line and the report format may still change between minor versions.
+This document describes the design. The core, the report writers, fifteen engines, the presets and every way in exist: the `run` command, the local web page, the MCP server, a GitHub Action and a Docker image. The engines for a site URL are not built. The version is below 1.0, so the command line and the report format may still change between minor versions.
 
 ## Principles
 
@@ -30,7 +30,7 @@ flowchart LR
 | WordPress folder | Health checks of the install. The tool does not run the code checks on the themes and plugins inside it: test a theme or plugin by giving its own folder. The tool only reads. |
 | Site, by URL | Checks from the outside, in a browser. This is a separate module. |
 
-A WordPress folder is tested the same way as a single theme or plugin, on your machine. The tool finds the themes and plugins in `wp-content` and runs the code checks on each, then adds the checks that only make sense for a whole install.
+A WordPress folder is tested as an install: the code of the themes and plugins inside it belongs to other people, and its findings would bury what the owner of the site can act on. See [ADR 0030](../adr/0030-a-wordpress-folder-is-tested-as-an-install.md).
 
 ## Engines
 
@@ -43,7 +43,7 @@ Each external tool sits behind an adapter that knows how to run it and how to re
 | Review rules | One engine, `review`, with our own rules. Each rule has a level and, when it states the requirements of wordpress.org or ThemeForest, a directory that a preset switches on | Built. See [Engines](../reference/engines.md#review) |
 | JSON | JSON Schema validation of `theme.json` and `block.json` | Built |
 | JS, CSS | ESLint and Stylelint with the WordPress configs | Built |
-| Install health | Official checksums for core and plugins, current versions from wordpress.org, `wp-config.php` and risky files | Built. See [ADR 0015](../adr/0015-install-health-without-a-running-site.md) |
+| Install health | Official checksums for core and plugins, current versions from wordpress.org, `wp-config.php` and risky files, suspicious files such as web shells and obfuscated code | Built. See [ADR 0015](../adr/0015-install-health-without-a-running-site.md) |
 | Vulnerabilities | WPVulnerability.net by plugin, theme and core version, and Wordfence Intelligence with a key | Built |
 | Running site | The tests of Site Health, run through WP-CLI | Built. See [ADR 0024](../adr/0024-site-health-through-wp-cli.md) |
 | Site from outside | Playwright with axe-core, Lighthouse, a link checker | Planned, separate module |
@@ -93,9 +93,23 @@ The same list of projects works in the terminal with `add`, `list`, `remove` and
 
 ## MCP server
 
-`wp-shakedown mcp` lets an AI assistant call the tool. It speaks the Model Context Protocol over standard input and output and offers four tools: detect a target, list the engines, run the checks, and page through the findings of the last run. [MCP server](../reference/mcp.md) describes them.
+`wp-shakedown mcp` lets an AI assistant call the tool. It speaks the Model Context Protocol over standard input and output and offers eight tools: detect a target, list the engines and the presets, run the checks, page through the findings of the last run, list the kept runs, read the report of one, and fetch the checks for an assistant. [MCP server](../reference/mcp.md) describes them.
 
 The server answers `run_checks` with the Markdown report, which was shaped for an assistant from the start. The protocol is written by hand to keep the package small, and the official client tests it. See [ADR 0016](../adr/0016-mcp-server-written-by-hand.md).
+
+## Checks for an assistant
+
+Some review points need someone to read the code and judge it, and no tool answers them. A run lists the ones that apply, each with a prompt and the files to start from. An assistant on MCP answers them itself, or `wp-shakedown assist` sends them to Claude Code, Codex or the Anthropic API when a preset of the user names one. Without that, no code leaves the machine. The answers stay apart from the findings, because a model does not answer the same way twice. See [Checks for an assistant](../reference/assistant.md) and [ADR 0033](../adr/0033-assistant-checks-and-providers.md).
+
+## Settings, CI and Docker
+
+A project may hold `wp-shakedown.json` with a preset or engines, a level and the threshold that fails the build. It picks from what the tool and the user have and never holds checks, commands or an assistant ([ADR 0034](../adr/0034-settings-file-in-the-target.md)).
+
+The repository is a GitHub Action that runs the tool from its own files at the tag a workflow names, and a Docker image has PHP, Composer, Node and every tool already installed. See [Run wp-shakedown in CI](../how-to/ci.md) and [Run it in Docker](../how-to/docker.md).
+
+## Review cases
+
+`cases/` holds requests that reviewers of wordpress.org make, each with its ticket, a status and a fixture theme. A test runs every case, so a rule that stops catching one fails the build. See [Add a review case](../how-to/add-a-case.md) and [ADR 0035](../adr/0035-a-base-of-review-cases.md).
 
 ## PHP runtime
 
@@ -103,7 +117,7 @@ PHP tools need PHP. The engines use the PHP on your `PATH`, and Composer install
 
 Without PHP on the machine, `WP_SHAKEDOWN_PHP=bundled` runs the same tools on the WebAssembly PHP of WordPress Playground. The tool downloads it, and Composer, on the first run. The findings are the same, and runs are two to three times slower. See [ADR 0006](../adr/0006-php-runtime-user-choice.md) and [ADR 0025](../adr/0025-bundled-php-is-opt-in.md).
 
-The JavaScript and CSS tools are installed the same way, with npm. See [ADR 0013](../adr/0013-javascript-and-css-tools.md).
+The JavaScript and CSS tools are installed the same way, with npm. See [ADR 0013](../adr/0013-javascript-and-css-tools.md). So is the Anthropic SDK, the first time the `api` provider of the assistant checks runs. On Windows, npm installs a command as a `.cmd` file that Node starts only through `cmd.exe`, so the tool runs the script such a file wraps with Node.
 
 ## Deferred
 

@@ -16,7 +16,7 @@ Without PHP or Composer the tool still runs. It skips the checks that need them 
 
 ## 2. Run it on a theme
 
-Point it at a theme folder. A plugin folder or a whole WordPress folder works the same way.
+Point it at a theme folder. A plugin folder works the same way. A whole WordPress folder works too and gets the checks of an install.
 
 ```bash
 npx wp-shakedown run /path/to/your-theme
@@ -32,45 +32,53 @@ You then see one line per engine, and a summary:
   php-lint: Checking syntax with PHP 8.4.25.
 ok php-lint: 1 finding, 0.2s
 ok theme-check: 2 findings, 0.1s
+ok review: 0 findings, 0.0s
 ok wpcs: 2 findings, 0.2s
   php-compat: Checking against PHP 7.4 and newer.
 ok php-compat: 0 findings, 0.2s
 ok wp-json: 0 findings, 0.1s
 ok eslint: 2 findings, 1.6s
 ok stylelint: 3 findings, 0.6s
-2 errors, 4 warnings, 4 notes.
+2 critical, 4 important, 4 recommended.
 Report: /Users/you/.wp-shakedown/reports/your-theme-1a2b3c4d/report.md
 ```
 
-The command exits with 1, because the run found errors.
+The command exits with 1, because the run found critical findings.
 
 ## 3. Read the report
 
-Open `report.md`. Findings are grouped by file:
+Open `report.md`. Findings are grouped by file, and a rule that repeats across files is listed once:
 
 ```
 ### functions.php
 
-- error `1eca0f685152` line 9: All output should be run through an escaping function ... (wpcs: WordPress.Security.EscapeOutput.OutputNotEscaped)
+- Critical `1eca0f685152` line 9: All output should be run through an escaping function ... (wpcs: WordPress.Security.EscapeOutput.OutputNotEscaped)
 
 ### inc/broken.php
 
-- error `83cf061b365f` line 2: syntax error, unexpected token "{", expecting variable (php-lint: syntax)
+- Critical `83cf061b365f` line 2: syntax error, unexpected token "{", expecting variable (php-lint: syntax)
 ```
 
 Each finding has an ID in backticks. The ID stays the same on the next run, even when the line number changes.
 
-Code style findings are counted per rule at the end. `report.html` in the same folder has the full list.
+Code style findings are counted per rule at the end. `report.html` in the same folder has the full list, `report-short.md` a quick look and `report.csv` a table for a spreadsheet.
 
 ## 4. Fix and run again
 
-Fix one of the errors and run the same command again. The output now has a line that compares the two runs:
+Fix one of the critical findings and run the same command again. The output now has a line that compares the two runs:
 
 ```
 1 fixed, 0 new, 2 still open.
 ```
 
-To hand the work to an AI assistant, give it the path of `report.md` and ask it to fix the findings.
+Every run stays. List them and compare any two:
+
+```bash
+npx wp-shakedown history /path/to/your-theme
+npx wp-shakedown history /path/to/your-theme 1 --against 2
+```
+
+To hand the work to an AI assistant, give it the path of `report.md` and ask it to fix the findings. At level 7 or higher, the report also lists [checks for an assistant](../reference/assistant.md): review points that need someone to read the code.
 
 ## 5. Try the web page
 
@@ -84,3 +92,5 @@ A page opens in your browser with the theme on its list. Open the theme and choo
 
 - [Command line](../reference/cli.md) for the options, the exit codes and the baseline file
 - [Engines](../reference/engines.md) for what each check looks for
+- [Presets](../reference/presets.md) and the [settings file](../reference/config.md) to fix the checks of a project
+- [Run wp-shakedown in CI](../how-to/ci.md)

@@ -123,4 +123,4 @@ Public text here must read as if a person wrote it. Before you commit any text, 
 
 AI agents write most of this project. The maintainer directs the work and reviews it. A commit made with an agent carries a `Co-Authored-By` trailer that names the agent.
 
-The project was started with Claude Fable 5.2 from Anthropic, running in Claude Code. When the model changes, update this line.
+The project was started with Claude Fable 5.2 from Anthropic, running in Claude Code. The current work uses Claude Opus 5.5 for design and review and Claude Sonnet 5.5 for the implementation of a written spec. When the models change, update this line.
