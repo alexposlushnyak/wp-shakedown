@@ -11,7 +11,7 @@ export function toShort(result: RunResult, diff?: RunDiff, since?: string): stri
   const t = result.target;
   const out: string[] = [`# wp-shakedown: ${t.name}`];
   out.push(
-    `${kindLabel(t.kind)} at ${t.path}, level ${levelLabel(result.level ?? DEFAULT_LEVEL)}${result.preset ? `, preset ${result.preset}` : ''}\nRun ${runLabel(result.finishedAt)}, wp-shakedown ${result.tool.version}.`,
+    `${kindLabel(t.kind)} at ${t.path}, level ${levelLabel(result.level ?? DEFAULT_LEVEL)}${result.preset ? `, preset ${result.preset}` : ''}\nRun ${runLabel(result.finishedAt)}, wp-shakedown ${result.tool.version}${result.config ? `, settings from ${result.config}` : ''}.`,
   );
 
   const status = [summaryLine(result)];

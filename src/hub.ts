@@ -21,6 +21,8 @@ export interface HubRow {
   current?: string;
   result?: RunResult;
   reportFile?: string;
+  /** The exit threshold the project asked for through its preset or settings. */
+  failOn?: Severity | 'never';
   error?: string;
 }
 
@@ -62,6 +64,7 @@ export async function runMany(inputs: string[], opts: HubOptions): Promise<HubRo
         row.result = s.result;
         row.name = s.result.target.name;
         if (s.files[0]) row.reportFile = s.files[0];
+        if (s.failOn) row.failOn = s.failOn;
       } catch (err) {
         row.state = 'failed';
         row.error = err instanceof Error ? err.message : String(err);
@@ -91,11 +94,11 @@ export function hubLines(rows: HubRow[], width: number): string[] {
   });
 }
 
-/** 2 when a run failed or any run's exit code is 2, else 1 when any is 1, else 0. */
-export function hubExitCode(rows: HubRow[], failOn: Severity | 'never'): 0 | 1 | 2 {
+/** 2 when a run failed or any run's exit code is 2, else 1 when any is 1, else 0. Without `failOn` each row uses its own, or `error`. */
+export function hubExitCode(rows: HubRow[], failOn?: Severity | 'never'): 0 | 1 | 2 {
   let code: 0 | 1 | 2 = 0;
   for (const r of rows) {
-    const c = r.state === 'done' && r.result ? exitCode(r.result, failOn) : 2;
+    const c = r.state === 'done' && r.result ? exitCode(r.result, failOn ?? r.failOn ?? 'error') : 2;
     if (c > code) code = c;
   }
   return code;

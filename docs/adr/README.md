@@ -37,6 +37,7 @@ Each record states one decision, the options that were considered, and the reaso
 | [0031](0031-one-review-engine-and-directory-rules.md) | One review engine holds the rules of wp-shakedown, and a preset switches on the rules of a directory | Accepted |
 | [0032](0032-run-history-is-a-folder-per-run.md) | Run history is a folder per run inside the report folder | Accepted |
 | [0033](0033-assistant-checks-and-providers.md) | Checks no tool can make go to an AI assistant, through a tool the user already has | Accepted |
+| [0034](0034-settings-file-in-the-target.md) | A project may hold a settings file, never checks or commands | Accepted |
 
 ## Adding a record
 

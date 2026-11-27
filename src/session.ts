@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { loadBaseline } from './baseline.ts';
+import { CONFIG_FILE, readProjectConfig } from './config.ts';
 import { diffRuns } from './diff.ts';
 import { saveRun } from './history.ts';
 import { assertReportDir, defaultReportDir, readPreviousRun, writeReports } from './report/write.ts';
@@ -9,7 +10,7 @@ import { customEngines } from './engines/custom.ts';
 import { run } from './runner.ts';
 import { detectTarget } from './target.ts';
 import { DEFAULT_LEVEL } from './types.ts';
-import type { Engine, RunDiff, RunEvent, RunResult } from './types.ts';
+import type { Engine, RunDiff, RunEvent, RunResult, Severity } from './types.ts';
 
 export interface SessionOptions {
   input: string;
@@ -22,6 +23,8 @@ export interface SessionOptions {
   level?: number;
   /** Old name from the command line and MCP. It raises the level to at least 7. */
   experimental?: boolean;
+  /** Read wp-shakedown.json from the target. The default is true. */
+  config?: boolean;
   out?: string;
   baselineFile?: string;
   engines: Engine[];
@@ -36,17 +39,24 @@ export interface SessionResult {
   dir: string;
   /** The id of the run in the history of the report folder. */
   run: string;
+  /** The exit threshold the preset or the project settings ask for. Absent when neither does. */
+  failOn?: Severity | 'never';
+  /** The path of the project settings the run read. */
+  configFile?: string;
 }
 
 /** The steps from a path to written reports. The command line and the local server share them. */
 export async function runSession(opts: SessionOptions): Promise<SessionResult> {
   const target = detectTarget(opts.input, opts.type ? { type: opts.type } : {});
-  const preset = opts.preset ?? opts.profile;
-  if (preset && opts.only) throw new Error('Use a preset or a list of engines, not both.');
+  const given = opts.preset ?? opts.profile;
+  if (given && opts.only) throw new Error('Use a preset or a list of engines, not both.');
+  const project = opts.config === false ? undefined : readProjectConfig(target);
+  const settings = given || opts.only ? undefined : project?.config;
+  const preset = given ?? settings?.preset;
   const all = [...opts.engines, ...customEngines(target)];
-  const only = preset ? presetEngines(preset, target, all.map((e) => e.id)) : opts.only;
+  const only = preset ? presetEngines(preset, target, all.map((e) => e.id)) : (opts.only ?? settings?.engines);
   const found = preset ? findPreset(preset) : undefined;
-  let level = opts.level ?? found?.level;
+  let level = opts.level ?? project?.config.level ?? found?.level;
   // The old --experimental flag asked for the reviewer rules of wordpress.org: level 7 with the wporg directory rules.
   if (opts.experimental) level = Math.max(level ?? DEFAULT_LEVEL, 7);
   const directory = found?.directory ?? (opts.experimental ? 'wporg' : undefined);
@@ -69,8 +79,10 @@ export async function runSession(opts: SessionOptions): Promise<SessionResult> {
     ...(opts.onEvent ? { onEvent: opts.onEvent } : {}),
     ...(opts.signal ? { signal: opts.signal } : {}),
   });
+  if (project) result.config = CONFIG_FILE;
   const diff = previous ? diffRuns(previous, result) : undefined;
   const files = writeReports(result, dir, diff);
   const runId = saveRun(dir, result, previous);
-  return { result, ...(diff ? { diff } : {}), files, dir, run: runId };
+  const failOn = project?.config.failOn ?? found?.failOn;
+  return { result, ...(diff ? { diff } : {}), files, dir, run: runId, ...(failOn ? { failOn } : {}), ...(project ? { configFile: project.file } : {}) };
 }

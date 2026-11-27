@@ -54,6 +54,7 @@ To use Wordfence Intelligence, add the key to the `env` of that entry as `WP_SHA
 | `level` | integer, 0 to 10 | How thorough the run is. The default is 6. A preset can set its own. See [Levels](cli.md#levels). `depth` (`quick`, `standard` or `deep`) is the old name |
 | `experimental` | boolean | An old name. It raises the level to at least 7 and, without a preset, turns on the review rules of wordpress.org, as `theme-review` used to run |
 | `type` | `theme`, `plugin` or `install` | Use it only when detection is wrong |
+| `use_config` | boolean | `false` ignores [`wp-shakedown.json`](config.md) in the folder. The default is `true` |
 
 The answer is the same Markdown report that [`wp-shakedown run`](cli.md) writes, followed by the path of the report file. Code style findings are counted per rule. When a second run follows a first, the report says what is fixed, what is new and what is still open.
 

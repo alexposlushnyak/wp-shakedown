@@ -1,0 +1,134 @@
+name: wp-shakedown
+description: Runs wp-shakedown on a WordPress theme or plugin, uploads the result to code scanning and keeps the report.
+branding:
+  icon: check-square
+  color: gray-dark
+
+inputs:
+  path:
+    description: The folder to test, relative to the workspace.
+    default: .
+  preset:
+    description: The preset to run. Empty uses wp-shakedown.json in the folder, else the default.
+    default: ''
+  level:
+    description: The level from 0 to 10. Empty uses wp-shakedown.json in the folder, else the default.
+    default: ''
+  fail-on:
+    description: The severity that fails the job. Empty uses wp-shakedown.json in the folder or the preset, else critical.
+    default: ''
+  php-version:
+    description: The PHP version for the PHP tools.
+    default: '8.3'
+  sarif:
+    description: Upload the SARIF file to code scanning. Needs security-events write permission in the calling job and code scanning on the repository.
+    default: 'true'
+  artifact:
+    description: The name of the uploaded report artifact. Empty skips the upload.
+    default: wp-shakedown-report
+
+outputs:
+  exit-code:
+    description: The exit code of wp-shakedown.
+    value: ${{ steps.run.outputs.exit-code }}
+  report-dir:
+    description: The folder that holds the report files.
+    value: ${{ steps.run.outputs.report-dir }}
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v7
+      with:
+        node-version: '22'
+
+    - uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ inputs.php-version }}
+        tools: composer
+        coverage: none
+
+    - id: tools-key
+      shell: bash
+      run: |
+        set -euo pipefail
+        key=$(cat "$GITHUB_ACTION_PATH/php-tools/composer.lock" "$GITHUB_ACTION_PATH/js-tools/package-lock.json" "$GITHUB_ACTION_PATH/php-wasm/package-lock.json" | sha256sum | cut -c1-16)
+        echo "key=$key" >> "$GITHUB_OUTPUT"
+
+    - uses: actions/cache@v6
+      with:
+        path: ~/.wp-shakedown/tools
+        key: wp-shakedown-tools-${{ runner.os }}-${{ steps.tools-key.outputs.key }}
+        restore-keys: wp-shakedown-tools-${{ runner.os }}-
+
+    - name: Install wp-shakedown
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: npm ci --omit=dev --ignore-scripts --no-audit --no-fund
+
+    - id: run
+      name: Run wp-shakedown
+      shell: bash
+      env:
+        INPUT_PATH: ${{ inputs.path }}
+        INPUT_PRESET: ${{ inputs.preset }}
+        INPUT_LEVEL: ${{ inputs.level }}
+        INPUT_FAIL_ON: ${{ inputs.fail-on }}
+      run: |
+        set -uo pipefail
+        out="$RUNNER_TEMP/wp-shakedown-report"
+        args=(run "$INPUT_PATH" --out "$out")
+        [ -n "$INPUT_PRESET" ] && args+=(--preset "$INPUT_PRESET")
+        [ -n "$INPUT_LEVEL" ] && args+=(--level "$INPUT_LEVEL")
+        [ -n "$INPUT_FAIL_ON" ] && args+=(--fail-on "$INPUT_FAIL_ON")
+        set +e
+        node "$GITHUB_ACTION_PATH/src/cli.ts" "${args[@]}"
+        code=$?
+        set -e
+        echo "exit-code=$code" >> "$GITHUB_OUTPUT"
+        echo "report-dir=$out" >> "$GITHUB_OUTPUT"
+
+    - name: Write job summary
+      if: always()
+      shell: bash
+      run: |
+        short="$RUNNER_TEMP/wp-shakedown-report/report-short.md"
+        if [ -f "$short" ]; then cat "$short" >> "$GITHUB_STEP_SUMMARY"; fi
+
+    - id: sarif
+      name: Prepare SARIF
+      # Always, so the SARIF in the artifact has paths from the repository root too.
+      if: always()
+      shell: bash
+      env:
+        INPUT_PATH: ${{ inputs.path }}
+      run: |
+        set -euo pipefail
+        file="$RUNNER_TEMP/wp-shakedown-report/report.sarif"
+        [ -f "$file" ] || exit 0
+        prefix=$(node -e 'console.log(require("node:path").relative(process.env.GITHUB_WORKSPACE, require("node:path").resolve(process.env.GITHUB_WORKSPACE, process.env.INPUT_PATH)).split(require("node:path").sep).join("/"))')
+        if [ -n "$prefix" ]; then
+          node "$GITHUB_ACTION_PATH/scripts/action-sarif.mjs" "$file" "$prefix"
+        fi
+        echo "found=true" >> "$GITHUB_OUTPUT"
+
+    - name: Upload SARIF
+      if: always() && inputs.sarif == 'true' && steps.sarif.outputs.found == 'true'
+      uses: github/codeql-action/upload-sarif@v4
+      with:
+        sarif_file: ${{ runner.temp }}/wp-shakedown-report/report.sarif
+        category: wp-shakedown
+
+    - name: Upload report
+      if: always() && inputs.artifact != ''
+      uses: actions/upload-artifact@v7
+      with:
+        name: ${{ inputs.artifact }}
+        path: ${{ runner.temp }}/wp-shakedown-report
+        if-no-files-found: ignore
+
+    - name: Apply the exit code
+      shell: bash
+      env:
+        CODE: ${{ steps.run.outputs.exit-code }}
+      run: exit "${CODE:-1}"

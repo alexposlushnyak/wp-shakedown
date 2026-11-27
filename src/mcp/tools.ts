@@ -108,6 +108,7 @@ export const tools: Tool[] = [
           depth: { type: 'string', enum: ['quick', 'standard', 'deep'], description: 'Old name of level. quick, standard and deep are 3, 6 and 8.' },
           experimental: { type: 'boolean', description: 'Old name. It raises the level to at least 7 and, without a preset, runs the wordpress.org review rules.' },
           type: { type: 'string', enum: ['theme', 'plugin', 'install'], description: 'Use only when detection is wrong.' },
+          use_config: { type: 'boolean', description: 'Read wp-shakedown.json from the folder. The default is true.' },
         },
         ['path'],
       );
@@ -134,6 +135,7 @@ export const tools: Tool[] = [
           ...(preset ? { preset } : {}),
           ...(level !== undefined ? { level } : {}),
           ...(args.experimental ? { experimental: true } : {}),
+          ...(args.use_config === false ? { config: false } : {}),
           engines: ctx.engines,
           signal: ctx.signal,
           onEvent: (e) => {

@@ -26,7 +26,8 @@ A WordPress folder is tested as an install: file integrity, updates, known vulne
 | `--level <n>` | Sets how thorough the run is, from 0 to 10. The names `quick`, `standard` and `deep` work as 3, 6 and 8. The default is 6. A preset can set its own level. See [Levels](#levels). `--depth` is the old name. `--experimental` is another old name: it raises the level to at least 7 and, without a preset, turns on the review rules of wordpress.org |
 | `--out <dir>` | Writes the report to this folder |
 | `--baseline <file>` | Uses this baseline file |
-| `--fail-on <name>` | Sets the severity that makes the command exit 1: `critical`, `important`, `recommended` or `never`. The default is `critical`. The old names `error`, `warning` and `info` work too. A [preset](presets.md) can set it |
+| `--fail-on <name>` | Sets the severity that makes the command exit 1: `critical`, `important`, `recommended` or `never`. The default is `critical`. The old names `error`, `warning` and `info` work too. A [preset](presets.md) or the [settings file](config.md) can set it |
+| `--no-config` | Ignores [`wp-shakedown.json`](config.md) in the target |
 
 ### Levels
 
