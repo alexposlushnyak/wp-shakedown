@@ -142,6 +142,7 @@ The list is the file `~/.wp-shakedown/projects.json`. The [web page](ui.md) read
 | `wp-shakedown presets` | Lists the built-in [presets](presets.md) and your own, with their level, the number of engines and the file of each. A file that is not a valid preset is listed after the table, with the reason |
 | `wp-shakedown assist <project> [--check <id>]...` | Answers the [checks for an assistant](assistant.md) of the last run through the provider its preset names |
 | `wp-shakedown key set anthropic`, `key remove anthropic` | Saves or removes the Anthropic API key for the `api` provider |
+| `wp-shakedown install-tools` | Installs the PHP tools and the JavaScript and CSS tools now, so later runs need no download. The [Docker image](../how-to/docker.md) runs it when it is built |
 | `wp-shakedown ui [path]` | Starts the [local web page](ui.md) |
 | `wp-shakedown mcp` | Starts the [MCP server](mcp.md) for an AI assistant |
 | `wp-shakedown --help` | Prints the usage text |

@@ -94,8 +94,11 @@ test('onError decides what a check that cannot run does', async (t) => {
   assert.equal(warn.engines[0]!.status, 'ok');
   assert.equal(warn.findings[0]!.severity, 'warning');
   assert.match(warn.findings[0]!.message, /^The check could not run: /);
-  const cmd = await setup(t, { c: { type: 'command', run: 'no-such-command-xyz' } }).go();
-  assert.match(cmd.engines[0]!.reason!, /not found or could not run \(exit code 127\)/);
+  // cmd.exe exits with 1 for an unknown command, so only a POSIX shell tells it apart.
+  if (process.platform !== 'win32') {
+    const cmd = await setup(t, { c: { type: 'command', run: 'no-such-command-xyz' } }).go();
+    assert.match(cmd.engines[0]!.reason!, /not found or could not run \(exit code 127\)/);
+  }
 });
 
 test('a check file that is not valid shows as a failed engine', async (t) => {

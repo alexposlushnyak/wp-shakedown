@@ -6,6 +6,10 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ### Added
 
+- A Docker image with PHP, Composer, Node and every tool installed: `ghcr.io/alexposlushnyak/wp-shakedown`. See [Run wp-shakedown in Docker](docs/how-to/docker.md).
+- `wp-shakedown install-tools` installs the PHP tools and the JavaScript and CSS tools ahead of the first run.
+- `wp-shakedown ui --bind <address>` for a container. The default stays 127.0.0.1.
+- Playwright tests of the web page, and the test suite runs on macOS and Windows as well as Linux.
 - A base of review cases in `cases/`: requests that wordpress.org reviewers make, each with its ticket, a status and a fixture theme. A test runs every case, so a rule that stops catching one fails the build. See [ADR 0035](docs/adr/0035-a-base-of-review-cases.md).
 - A GitHub Action: `uses: alexposlushnyak/wp-shakedown@<tag>` runs the checks, uploads the findings to code scanning, keeps the report as an artifact and writes the short report to the job summary. [Run wp-shakedown in CI](docs/how-to/ci.md) also shows GitLab CI and Bitbucket Pipelines.
 - `wp-shakedown.json` in a theme, plugin or WordPress folder sets the preset or engines, the level and the exit threshold for every run on it. It cannot hold checks or commands, or turn on an assistant. `--no-config` ignores it. See [ADR 0034](docs/adr/0034-settings-file-in-the-target.md).
@@ -41,6 +45,10 @@ All notable changes to this project are recorded here. The format follows [Keep 
 - `phpstan` runs at level 8, the old `deep`.
 - The web page is dark only, set in Inter, with neutral greys and larger type.
 - `report.html` looks like the web page: dark, set in Inter, with the three counts at the top.
+
+### Fixed
+
+- On Windows, the tool could not start npm, Claude Code or Codex when npm installed them, because they are .cmd files. It now runs the script such a file wraps with Node.
 
 ## [0.3.0] - 2026-11-25
 

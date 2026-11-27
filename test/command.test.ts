@@ -7,7 +7,8 @@ import { tmp, write } from './helpers.ts';
 
 test('resolveCommand runs the script of an npm .cmd shim with Node on Windows', (t) => {
   const dir = tmp(t);
-  write(path.join(dir, 'npm.cmd'), '@ECHO off\r\nSET "NPM_CLI_JS=%~dp0\\node_modules\\npm\\bin\\npm-cli.js"\r\n"%_prog%" "%NPM_CLI_JS%" %*\r\n');
+  // The npm.cmd of Node first runs npm-prefix.js, then npm-cli.js.
+  write(path.join(dir, 'npm.cmd'), '@ECHO off\r\nSET "NPM_PREFIX_JS=%~dp0\\node_modules\\npm\\bin\\npm-prefix.js"\r\nSET "NPM_CLI_JS=%~dp0\\node_modules\\npm\\bin\\npm-cli.js"\r\n"%_prog%" "%NPM_CLI_JS%" %*\r\n');
   write(path.join(dir, 'claude.cmd'), '@IF EXIST "%dp0%\\node.exe" (\r\n  "%dp0%\\node.exe" "%dp0%\\node_modules\\@anthropic-ai\\claude-code\\cli.js" %*\r\n)\r\n');
   const win = { platform: 'win32' as const, path: dir };
   assert.deepEqual(resolveCommand('npm', ['ci'], win), [process.execPath, [path.join(dir, 'node_modules\\npm\\bin\\npm-cli.js'), 'ci']]);

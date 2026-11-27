@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
 // The script a .cmd shim of npm runs, relative to the folder of the shim: "%~dp0\node_modules\npm\bin\npm-cli.js" or "%dp0%\node_modules\...".
-const SHIM_SCRIPT = /%~?dp0%?\\([^"%\r\n]+?\.(?:c|m)?js)"/i;
+const SHIM_SCRIPT = /%~?dp0%?\\([^"%\r\n]+?\.(?:c|m)?js)"/gi;
 
 /**
  * The program and arguments that start `cmd`. On Windows a command installed by npm, such as npm itself,
@@ -21,7 +21,8 @@ export function resolveCommand(
     if (existsSync(path.join(dir, `${cmd}.exe`)) || existsSync(path.join(dir, `${cmd}.com`))) return [cmd, args];
     const shim = path.join(dir, `${cmd}.cmd`);
     if (!existsSync(shim)) continue;
-    const script = SHIM_SCRIPT.exec(readFileSync(shim, 'utf8'))?.[1];
+    // The last script is the one the shim runs: npm.cmd first runs npm-prefix.js to find the prefix, then npm-cli.js.
+    const script = [...readFileSync(shim, 'utf8').matchAll(SHIM_SCRIPT)].pop()?.[1];
     if (script) return [process.execPath, [path.join(dir, script), ...args]];
   }
   return [cmd, args];

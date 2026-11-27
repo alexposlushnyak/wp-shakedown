@@ -63,7 +63,7 @@ async function install(spec: NpmToolsSpec, note: (m: string) => void): Promise<s
     // Another process installed it first.
     rmSync(tmp, { recursive: true, force: true });
   }
-  if (!existsSync(ready)) throw new Error(`npm finished, but ${spec.what} is not in "${dir}".`);
+  if (!existsSync(ready)) throw new Error(`npm finished, but "${dir}" does not hold ${spec.what}.`);
   return dir;
 }
 
