@@ -4,54 +4,12 @@ import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, statSy
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { crc32, deflateRawSync } from 'node:zlib';
 import { test } from '@playwright/test';
 import type { Page } from '@playwright/test';
+import { zipOf } from '../test/helpers.ts';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const fixtures = fileURLToPath(new URL('./fixtures/', import.meta.url));
-
-/** A ZIP with the given files, deflated. Enough of the format for the upload route. */
-function zip(files: Record<string, string>): Buffer {
-  const locals: Buffer[] = [];
-  const centrals: Buffer[] = [];
-  let offset = 0;
-  for (const [file, text] of Object.entries(files)) {
-    const name = Buffer.from(file);
-    const data = Buffer.from(text);
-    const body = deflateRawSync(data);
-    const crc = crc32(data);
-    const local = Buffer.alloc(30);
-    local.writeUInt32LE(0x04034b50, 0);
-    local.writeUInt16LE(20, 4);
-    local.writeUInt16LE(8, 8);
-    local.writeUInt32LE(crc, 14);
-    local.writeUInt32LE(body.length, 18);
-    local.writeUInt32LE(data.length, 22);
-    local.writeUInt16LE(name.length, 26);
-    const central = Buffer.alloc(46);
-    central.writeUInt32LE(0x02014b50, 0);
-    central.writeUInt16LE(20, 4);
-    central.writeUInt16LE(20, 6);
-    central.writeUInt16LE(8, 10);
-    central.writeUInt32LE(crc, 16);
-    central.writeUInt32LE(body.length, 20);
-    central.writeUInt32LE(data.length, 24);
-    central.writeUInt16LE(name.length, 28);
-    central.writeUInt32LE(offset, 42);
-    locals.push(local, name, body);
-    centrals.push(central, name);
-    offset += 30 + name.length + body.length;
-  }
-  const directory = Buffer.concat(centrals);
-  const end = Buffer.alloc(22);
-  end.writeUInt32LE(0x06054b50, 0);
-  end.writeUInt16LE(centrals.length / 2, 8);
-  end.writeUInt16LE(centrals.length / 2, 10);
-  end.writeUInt32LE(directory.length, 12);
-  end.writeUInt32LE(offset, 16);
-  return Buffer.concat([...locals, directory, end]);
-}
 
 export interface App {
   url: string;
@@ -90,11 +48,11 @@ export function useApp(): App {
     app.zip = path.join(dir, 'e2e-gamma.zip');
     writeFileSync(
       app.zip,
-      zip({
-        'e2e-gamma/style.css': '/*\nTheme Name: E2E Gamma\nVersion: 1.0.0\nText Domain: e2e-gamma\n*/\n',
-        'e2e-gamma/theme.json': '{ "version": 3, "notAWordPressProperty": true }\n',
-        'e2e-gamma/templates/index.html': '<!-- wp:paragraph --><p>Hello</p><!-- /wp:paragraph -->\n',
-      }),
+      zipOf([
+        { name: 'e2e-gamma/style.css', data: '/*\nTheme Name: E2E Gamma\nVersion: 1.0.0\nText Domain: e2e-gamma\n*/\n' },
+        { name: 'e2e-gamma/theme.json', data: '{ "version": 3, "notAWordPressProperty": true }\n' },
+        { name: 'e2e-gamma/templates/index.html', data: '<!-- wp:paragraph --><p>Hello</p><!-- /wp:paragraph -->\n' },
+      ]),
     );
 
     child = spawn(process.execPath, [path.join(root, 'src', 'cli.ts'), 'ui', work, '--port', '0', '--no-open'], {
