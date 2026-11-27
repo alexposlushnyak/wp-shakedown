@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process';
+import { resolveCommand } from './command.ts';
 
 export interface ExecResult {
   code: number;
@@ -11,7 +12,8 @@ export class NotFound extends Error {}
 
 export function exec(cmd: string, args: string[], opts: { cwd?: string; signal?: AbortSignal; env?: Record<string, string> } = {}): Promise<ExecResult> {
   return new Promise((resolve, reject) => {
-    const child = spawn(cmd, args, {
+    const [program, argv] = resolveCommand(cmd, args);
+    const child = spawn(program, argv, {
       ...(opts.cwd ? { cwd: opts.cwd } : {}),
       ...(opts.env ? { env: { ...process.env, ...opts.env } } : {}),
       ...(opts.signal ? { signal: opts.signal } : {}),

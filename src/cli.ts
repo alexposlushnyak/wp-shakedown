@@ -19,6 +19,8 @@ import { exitCode } from './runner.ts';
 import { runSession } from './session.ts';
 import { startMcp } from './mcp/server.ts';
 import { startUi } from './ui/server.ts';
+import { phpTools } from './php/tools.ts';
+import { jsTools } from './js/tools.ts';
 import { textTable } from './table.ts';
 import { importZip } from './uploads.ts';
 import { VERSION } from './version.ts';
@@ -40,6 +42,7 @@ Usage:
   wp-shakedown history <project> [run] [--against <run>] [--full]
   wp-shakedown assist <project> [--check <id>]... [--out <dir>]
   wp-shakedown key set anthropic | remove anthropic
+  wp-shakedown install-tools
   wp-shakedown ui [path] [options]
   wp-shakedown mcp
 
@@ -59,6 +62,7 @@ Options:
   --all               Run every project on the list
   --jobs <n>          How many projects run at once. The default is 3
   --port <n>          Port for the ui command. The default is a free port
+  --bind <address>    Address the ui command listens on. The default is 127.0.0.1. Use 0.0.0.0 in a container
   --no-open           Do not open the browser
   -h, --help          Show this help
   -v, --version       Show the version
@@ -304,7 +308,15 @@ function openBrowser(url: string): void {
   }
 }
 
-async function ui(input: string | undefined, portText: string | undefined, noOpen: boolean): Promise<number> {
+async function installTools(): Promise<number> {
+  const note = (m: string): void => console.error(m);
+  await phpTools(note);
+  await jsTools(note);
+  console.log('The PHP tools and the JavaScript and CSS tools are installed.');
+  return 0;
+}
+
+async function ui(input: string | undefined, portText: string | undefined, noOpen: boolean, bind?: string): Promise<number> {
   let port: number | undefined;
   if (portText !== undefined) {
     port = Number(portText);
@@ -319,7 +331,10 @@ async function ui(input: string | undefined, portText: string | undefined, noOpe
       // A folder that is not a theme, a plugin or a WordPress folder is only the place to start browsing.
     }
   }
-  const server = await startUi({ engines, startDir, ...(port !== undefined ? { port } : {}) });
+  const server = await startUi({ engines, startDir, ...(port !== undefined ? { port } : {}), ...(bind !== undefined ? { bind } : {}) });
+  if (bind !== undefined && bind !== '127.0.0.1' && bind !== 'localhost') {
+    console.error(`The page listens on ${bind}. Publish the port to 127.0.0.1 only, for example -p 127.0.0.1:${server.port}:${server.port}.`);
+  }
   // Listen for the signal before printing the address. Whoever reads that line may send the signal at once.
   const stopped = new Promise<void>((resolve) => {
     process.once('SIGINT', resolve);
@@ -355,6 +370,7 @@ async function main(argv: string[]): Promise<number> {
         all: { type: 'boolean' },
         jobs: { type: 'string' },
         port: { type: 'string' },
+        bind: { type: 'string' },
         'no-open': { type: 'boolean' },
         'no-config': { type: 'boolean' },
         help: { type: 'boolean', short: 'h' },
@@ -387,7 +403,8 @@ async function main(argv: string[]): Promise<number> {
       await startMcp({ engines, input: process.stdin, output: process.stdout }).closed;
       return 0;
     }
-    if (command === 'ui') return await ui(input, values.port, values['no-open'] ?? false);
+    if (command === 'install-tools') return await installTools();
+    if (command === 'ui') return await ui(input, values.port, values['no-open'] ?? false, values.bind);
     if (command !== 'run') throw new Error(`Unknown command "${command}". Run wp-shakedown --help.`);
     const paths = positionals.slice(1).map(folderOf);
     const all = values.all ?? false;

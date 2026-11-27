@@ -599,3 +599,16 @@ test('/api/assist says what is missing', async (t) => {
   assert.equal(res.status, 400);
   assert.match(((await res.json()) as { error: string }).error, /No report yet/);
 });
+
+test('bind changes the address, and the Host check stays', async (t) => {
+  const { ui, base } = await boot(t, [found], { bind: '0.0.0.0' });
+  assert.equal((await fetch(`${base}/api/state?t=${ui.token}`)).status, 200);
+  const bad = await new Promise<number>((resolve, reject) => {
+    const req = http.get({ host: '127.0.0.1', port: ui.port, path: `/api/state?t=${ui.token}`, headers: { host: `example.com:${ui.port}` } }, (res) => {
+      res.resume();
+      resolve(res.statusCode ?? 0);
+    });
+    req.on('error', reject);
+  });
+  assert.equal(bad, 403);
+});

@@ -73,7 +73,7 @@ test('a files check requires and forbids', async (t) => {
   ]);
 });
 
-test('a command check reports its exit code and output', async (t) => {
+test('a command check reports its exit code and output', { skip: process.platform === 'win32' && 'The commands use POSIX shell syntax' }, async (t) => {
   const bad = await setup(t, { cmd: { type: 'command', run: 'echo first; echo oops >&2; exit 3', title: 'Lint' } }).go();
   assert.equal(bad.findings.length, 1);
   assert.equal(bad.findings[0]!.message, 'Lint failed with exit code 3.');

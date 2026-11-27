@@ -82,6 +82,8 @@ function same(a: string, b: string): boolean {
 export function startUi(opts: {
   engines: Engine[];
   port?: number;
+  /** The address to listen on. Only containers change it. The Host and Origin checks stay on 127.0.0.1 and localhost. */
+  bind?: string;
   startDir?: string;
   token?: string;
   /** Opens the folder dialog. Tests replace it. Null means the system has none. */
@@ -613,7 +615,7 @@ export function startUi(opts: {
 
   return new Promise((resolve, reject) => {
     server.once('error', reject);
-    server.listen(opts.port ?? 0, '127.0.0.1', () => {
+    server.listen(opts.port ?? 0, opts.bind ?? '127.0.0.1', () => {
       port = (server.address() as { port: number }).port;
       resolve({
         url: `http://127.0.0.1:${port}/?t=${token}`,

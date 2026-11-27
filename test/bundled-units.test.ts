@@ -65,7 +65,7 @@ test('standardPaths resolves the standards from installed.json', () => {
       { name: 'x/compat', type: 'phpcodesniffer-standard', 'install-path': '../x/compat' },
     ],
   });
-  assert.deepEqual(standardPaths(json, '/t/vendor/composer'), ['/t/vendor/wp/wpcs', '/t/vendor/x/compat']);
+  assert.deepEqual(standardPaths(json, '/t/vendor/composer'), [path.resolve('/t/vendor/wp/wpcs'), path.resolve('/t/vendor/x/compat')]);
 });
 
 test('composerPhar refuses a download with the wrong checksum and leaves no file', async (t) => {

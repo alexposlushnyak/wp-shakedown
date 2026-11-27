@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
+import { resolveCommand } from '../src/command.ts';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { test } from 'node:test';
@@ -9,7 +10,8 @@ const built = existsSync(path.join(root, 'dist', 'cli.js')) && existsSync(path.j
 
 // ui/.gitignore ignores dist, and npm follows it unless ui/.npmignore exists. Version 0.1.0 almost shipped without the page.
 test('the npm package holds the command, the page and the tool manifests', { skip: built ? false : 'Run npm run build first' }, () => {
-  const r = spawnSync('npm', ['pack', '--dry-run', '--json', '--ignore-scripts'], { cwd: root, encoding: 'utf8' });
+  const [npm, args] = resolveCommand('npm', ['pack', '--dry-run', '--json', '--ignore-scripts']);
+  const r = spawnSync(npm, args, { cwd: root, encoding: 'utf8' });
   assert.equal(r.status, 0, r.stderr);
   // Older npm prints an array, newer npm an object keyed by the package name.
   const parsed = JSON.parse(r.stdout) as unknown;

@@ -45,8 +45,9 @@ test('config run finds risky files', async (t) => {
   const notes: string[] = [];
   const f = await config.run({ target: detectTarget(dir), level: 6, note: (m) => notes.push(m) });
   const got = f.map((x) => `${x.rule}:${x.location.file}`).sort();
+  // Windows has no group and other permission bits, so wp-config.php cannot be found writable there.
   assert.deepEqual(got, [
-    'config.writable:wp-config.php', 'leftover.config-copy:wp-config.php.bak', 'leftover.debug-log:wp-content/debug.log',
+    ...(process.platform === 'win32' ? [] : ['config.writable:wp-config.php']), 'leftover.config-copy:wp-config.php.bak', 'leftover.debug-log:wp-content/debug.log',
     'leftover.dump:dump.sql', 'leftover.env:.env', 'leftover.tool:phpinfo.php', 'uploads.php:wp-content/uploads/2026/x.php',
   ].sort());
   assert.deepEqual(notes, []);
